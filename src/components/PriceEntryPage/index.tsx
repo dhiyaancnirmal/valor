@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react"
 import { ArrowLeft, Camera, Check } from "lucide-react"
 import { FuelType } from "@/types"
 import { calculateDistance } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
 interface PriceEntryPageProps {
   stationId: string
@@ -143,9 +144,9 @@ export function PriceEntryPage({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-[#F4F4F8] flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-4">
+      <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center space-x-3">
           <button
             onClick={() => (step > 1 ? setStep((step - 1) as Step) : router.back())}
@@ -155,21 +156,21 @@ export function PriceEntryPage({
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div>
-            <h1 className="text-lg font-semibold text-gray-900">Submit Price</h1>
+            <h1 className="text-3xl font-bold text-[#1C1C1E]">Submit Price</h1>
             <p className="text-sm text-gray-600">{stationName}</p>
           </div>
         </div>
       </header>
 
       {/* Progress Bar */}
-      <div className="bg-white px-4 py-3 border-b border-gray-200">
+      <div className="bg-white px-6 py-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-gray-600">Step {step} of 4</span>
           <span className="text-xs text-gray-600">{Math.round((step / 4) * 100)}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
-            className="bg-primary rounded-full h-2 transition-all duration-300"
+            className="bg-[#7DD756] rounded-full h-2 transition-all duration-300"
             style={{ width: `${(step / 4) * 100}%` }}
           />
         </div>
@@ -177,17 +178,17 @@ export function PriceEntryPage({
 
       {/* Error Message */}
       {error && (
-        <div className="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+        <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           {error}
         </div>
       )}
 
       {/* Main Content */}
-      <main className="flex-1 px-4 py-6">
+      <main className="flex-1 px-6 py-6">
         {/* Step 1: Select Fuel Type */}
         {step === 1 && (
           <div className="max-w-md mx-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl font-bold text-[#1C1C1E] mb-2">
               Select Fuel Type
             </h2>
             <p className="text-gray-600 mb-6">
@@ -210,7 +211,7 @@ export function PriceEntryPage({
         {/* Step 2: Enter Price */}
         {step === 2 && (
           <div className="max-w-md mx-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl font-bold text-[#1C1C1E] mb-2">
               Enter Price
             </h2>
             <p className="text-gray-600 mb-6">
@@ -244,7 +245,7 @@ export function PriceEntryPage({
         {/* Step 3: Take Photo */}
         {step === 3 && (
           <div className="max-w-md mx-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl font-bold text-[#1C1C1E] mb-2">
               Take a Photo
             </h2>
             <p className="text-gray-600 mb-6">
@@ -284,7 +285,7 @@ export function PriceEntryPage({
         {/* Step 4: Review & Submit */}
         {step === 4 && (
           <div className="max-w-md mx-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl font-bold text-[#1C1C1E] mb-2">
               Review & Submit
             </h2>
             <p className="text-gray-600 mb-6">
@@ -301,7 +302,7 @@ export function PriceEntryPage({
               </div>
               <div>
                 <p className="text-sm text-gray-600">Price</p>
-                <p className="text-2xl font-bold text-primary">${price}</p>
+                <p className="text-2xl font-bold text-[#7DD756]">${price}</p>
               </div>
               {photoPreview && (
                 <div>

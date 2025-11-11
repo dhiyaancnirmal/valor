@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Search, Navigation, Coins, TrendingUp, Zap } from "lucide-react"
+import { Search, Navigation, Coins, TrendingUp } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { GasStation, UserLocation } from "@/types"
 import { formatDistance } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,56 +16,60 @@ interface HomeTabProps {
 }
 
 export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabProps) {
+  const t = useTranslations()
   const [searchQuery, setSearchQuery] = useState("")
 
-  const filteredStations = gasStations.filter((station) =>
+  // Remove duplicates by id and then filter by search query
+  const uniqueStations = gasStations.filter((station, index, self) =>
+    index === self.findIndex(s => s.id === station.id)
+  )
+
+  const filteredStations = uniqueStations.filter((station) =>
     station.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  // Calculate potential earnings (mock logic for gamification)
+  // Calculate potential earnings
   const calculateEarnings = (distance: number | undefined) => {
-    if (!distance) return { amount: 2.50, multiplier: 1 }
+    if (!distance) return 2.50
     // Base reward: $2.50
     // Bonus for closer stations (within 200m): +$1.00
-    // High demand bonus (random for demo): 0-50%
+    // Bonus for stations within 500m: +$0.50
     const baseReward = 2.50
     const proximityBonus = distance < 200 ? 1.00 : distance < 500 ? 0.50 : 0
-    const demandMultiplier = Math.random() > 0.7 ? 1.5 : 1 // 30% chance of high demand
-    const total = (baseReward + proximityBonus) * demandMultiplier
-    return { amount: total, multiplier: demandMultiplier }
+    return baseReward + proximityBonus
   }
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-green-50 to-gray-50">
+    <div className="h-full flex flex-col bg-[#F4F4F8]">
       {/* Earnings Banner */}
-      <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-4 text-white">
+      <div className="bg-gradient-to-r from-[#7DD756] to-[#6BC647] px-5 py-4 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm opacity-90">Your Potential Today</p>
-            <div className="flex items-center gap-2 mt-1">
-              <Coins className="w-6 h-6" />
-              <span className="text-2xl font-bold">
+            <p className="text-xs opacity-90">{t("homeTab.potentialToday")}</p>
+            <div className="flex items-center gap-1.5 mt-1">
+              <Coins className="w-4 h-4" />
+              <span className="text-xl font-bold">
                 ${(filteredStations.length * 2.5).toFixed(2)}
               </span>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm opacity-90">Stations Nearby</p>
-            <p className="text-2xl font-bold">{filteredStations.length}</p>
+            <p className="text-xs opacity-90">{t("homeTab.stationsNearby")}</p>
+            <p className="text-xl font-bold mt-1">{filteredStations.length}</p>
           </div>
         </div>
       </div>
 
       {/* Search Bar */}
-      <div className="bg-white px-4 py-3 border-b border-gray-200">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+      <div className="bg-white px-5 py-3 border-b border-gray-200">
+        <div className="relative w-full bg-gray-50 rounded-lg px-4 py-2.5">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search gas stations..."
+            placeholder={t("homeTab.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="bg-transparent text-gray-900 placeholder-gray-400 outline-none text-sm w-full pl-6"
           />
         </div>
       </div>
@@ -72,36 +77,29 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
       {/* Gas Station Cards */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {filteredStations.length === 0 ? (
-          <Card className="text-center py-12">
-            <CardContent className="pt-6">
-              <div className="text-gray-400 text-5xl mb-4">⛽</div>
-              <p className="text-gray-600 font-medium">No gas stations found</p>
-              <p className="text-sm text-gray-500 mt-2">
-                Try adjusting your search or location
+          <Card className="text-center py-8">
+            <CardContent>
+              <div className="text-gray-400 text-5xl mb-3">⛽</div>
+              <p className="text-sm text-gray-600 font-medium">{t("homeTab.noStationsFound")}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {t("homeTab.adjustSearch")}
               </p>
             </CardContent>
           </Card>
         ) : (
           filteredStations.map((station) => {
             const earnings = calculateEarnings(station.distance)
-            const isHighDemand = earnings.multiplier > 1
 
             return (
               <Card
                 key={station.id}
-                className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-green-500 relative overflow-hidden"
+                className="hover:shadow-md transition-all duration-200 cursor-pointer hover:border-[#7DD756] active:scale-[0.99]"
                 onClick={() => onStationSelect(station)}
               >
-                {isHighDemand && (
-                  <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-orange-500 text-white px-3 py-1 text-xs font-bold flex items-center gap-1 rounded-bl-lg">
-                    <Zap className="w-3 h-3" />
-                    HIGH DEMAND
-                  </div>
-                )}
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-3">
                     {/* Station Image */}
-                    <div className="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden">
+                    <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden">
                       {station.photo ? (
                         <img
                           src={station.photo}
@@ -109,7 +107,7 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-3xl">
+                        <div className="w-full h-full flex items-center justify-center text-2xl">
                           ⛽
                         </div>
                       )}
@@ -117,43 +115,42 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
 
                     {/* Station Info */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-gray-900 truncate text-lg">
+                      <h3 className="font-semibold text-gray-900 truncate text-sm mb-1">
                         {station.name}
                       </h3>
-                      <p className="text-sm text-gray-600 truncate mt-1">
+                      <p className="text-xs text-gray-600 truncate mb-2">
                         {station.address}
                       </p>
 
-                      <div className="flex items-center gap-3 mt-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {station.distance !== undefined && (
-                          <Badge variant="secondary" className="flex items-center gap-1">
+                          <Badge variant="secondary" className="flex items-center gap-1 px-2 py-0.5 text-xs">
                             <Navigation className="w-3 h-3" />
-                            {formatDistance(station.distance)}
+                            <span>{formatDistance(station.distance)}</span>
                           </Badge>
                         )}
 
                         {/* Earnings Badge */}
                         <Badge
-                          className="bg-gradient-to-r from-green-500 to-emerald-600 text-white flex items-center gap-1"
+                          className="bg-gradient-to-r from-[#7DD756] to-[#6BC647] text-white flex items-center gap-1 px-2 py-0.5 text-xs font-semibold"
                         >
                           <Coins className="w-3 h-3" />
-                          Earn ${earnings.amount.toFixed(2)}
+                          <span>{t("homeTab.earn")} ${earnings.toFixed(2)}</span>
                         </Badge>
                       </div>
                     </div>
 
                     {/* Action Button */}
-                    <div className="flex-shrink-0 flex flex-col items-center gap-2">
+                    <div className="flex-shrink-0">
                       <Button
-                        size="lg"
-                        className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold"
                         onClick={(e) => {
                           e.stopPropagation()
                           onStationSelect(station)
                         }}
+                        size="sm"
+                        variant="icon"
                       >
-                        <TrendingUp className="w-4 h-4 mr-2" />
-                        Submit
+                        <TrendingUp className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>

@@ -1,85 +1,117 @@
 "use client"
 
+import { useState } from "react"
 import { useSession, signOut } from "next-auth/react"
-import { Wallet, LogOut, Award, TrendingUp } from "lucide-react"
+import { LogOut, Loader2, Settings, Copy, CheckCircle2 } from "lucide-react"
+import { useTranslations } from "next-intl"
+import { SettingsDrawer } from "@/components/SettingsDrawer"
 
 export function WalletTab() {
   const { data: session } = useSession()
+  const t = useTranslations()
+  const [isSigningOut, setIsSigningOut] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const handleSignOut = async () => {
-    await signOut({ redirect: true, callbackUrl: "/" })
+    if (isSigningOut) return
+
+    try {
+      setIsSigningOut(true)
+      await signOut({ redirect: false })
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Sign out error:', error)
+      alert(t("walletTab.signOutFailed"))
+      setIsSigningOut(false)
+    }
   }
 
-  const stats = [
-    { label: "Submissions", value: "0", icon: TrendingUp },
-    { label: "Rewards Earned", value: "0 WLD", icon: Award },
-  ]
+  const copyAddress = () => {
+    if (session?.user?.walletAddress) {
+      navigator.clipboard.writeText(session.user.walletAddress)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50 px-4 py-6">
-      <div className="max-w-md mx-auto space-y-6">
-        {/* Wallet Card */}
-        <div className="bg-gradient-to-br from-primary to-primary-dark rounded-2xl p-6 text-white shadow-lg">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-              <Wallet className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm opacity-90">Wallet Address</p>
-              <p className="font-mono text-sm font-medium">
-                {session?.user?.walletAddress
-                  ? `${session.user.walletAddress.slice(0, 6)}...${session.user.walletAddress.slice(-4)}`
-                  : "Not connected"}
-              </p>
-            </div>
-          </div>
-
-          <div className="border-t border-white/20 pt-4">
-            <p className="text-sm opacity-90 mb-2">Total Balance</p>
-            <p className="text-3xl font-bold">0 WLD</p>
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-4">
-          {stats.map((stat) => {
-            const Icon = stat.icon
-            return (
-              <div
-                key={stat.label}
-                className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"
-              >
-                <div className="flex items-center space-x-2 text-gray-600 mb-2">
-                  <Icon className="w-4 h-4" />
-                  <p className="text-xs">{stat.label}</p>
-                </div>
-                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Actions */}
-        <div className="space-y-3">
+    <div className="h-full overflow-y-auto bg-[#F4F4F8]">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-5 py-3">
+        <div className="flex items-center justify-between">
+          <h1 className="text-base font-semibold text-gray-900">Wallet</h1>
           <button
-            onClick={handleSignOut}
-            className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-medium py-4 px-6 rounded-xl transition-colors flex items-center justify-center space-x-2"
+            onClick={() => setIsSettingsOpen(true)}
+            className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
+            aria-label="Settings"
           >
-            <LogOut className="w-5 h-5" />
-            <span>Sign Out</span>
+            <Settings className="w-5 h-5 text-gray-600" />
           </button>
         </div>
+      </div>
 
-        {/* Info Card */}
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-          <h3 className="font-semibold text-blue-900 mb-2">How it works</h3>
-          <ul className="text-sm text-blue-800 space-y-2">
-            <li>• Submit gas prices at nearby stations</li>
-            <li>• Earn rewards for accurate submissions</li>
-            <li>• Help others find the best prices</li>
-          </ul>
+      {/* Balance Card */}
+      <div className="px-4 pt-6 pb-4">
+        <div className="bg-gradient-to-br from-[#7DD756] to-[#6BC647] rounded-2xl p-6 shadow-md">
+          <p className="text-white/80 text-xs font-medium mb-2">Total Balance</p>
+          <div className="flex items-baseline gap-2">
+            <span className="text-5xl font-bold text-white tabular-nums">0</span>
+            <span className="text-xl font-semibold text-white/90">WLD</span>
+          </div>
         </div>
       </div>
+
+      {/* Wallet Address */}
+      <div className="px-4 pb-4">
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
+              {t("walletTab.walletAddress")}
+            </p>
+            <button
+              onClick={copyAddress}
+              className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"
+              aria-label="Copy address"
+            >
+              {copied ? (
+                <CheckCircle2 className="w-4 h-4 text-green-500" />
+              ) : (
+                <Copy className="w-4 h-4 text-gray-400" />
+              )}
+            </button>
+          </div>
+          <p className="font-mono text-sm font-medium text-gray-900 break-all">
+            {session?.user?.walletAddress
+              ? `${session.user.walletAddress.slice(0, 10)}...${session.user.walletAddress.slice(-8)}`
+              : t("walletTab.notConnected")}
+          </p>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="px-4 pb-6 space-y-3 safe-area-b-20">
+        <button
+          onClick={handleSignOut}
+          disabled={isSigningOut}
+          className="w-full bg-white border-2 border-gray-200 text-gray-700 font-medium py-3 px-5 rounded-xl transition-all flex items-center justify-center gap-2 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm text-sm"
+        >
+          {isSigningOut ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>{t("walletTab.signingOut")}</span>
+            </>
+          ) : (
+            <>
+              <LogOut className="w-4 h-4" />
+              <span>{t("walletTab.signOut")}</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Settings Drawer */}
+      <SettingsDrawer isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
   )
 }

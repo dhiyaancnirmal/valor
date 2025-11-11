@@ -1,0 +1,9 @@
+[profile.default]
+solc_version = "0.8.20"
+src = "contracts"
+out = "contracts/out"
+libs = ["lib"]
+remappings = []
+
+
+

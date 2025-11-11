@@ -1,7 +1,14 @@
 import type { Metadata } from "next"
+import { DM_Sans } from 'next/font/google'
 import "./globals.css"
 import { SessionProvider } from "@/components/providers/SessionProvider"
 import { MiniKitProvider } from "@/components/providers/MiniKitProvider"
+import { LanguageProvider } from "@/components/providers/LanguageProvider"
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-dm-sans',
+})
 
 export const metadata: Metadata = {
   title: "Valor - Gas Price Crowdsourcing",
@@ -14,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={dmSans.variable}>
       <head>
         <script
           src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
@@ -22,12 +29,14 @@ export default function RootLayout({
           defer
         ></script>
       </head>
-      <body className="antialiased">
-        <SessionProvider>
-          <MiniKitProvider>
-            {children}
-          </MiniKitProvider>
-        </SessionProvider>
+      <body className="antialiased font-sans">
+        <LanguageProvider>
+          <SessionProvider>
+            <MiniKitProvider>
+              {children}
+            </MiniKitProvider>
+          </SessionProvider>
+        </LanguageProvider>
       </body>
     </html>
   )

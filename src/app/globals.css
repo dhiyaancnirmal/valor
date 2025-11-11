@@ -1,10 +1,18 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Jersey+20&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 
+/* Force cache bust - Updated: 2025-11-11 */
 @plugin 'tailwindcss-animate';
 @import "tailwindcss";
-@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+
+/* Valor CSS Variables */
+:root {
+  --valor-green: #7DD756;
+  --valor-green-dark: #5FB840;
+  --background: #F4F4F8;
+  --foreground: #1C1C1E;
+}
 
 * {
   margin: 0;
@@ -16,6 +24,25 @@ body {
   font-family: 'DM Sans', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--background);
+}
+
+
+/* Animation Keyframes */
+@keyframes slide-up {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0); }
+}
+.slide-up-enter {
+  animation: slide-up 0.3s ease-out;
+}
+
+@keyframes scroll-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-scroll-left {
+  animation: scroll-left 20s linear infinite;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
@@ -29,9 +56,46 @@ body {
   scrollbar-width: none;
 }
 
+/* Safe-area helpers for World Mini Apps - moved outside @layer for better compatibility */
+.safe-area-b-4 {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 4px);
+}
+
+.safe-area-b-12 {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+}
+
+.safe-area-b-20 {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+}
+
+.safe-area-b-24 {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+}
+
+.safe-area-bottom {
+  bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Touch target helper - ensures minimum 44px tap areas */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* Content spacing for consistent 24px padding */
+  .content-padding {
+    padding: 24px;
+  }
+
+  /* Keyboard-aware fallback for when keyboard is open */
+  [data-keyboard-open="true"] .kb-safe-b-24 {
+    padding-bottom: 24px;
   }
 }
 

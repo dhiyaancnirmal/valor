@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { Map, Home, Wallet, MapPin } from "lucide-react"
-import { useTranslations } from "next-intl"
 import { GoogleMapView } from "@/components/GoogleMap"
 import { HomeTab } from "./HomeTab"
 import { WalletTab } from "./WalletTab"
@@ -16,7 +15,6 @@ type Tab = "map" | "home" | "wallet"
 
 export function MainUI() {
   const { data: session } = useSession()
-  const t = useTranslations()
   const [activeTab, setActiveTab] = useState<Tab>("home")
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null)
   const [gasStations, setGasStations] = useState<GasStation[]>([])
@@ -203,9 +201,9 @@ export function MainUI() {
   }
 
   const tabs = [
-    { id: "map" as Tab, icon: Map, label: t("mainUI.tabs.map") },
-    { id: "home" as Tab, icon: Home, label: t("mainUI.tabs.home") },
-    { id: "wallet" as Tab, icon: Wallet, label: t("mainUI.tabs.wallet") },
+    { id: "map" as Tab, icon: Map, label: "Map" },
+    { id: "home" as Tab, icon: Home, label: "Home" },
+    { id: "wallet" as Tab, icon: Wallet, label: "Wallet" },
   ]
 
   if (loading) {
@@ -213,7 +211,7 @@ export function MainUI() {
       <div className="flex items-center justify-center min-h-screen bg-[#F4F4F8]">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">{t("mainUI.loadingStations")}</p>
+          <p className="text-gray-600">Loading gas stations...</p>
         </div>
       </div>
     )
@@ -230,7 +228,7 @@ export function MainUI() {
           {userLocation && (
             <div className="flex items-center text-xs text-gray-600 font-medium">
               <MapPin className="w-4 h-4 mr-1.5" />
-              <span>{t("mainUI.locationEnabled")}</span>
+              <span>Location enabled</span>
             </div>
           )}
         </div>

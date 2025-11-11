@@ -3,12 +3,10 @@
 import { useState } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { LogOut, Loader2, Settings, Copy, CheckCircle2 } from "lucide-react"
-import { useTranslations } from "next-intl"
 import { SettingsDrawer } from "@/components/SettingsDrawer"
 
 export function WalletTab() {
   const { data: session } = useSession()
-  const t = useTranslations()
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -22,7 +20,7 @@ export function WalletTab() {
       window.location.href = '/'
     } catch (error) {
       console.error('Sign out error:', error)
-      alert(t("walletTab.signOutFailed"))
+      alert("Failed to sign out")
       setIsSigningOut(false)
     }
   }
@@ -67,7 +65,7 @@ export function WalletTab() {
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
-              {t("walletTab.walletAddress")}
+              Wallet Address
             </p>
             <button
               onClick={copyAddress}
@@ -84,7 +82,7 @@ export function WalletTab() {
           <p className="font-mono text-sm font-medium text-gray-900 break-all">
             {session?.user?.walletAddress
               ? `${session.user.walletAddress.slice(0, 10)}...${session.user.walletAddress.slice(-8)}`
-              : t("walletTab.notConnected")}
+              : "Not connected"}
           </p>
         </div>
       </div>
@@ -99,12 +97,12 @@ export function WalletTab() {
           {isSigningOut ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>{t("walletTab.signingOut")}</span>
+              <span>Signing out...</span>
             </>
           ) : (
             <>
               <LogOut className="w-4 h-4" />
-              <span>{t("walletTab.signOut")}</span>
+              <span>Sign Out</span>
             </>
           )}
         </button>

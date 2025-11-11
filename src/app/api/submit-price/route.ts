@@ -102,9 +102,64 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Reward eligibility: one reward per gas station per 24h (DB-enforced)
+    let rewardEligible = false
+    let rewardSignature: string | null = null
+    let rewardDeadline: number | null = null
+    let stationIdBytes32: string | null = null
+    let rewardContractUsed: `0x${string}` | null = null
+
+    try {
+      // Check if this station has a claimed reward in the last 24h
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const { data: recentClaims, error: claimErr } = await supabase
+        .from("price_submissions")
+        .select("id")
+        .eq("gas_station_id", gasStationId)
+        .eq("reward_claimed", true)
+        .gt("created_at", twentyFourHoursAgo)
+        .limit(1)
+
+      if (claimErr) {
+        console.error("Eligibility check error:", claimErr)
+      }
+
+      if (!recentClaims || recentClaims.length === 0) {
+        // Eligible: generate signature for on-chain claim
+        const rewardContract = (process.env.REWARD_CONTRACT_ADDRESS || "0xa0B5489eE689441841A2e94Bd7E55793b609E576") as `0x${string}`
+        const signerKey = process.env.REWARD_SIGNER_PRIVATE_KEY as `0x${string}`
+
+        if (signerKey) {
+          // Generate signature for reward claim
+          const { generateRewardSignature } = await import("@/lib/rewards")
+          const signatureData = await generateRewardSignature(
+            walletAddress,
+            gasStationId,
+            submission.id,
+            rewardContract,
+            signerKey
+          )
+
+          rewardEligible = true
+          rewardSignature = signatureData.signature
+          rewardDeadline = signatureData.deadline
+          stationIdBytes32 = signatureData.stationIdBytes32
+          rewardContractUsed = rewardContract
+        }
+      }
+    } catch (rewardErr) {
+      console.error("Reward generation error:", rewardErr)
+      // Continue without rewards if signature generation fails
+    }
+
     return NextResponse.json({
       success: true,
       submission,
+      rewardEligible,
+      rewardSignature,
+      rewardDeadline,
+      stationIdBytes32,
+      rewardContract: rewardContractUsed,
     })
   } catch (error) {
     console.error("API error:", error)

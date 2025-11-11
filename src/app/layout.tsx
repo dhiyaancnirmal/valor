@@ -3,7 +3,6 @@ import { DM_Sans } from 'next/font/google'
 import "./globals.css"
 import { SessionProvider } from "@/components/providers/SessionProvider"
 import { MiniKitProvider } from "@/components/providers/MiniKitProvider"
-import { LanguageProvider } from "@/components/providers/LanguageProvider"
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -30,13 +29,11 @@ export default function RootLayout({
         ></script>
       </head>
       <body className="antialiased font-sans">
-        <LanguageProvider>
-          <SessionProvider>
-            <MiniKitProvider>
-              {children}
-            </MiniKitProvider>
-          </SessionProvider>
-        </LanguageProvider>
+        <SessionProvider>
+          <MiniKitProvider>
+            {children}
+          </MiniKitProvider>
+        </SessionProvider>
       </body>
     </html>
   )

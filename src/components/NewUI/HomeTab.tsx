@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { Search, Navigation, Coins, TrendingUp } from "lucide-react"
-import { useTranslations } from "next-intl"
 import { GasStation, UserLocation } from "@/types"
 import { formatDistance } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,7 +15,6 @@ interface HomeTabProps {
 }
 
 export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabProps) {
-  const t = useTranslations()
   const [searchQuery, setSearchQuery] = useState("")
 
   // Remove duplicates by id and then filter by search query
@@ -45,7 +43,7 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
       <div className="bg-gradient-to-r from-[#7DD756] to-[#6BC647] px-5 py-4 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs opacity-90">{t("homeTab.potentialToday")}</p>
+            <p className="text-xs opacity-90">Potential earnings today</p>
             <div className="flex items-center gap-1.5 mt-1">
               <Coins className="w-4 h-4" />
               <span className="text-xl font-bold">
@@ -54,7 +52,7 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xs opacity-90">{t("homeTab.stationsNearby")}</p>
+            <p className="text-xs opacity-90">Stations nearby</p>
             <p className="text-xl font-bold mt-1">{filteredStations.length}</p>
           </div>
         </div>
@@ -66,7 +64,7 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder={t("homeTab.searchPlaceholder")}
+            placeholder="Search gas stations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="bg-transparent text-gray-900 placeholder-gray-400 outline-none text-sm w-full pl-6"
@@ -80,9 +78,9 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
           <Card className="text-center py-8">
             <CardContent>
               <div className="text-gray-400 text-5xl mb-3">⛽</div>
-              <p className="text-sm text-gray-600 font-medium">{t("homeTab.noStationsFound")}</p>
+              <p className="text-sm text-gray-600 font-medium">No stations found</p>
               <p className="text-xs text-gray-500 mt-1">
-                {t("homeTab.adjustSearch")}
+                Try adjusting your search or location
               </p>
             </CardContent>
           </Card>
@@ -135,7 +133,7 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
                           className="bg-gradient-to-r from-[#7DD756] to-[#6BC647] text-white flex items-center gap-1 px-2 py-0.5 text-xs font-semibold"
                         >
                           <Coins className="w-3 h-3" />
-                          <span>{t("homeTab.earn")} ${earnings.toFixed(2)}</span>
+                          <span>Earn ${earnings.toFixed(2)}</span>
                         </Badge>
                       </div>
                     </div>

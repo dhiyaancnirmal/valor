@@ -2,13 +2,13 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { useTranslation } from "react-i18next"
 import { Camera, Check, Loader2 } from "lucide-react"
 import { FuelType } from "@/types"
 import { calculateDistance } from "@/lib/utils"
 
 import { RewardVaultABI } from "@/lib/abi/RewardVault"
 import { MiniKit } from "@worldcoin/minikit-js"
+import { SendTransactionErrorCodes } from "@worldcoin/minikit-js"
 
 interface PriceEntryFormProps {
   stationId: string
@@ -32,7 +32,6 @@ export function PriceEntryForm({
   onError,
 }: PriceEntryFormProps) {
   const { data: session } = useSession()
-  const { t } = useTranslation()
   const [step, setStep] = useState<Step>(1)
   const [fuelType, setFuelType] = useState<FuelType | null>(null)
   const [price, setPrice] = useState("")
@@ -56,7 +55,7 @@ export function PriceEntryForm({
         },
         (error) => {
           console.error("Error getting location:", error)
-          setError(t("priceSubmission.locationNotAvailable", "Please enable location services to submit prices"))
+          setError("Please enable location services to submit prices")
         }
       )
     }
@@ -65,9 +64,9 @@ export function PriceEntryForm({
   const fuelTypes: FuelType[] = ["Regular", "Premium", "Diesel"]
 
   const fuelTypeLabels: Record<FuelType, string> = {
-    Regular: t("priceSubmission.fuelTypes.regular", "Regular"),
-    Premium: t("priceSubmission.fuelTypes.premium", "Premium"),
-    Diesel: t("priceSubmission.fuelTypes.diesel", "Diesel"),
+    Regular: "Regular",
+    Premium: "Premium",
+    Diesel: "Diesel",
   }
   const currencies = [
     { code: "USD", symbol: "$" },
@@ -83,7 +82,7 @@ export function PriceEntryForm({
 
   const handlePriceSubmit = () => {
     if (!price || parseFloat(price) <= 0) {
-      setError(t("priceSubmission.validPrice", "Please enter a valid price"))
+      setError("Please enter a valid price")
       return
     }
     setError(null)
@@ -197,11 +196,11 @@ export function PriceEntryForm({
           // Map MiniKit simulation error to user-friendly message
           const simulationError: string | undefined = (finalPayload as any)?.details?.simulationError
           const errorCode: string | undefined = (finalPayload as any)?.error_code
-          let friendly = t("priceSubmission.submitError", "Failed to submit price")
+          let friendly = "Failed to submit price"
           if (simulationError?.includes("ERC20: transfer amount exceeds balance")) {
-            friendly = t("priceSubmission.insufficientFunds", "Insufficient funds")
+            friendly = "Insufficient funds"
           } else if (errorCode === "simulation_failed" && simulationError) {
-            friendly = t("priceSubmission.transactionFailed", "Transaction simulation failed")
+            friendly = "Transaction simulation failed"
           }
           throw new Error(friendly)
         }
@@ -222,7 +221,7 @@ export function PriceEntryForm({
       {/* Progress Bar + Step badges */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs text-gray-600">{t("priceSubmission.step", "Step")} {step} {t("priceSubmission.of", "of")} 4</span>
+          <span className="text-xs text-gray-600">Step {step} of 4</span>
           <span className="text-xs text-gray-600">{Math.round((step / 4) * 100)}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
@@ -262,10 +261,10 @@ export function PriceEntryForm({
       {step === 1 && (
         <div>
           <h3 className="text-lg font-bold text-[#1C1C1E] mb-2">
-            {t("priceSubmission.selectFuelType", "Select Fuel Type")}
+            Select Fuel Type
           </h3>
           <p className="text-gray-600 mb-4 text-sm">
-            {t("priceSubmission.chooseFuelType", "Choose the type of fuel you're pricing")}
+            Choose the type of fuel you're pricing
           </p>
           <div className="space-y-2">
             {fuelTypes.map((type) => (
@@ -286,10 +285,10 @@ export function PriceEntryForm({
       {step === 2 && (
         <div>
           <h3 className="text-lg font-bold text-[#1C1C1E] mb-1.5">
-            {t("priceSubmission.enterPrice", "Enter Price")}
+            Enter Price
           </h3>
           <p className="text-gray-600 mb-3 text-xs">
-            {t("priceSubmission.pricePerGallon", "Price per gallon for {{fuelType}}", { fuelType: fuelTypeLabels[fuelType!] })}
+            Price per gallon for {fuelTypeLabels[fuelType!]}
           </p>
           {/* Currency selector */}
           <div className="flex justify-center mb-3">
@@ -324,14 +323,14 @@ export function PriceEntryForm({
                 autoFocus
               />
             </div>
-            <p className="text-xs text-gray-600 text-center">{t("priceSubmission.perGallon", "per gallon")}</p>
+            <p className="text-xs text-gray-600 text-center">per gallon</p>
           </div>
           <button
             onClick={handlePriceSubmit}
             disabled={!price || parseFloat(price) <= 0}
             className="w-full"
           >
-            {t("priceSubmission.continue", "Continue")}
+            Continue
           </button>
         </div>
       )}
@@ -340,10 +339,10 @@ export function PriceEntryForm({
       {step === 3 && (
         <div>
           <h3 className="text-lg font-bold text-[#1C1C1E] mb-1.5">
-            {t("priceSubmission.takePhoto", "Take Photo")}
+            Take Photo
           </h3>
           <p className="text-gray-600 mb-3 text-xs">
-            {t("priceSubmission.photoInstructions", "Take a photo of the fuel price sign for verification")}
+            Take a photo of the fuel price sign for verification
           </p>
           <div className="bg-gradient-to-br from-[#7DD756]/5 to-[#7DD756]/10 rounded-xl border border-[#7DD756]/30 p-6 text-center mb-4">
             <div className="w-16 h-16 bg-[#7DD756] rounded-full mx-auto mb-3 flex items-center justify-center shadow-lg">
@@ -362,10 +361,10 @@ export function PriceEntryForm({
               className="mb-2"
             >
               <Camera className="w-4 h-4 mr-1.5" />
-              {t("priceSubmission.openCamera", "Open Camera")}
+              Open Camera
             </button>
             <p className="text-xs text-gray-500 font-medium">
-              {t("priceSubmission.photoOptional", "Photo is optional but recommended")}
+              Photo is optional but recommended
             </p>
           </div>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
@@ -374,10 +373,10 @@ export function PriceEntryForm({
                 <span className="text-white text-xs font-bold">!</span>
               </div>
               <div>
-                <h4 className="text-xs font-bold text-blue-900 mb-1.5">{t("priceSubmission.photoTips", "Photo Tips")}</h4>
+                <h4 className="text-xs font-bold text-blue-900 mb-1.5">Photo Tips</h4>
                 <ul className="text-xs text-blue-800 space-y-1 font-medium">
-                  <li>• {t("priceSubmission.photoTip1", "Make sure the price is clearly visible")}</li>
-                  <li>• {t("priceSubmission.photoTip2", "Include the fuel type if possible")}</li>
+                  <li>• Make sure the price is clearly visible</li>
+                  <li>• Include the fuel type if possible</li>
                 </ul>
               </div>
             </div>
@@ -387,7 +386,7 @@ export function PriceEntryForm({
             variant="outline"
             className="w-full"
           >
-            {t("priceSubmission.skipPhoto", "Skip Photo")}
+            Skip Photo
           </button>
         </div>
       )}
@@ -396,25 +395,25 @@ export function PriceEntryForm({
       {step === 4 && (
         <div>
           <h3 className="text-lg font-bold text-[#1C1C1E] mb-1.5">
-            {t("priceSubmission.reviewSubmit", "Review & Submit")}
+            Review & Submit
           </h3>
           <p className="text-gray-600 mb-3 text-xs">
-            {t("priceSubmission.confirmDetails", "Please confirm your submission details")}
+            Please confirm your submission details
           </p>
           <div className="bg-gray-50 rounded-lg p-4 mb-4 space-y-3">
             <div>
-              <p className="text-xs text-gray-600 mb-0.5">{t("priceSubmission.fuelType", "Fuel Type")}</p>
+              <p className="text-xs text-gray-600 mb-0.5">Fuel Type</p>
               <p className="font-semibold text-gray-900 text-sm">{fuelTypeLabels[fuelType!]}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-600 mb-0.5">{t("priceSubmission.price", "Price")}</p>
+              <p className="text-xs text-gray-600 mb-0.5">Price</p>
               <p className="text-xl font-bold text-[#7DD756]">
                 {currencies.find(c => c.code === currency)?.symbol}{price}
               </p>
             </div>
             {photoPreview && (
               <div>
-                <p className="text-xs text-gray-600 mb-1.5">{t("priceSubmission.photo", "Photo")}</p>
+                <p className="text-xs text-gray-600 mb-1.5">Photo</p>
                 <img
                   src={photoPreview}
                   alt="Price photo"
@@ -432,12 +431,12 @@ export function PriceEntryForm({
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                {t("priceSubmission.submitting", "Submitting...")}
+                Submitting...
               </>
             ) : (
               <>
                 <Check className="w-4 h-4 mr-1.5" />
-                {t("priceSubmission.submitPriceBtn", "Submit Price")}
+                Submit Price
               </>
             )}
           </button>

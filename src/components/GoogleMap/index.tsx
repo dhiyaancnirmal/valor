@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { useTranslations } from "next-intl"
 import { GasStation, UserLocation } from "@/types"
 
 // Extend window interface for Google Maps
@@ -20,7 +19,6 @@ interface GoogleMapViewProps {
 }
 
 export function GoogleMapView({ userLocation, gasStations, onStationSelect, onBoundsChanged, isLoadingStations }: GoogleMapViewProps) {
-  const t = useTranslations()
   const mapRef = useRef<HTMLDivElement>(null)
   const googleMapRef = useRef<google.maps.Map | null>(null)
   const markersRef = useRef<google.maps.Marker[]>([])
@@ -116,7 +114,7 @@ export function GoogleMapView({ userLocation, gasStations, onStationSelect, onBo
         strokeColor: "#ffffff",
         strokeWeight: 3,
       },
-      title: t("map.yourLocation"),
+          title: "Your Location",
     })
     userMarkerRef.current = userMarker
 
@@ -163,7 +161,7 @@ export function GoogleMapView({ userLocation, gasStations, onStationSelect, onBo
     return (
       <div className="h-full flex items-center justify-center bg-gray-100">
         <div className="text-center">
-          <p className="text-gray-600">{t("map.loadingMap")}</p>
+          <p className="text-gray-600">Loading map...</p>
         </div>
       </div>
     )
@@ -178,7 +176,7 @@ export function GoogleMapView({ userLocation, gasStations, onStationSelect, onBo
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10">
           <div className="bg-white rounded-lg p-4 shadow-lg flex items-center gap-3">
             <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-gray-700 font-medium">{t("map.findingStations")}</span>
+            <span className="text-gray-700 font-medium">Finding nearby gas stations...</span>
           </div>
         </div>
       )}

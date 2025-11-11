@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from "react"
 import { X, Navigation } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useTranslations } from "next-intl"
 import { GasStation } from "@/types"
 import { formatDistance } from "@/lib/utils"
 import { PriceEntryForm } from "./PriceEntryForm"
@@ -25,7 +24,6 @@ export function PriceSubmissionDrawer({
   onClose,
   onSuccess,
 }: PriceSubmissionDrawerProps) {
-  const t = useTranslations()
   const [drawerState, setDrawerState] = useState<DrawerState>("closed")
   const [startY, setStartY] = useState(0)
   const [currentY, setCurrentY] = useState(0)
@@ -147,7 +145,7 @@ export function PriceSubmissionDrawer({
                     {station.distance !== undefined && (
                       <div className="flex items-center text-xs text-gray-500">
                         <Navigation className="w-3 h-3 mr-1" />
-                        <span>{formatDistance(station.distance)} {t("drawer.away")}</span>
+                        <span>{formatDistance(station.distance)} away</span>
                       </div>
                     )}
                   </div>
@@ -187,7 +185,7 @@ export function PriceSubmissionDrawer({
                   onClick={handleExpand}
                   className="flex-1 bg-gradient-to-r from-[#7DD756] to-[#6BC647] text-white font-semibold text-sm py-3 px-5 rounded-lg hover:shadow-lg active:scale-[0.99] transition-all duration-200 shadow-md"
                 >
-                  {t("drawer.submitPrice")}
+                  Submit Price
                 </button>
               </div>
             </div>
@@ -216,7 +214,7 @@ export function PriceSubmissionDrawer({
                   </button>
                   <div>
                     <h3 className="text-base font-semibold text-[#1C1C1E]">
-                      {t("drawer.submitPrice")}
+                      Submit Price
                     </h3>
                     <p className="text-xs text-gray-600">{station.name}</p>
                   </div>

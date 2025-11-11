@@ -2,9 +2,6 @@
 
 import { useEffect, useState, useRef } from "react"
 import { X } from "lucide-react"
-import { useLanguage } from "@/components/providers/LanguageProvider"
-import { useTranslations } from "next-intl"
-import { Locale, locales } from "@/i18n/config"
 
 interface SettingsDrawerProps {
   isOpen: boolean
@@ -14,8 +11,6 @@ interface SettingsDrawerProps {
 type DrawerState = "closed" | "open"
 
 export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
-  const t = useTranslations()
-  const { locale, setLocale, localeNames, localeFlags } = useLanguage()
   const [drawerState, setDrawerState] = useState<DrawerState>("closed")
   const [startY, setStartY] = useState(0)
   const [currentY, setCurrentY] = useState(0)
@@ -63,11 +58,6 @@ export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
     setStartY(0)
   }
 
-  const handleLanguageChange = (newLocale: Locale) => {
-    if (newLocale !== locale) {
-      setLocale(newLocale)
-    }
-  }
 
   const getDrawerHeight = () => {
     if (drawerState === "closed") return "0%"
@@ -119,7 +109,7 @@ export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
           <div className="px-5 py-4">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-gray-900">
-                {t("settings.title")}
+                Settings
               </h2>
               <button
                 onClick={handleClose}
@@ -129,37 +119,10 @@ export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
               </button>
             </div>
 
-            {/* Language Selector */}
+            {/* Basic Settings */}
             <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-3">
-                  {t("settings.language")}
-                </label>
-                <div className="space-y-2">
-                  {locales.map((loc) => (
-                    <button
-                      key={loc}
-                      onClick={() => handleLanguageChange(loc)}
-                      className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all ${
-                        locale === loc
-                          ? "border-[#7DD756] bg-[#7DD756]/10"
-                          : "border-gray-200 hover:border-gray-300 bg-white"
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2.5">
-                        <span className="text-xl">{localeFlags[loc]}</span>
-                        <span className="font-medium text-gray-900 text-sm">
-                          {localeNames[loc]}
-                        </span>
-                      </div>
-                      {locale === loc && (
-                        <div className="w-5 h-5 rounded-full bg-[#7DD756] flex items-center justify-center">
-                          <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
+              <div className="text-center text-gray-500 text-sm py-8">
+                Settings panel - more options coming soon
               </div>
             </div>
           </div>

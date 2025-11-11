@@ -2,14 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { signIn } from "next-auth/react"
-import { useTranslations } from "next-intl"
 import { MiniKit } from "@worldcoin/minikit-js"
 import { Button } from "@/components/ui/button"
 import Logo from "@/components/Logo"
 import WorldIDLogo from "@/components/WorldIDLogo"
 
 export function LoginPage() {
-  const t = useTranslations()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isMiniKitReady, setIsMiniKitReady] = useState(false)
@@ -41,7 +39,7 @@ export function LoginPage() {
 
       // Check if MiniKit is available
       if (!MiniKit.isInstalled()) {
-        setError(t("login.errors.openInWorldApp"))
+        setError("Please open this app in World App to continue")
         setIsLoading(false)
         return
       }
@@ -66,14 +64,14 @@ export function LoginPage() {
           return
         }
         console.error("WalletAuth error:", finalPayload)
-        setError(finalPayload.error_code || t("login.errors.authFailed"))
+        setError(finalPayload.error_code || "Authentication failed")
         setIsLoading(false)
         return
       }
 
       if (finalPayload.status !== 'success') {
         console.error("WalletAuth failed:", finalPayload)
-        setError(t("login.errors.invalidResponse"))
+        setError("Invalid response from authentication")
         setIsLoading(false)
         return
       }
@@ -84,7 +82,7 @@ export function LoginPage() {
 
       if (!walletAddress) {
         console.error("No wallet address in response:", finalPayload)
-        setError(t("login.errors.noWalletAddress"))
+        setError("No wallet address found")
         setIsLoading(false)
         return
       }
@@ -109,7 +107,7 @@ export function LoginPage() {
 
       if (result?.error) {
         console.error("NextAuth error:", result.error)
-        setError(`${t("login.errors.authFailed")}: ${result.error}`)
+        setError(`Authentication failed: ${result.error}`)
         setIsLoading(false)
         return
       }
@@ -119,7 +117,7 @@ export function LoginPage() {
       window.location.href = "/"
     } catch (err) {
       console.error("Login error:", err)
-      setError(err instanceof Error ? err.message : t("login.errors.generic"))
+      setError(err instanceof Error ? err.message : "An error occurred during login")
       setIsLoading(false)
     }
   }
@@ -150,7 +148,7 @@ export function LoginPage() {
       })
 
       if (result?.error) {
-        setError(t("login.errors.devLoginFailed"))
+        setError("Development login failed")
         setIsLoading(false)
         return
       }
@@ -158,7 +156,7 @@ export function LoginPage() {
       window.location.href = "/"
     } catch (err) {
       console.error("Dev login error:", err)
-      setError(t("login.errors.devLoginFailed"))
+      setError("Development login failed")
       setIsLoading(false)
     }
   }
@@ -175,10 +173,10 @@ export function LoginPage() {
         {/* Welcome Text */}
         <div className="text-center max-w-xs mb-10">
           <h1 className="text-2xl font-bold text-[#1C1C1E] mb-3 leading-tight">
-            {t("login.welcome")}
+            Welcome to Valor
           </h1>
           <p className="text-sm text-gray-600 font-normal leading-relaxed">
-            {t("login.tagline")}
+            Crowdsource gas station prices and earn rewards
           </p>
         </div>
       </div>
@@ -224,12 +222,12 @@ export function LoginPage() {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                {t("login.loggingIn")}
+                Logging in...
               </>
             ) : (
               <>
                 <WorldIDLogo size={18} />
-                {t("login.loginWithWorldID")}
+                Login with World ID
               </>
             )}
           </Button>
@@ -267,14 +265,14 @@ export function LoginPage() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  {t("login.loggingIn")}
+                  Logging in...
                 </>
               ) : (
-                t("login.loginDevMode")
+                "Login (Dev Mode)"
               )}
             </Button>
             <p className="mt-4 text-center text-gray-500 text-xs leading-relaxed">
-              {t("login.openInWorldApp")}
+              Please open this app in World App for the best experience
             </p>
           </>
         )}

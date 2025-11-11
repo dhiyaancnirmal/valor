@@ -5,7 +5,6 @@ import { useSession } from "next-auth/react"
 import { Camera, Check, Loader2 } from "lucide-react"
 import { FuelType } from "@/types"
 import { calculateDistance } from "@/lib/utils"
-
 import { RewardVaultABI } from "@/lib/abi/RewardVault"
 import { MiniKit } from "@worldcoin/minikit-js"
 import { SendTransactionErrorCodes } from "@worldcoin/minikit-js"

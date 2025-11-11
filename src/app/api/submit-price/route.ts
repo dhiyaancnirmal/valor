@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
-import { supabase } from "@/lib/supabase"
+import { supabaseAdmin } from "@/lib/supabaseAdmin"
+import { stationIdToBytes32, signClaimMessage } from "@/lib/rewards"
 
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
     const session = await auth()
+    console.log("Submit-price session:", { hasSession: !!session, walletAddress: session?.user?.walletAddress })
+
     if (!session?.user?.walletAddress) {
+      console.log("Unauthorized: no wallet address in session")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -26,6 +30,19 @@ export async function POST(request: NextRequest) {
       formData.get("gas_station_longitude") as string
     )
     const photo = formData.get("photo") as File | null
+
+    console.log("Parsed form data:", {
+      walletAddress,
+      gasStationName,
+      gasStationId,
+      price,
+      fuelType,
+      userLatitude,
+      userLongitude,
+      gasStationLatitude,
+      gasStationLongitude,
+      hasPhoto: !!photo
+    })
 
     // Validate required fields
     if (
@@ -52,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create database record (without photo URL initially)
-    const { data: submission, error: dbError } = await supabase
+    const { data: submission, error: dbError } = await supabaseAdmin
       .from("price_submissions")
       .insert({
         user_wallet_address: walletAddress,
@@ -70,8 +87,9 @@ export async function POST(request: NextRequest) {
 
     if (dbError) {
       console.error("Database error:", dbError)
+      console.error("Full error details:", JSON.stringify(dbError, null, 2))
       return NextResponse.json(
-        { error: "Failed to save submission" },
+        { error: "Failed to save submission", details: dbError.message },
         { status: 500 }
       )
     }
@@ -82,7 +100,7 @@ export async function POST(request: NextRequest) {
       const filePath = `${fileName}`
 
       // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabaseAdmin.storage
         .from("price-photos")
         .upload(filePath, photo)
 
@@ -90,10 +108,10 @@ export async function POST(request: NextRequest) {
         // Get public URL
         const {
           data: { publicUrl },
-        } = supabase.storage.from("price-photos").getPublicUrl(filePath)
+        } = supabaseAdmin.storage.from("price-photos").getPublicUrl(filePath)
 
         // Update submission with photo URL
-        await supabase
+        await supabaseAdmin
           .from("price_submissions")
           .update({ photo_url: publicUrl })
           .eq("id", submission.id)
@@ -112,7 +130,7 @@ export async function POST(request: NextRequest) {
     try {
       // Check if this station has a claimed reward in the last 24h
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-      const { data: recentClaims, error: claimErr } = await supabase
+      const { data: recentClaims, error: claimErr } = await supabaseAdmin
         .from("price_submissions")
         .select("id")
         .eq("gas_station_id", gasStationId)
@@ -126,30 +144,65 @@ export async function POST(request: NextRequest) {
 
       if (!recentClaims || recentClaims.length === 0) {
         // Eligible: generate signature for on-chain claim
-        const rewardContract = (process.env.REWARD_CONTRACT_ADDRESS || "0xa0B5489eE689441841A2e94Bd7E55793b609E576") as `0x${string}`
+        const rewardContract = "0xa0B5489eE689441841A2e94Bd7E55793b609E576" as `0x${string}` // Hardcoded to ensure correct address
         const signerKey = process.env.REWARD_SIGNER_PRIVATE_KEY as `0x${string}`
 
-        if (signerKey) {
-          // Generate signature for reward claim
-          const { generateRewardSignature } = await import("@/lib/rewards")
-          const signatureData = await generateRewardSignature(
-            walletAddress,
-            gasStationId,
-            submission.id,
-            rewardContract,
+        // Validate signer key and contract address early to provide a clear error
+        const isHex = (s: string, length?: number) =>
+          /^0x[0-9a-fA-F]+$/.test(s) && (length ? s.length === length : true)
+        const isAddress = (s: string) => /^0x[0-9a-fA-F]{40}$/.test(s)
+
+        if (!signerKey || !isHex(signerKey, 66)) {
+          console.error("Invalid REWARD_SIGNER_PRIVATE_KEY: must be 0x-prefixed 32-byte hex")
+          return NextResponse.json(
+            { error: "Server misconfigured: invalid REWARD_SIGNER_PRIVATE_KEY (expected 0x + 64 hex chars)" },
+            { status: 500 }
+          )
+        }
+        if (!isAddress(rewardContract)) {
+          console.error("Invalid reward contract address:", rewardContract)
+          return NextResponse.json(
+            { error: "Server misconfigured: invalid reward contract address" },
+            { status: 500 }
+          )
+        }
+        const rewardAmount =
+          (process.env.REWARD_AMOUNT_USDC && BigInt(process.env.REWARD_AMOUNT_USDC)) || 500000n // default 0.5 USDC with 6 decimals
+
+        if (rewardContract && signerKey) {
+          const stationBytes32 = stationIdToBytes32(gasStationId)
+          rewardDeadline = Math.floor(Date.now() / 1000) + 15 * 60 // 15 minutes
+          const signature = await signClaimMessage(
+            {
+              contract: rewardContract,
+              recipient: walletAddress as `0x${string}`,
+              stationIdBytes32: stationBytes32,
+              submissionId: BigInt(submission.id),
+              rewardAmount,
+              deadline: BigInt(rewardDeadline),
+            },
             signerKey
           )
 
+          // Attempt to persist eligibility and signature for auditability (no-op if columns not present)
+          await supabaseAdmin
+            .from("price_submissions")
+            .update({
+              reward_eligible: true,
+              reward_signature: signature,
+            })
+            .eq("id", submission.id)
+
           rewardEligible = true
-          rewardSignature = signatureData.signature
-          rewardDeadline = signatureData.deadline
-          stationIdBytes32 = signatureData.stationIdBytes32
+          rewardSignature = signature
+          stationIdBytes32 = stationBytes32
           rewardContractUsed = rewardContract
+        } else {
+          console.warn("Reward signing not configured: missing REWARD_CONTRACT_ADDRESS or REWARD_SIGNER_PRIVATE_KEY")
         }
       }
-    } catch (rewardErr) {
-      console.error("Reward generation error:", rewardErr)
-      // Continue without rewards if signature generation fails
+    } catch (e) {
+      console.error("Reward eligibility/signing error:", e)
     }
 
     return NextResponse.json({

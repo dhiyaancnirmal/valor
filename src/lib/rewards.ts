@@ -69,4 +69,3 @@ function bigintToBytes32(value: bigint): Uint8Array {
 }
 
 
-

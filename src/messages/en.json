@@ -25,6 +25,7 @@
   },
   "homeTab": {
     "potentialToday": "Your Potential Today",
+    "todaysRewards": "Today's Rewards",
     "stationsNearby": "Stations Nearby",
     "searchPlaceholder": "Search gas stations...",
     "noStationsFound": "No gas stations found",
@@ -39,24 +40,59 @@
     "totalBalance": "Total Balance",
     "submissions": "Submissions",
     "rewardsEarned": "Rewards Earned",
+    "usdcEarned": "USDC Earned",
+    "rank": "Rank",
+    "account": "Account",
     "signOut": "Sign Out",
     "signingOut": "Signing Out",
     "signOutFailed": "Failed to sign out. Please try again.",
+    "dayStreak": "Day Streak",
     "howItWorks": "How it works",
     "howItWorksItems": {
       "submit": "Submit gas prices at nearby stations",
       "earn": "Earn rewards for accurate submissions",
       "help": "Help others find the best prices"
-    }
+    },
+    "anonymousUser": "Anonymous User",
+    "copyWalletAddress": "Copy wallet address"
+  },
+  "settingsDrawer": {
+    "settings": "Settings",
+    "account": "Account",
+    "username": "Username",
+    "notSet": "Not Set",
+    "preferences": "Preferences",
+    "notifications": "Notifications",
+    "notificationsDesc": "Get notified about rewards",
+    "notificationsWorldAppOnly": "Notifications are only available in World App",
+    "locationServices": "Location Services",
+    "locationServicesDesc": "Find nearby gas stations",
+    "language": "Language",
+    "languageDesc": "Choose your language",
+    "about": "About",
+    "findStations": "Find Gas Stations",
+    "findStationsDesc": "Use map to discover nearby gas stations. View real-time prices and locations to make informed decisions.",
+    "submitPrices": "Submit Prices",
+    "submitPricesDesc": "Share current gas prices to help other drivers. Each verified submission earns you USDC rewards.",
+    "earnRewards": "Earn Rewards",
+    "earnRewardsDesc": "Get paid in USDC for every valid price submission. Build your streak and earn bonus rewards for consistent contributions.",
+    "version": "Version",
+    "gotIt": "Got it"
   },
   "settings": {
     "title": "Settings",
     "language": "Language",
-    "selectLanguage": "Select Language"
+    "selectLanguage": "Select Language",
+    "english": "English",
+    "spanish": "Español"
   },
   "drawer": {
     "submitPrice": "Submit Price",
-    "away": "away"
+    "away": "away",
+    "lastPrice": "Last Price",
+    "noRecentData": "No recent data available",
+    "perGallon": "/gal",
+    "openInGoogleMaps": "Open in Google Maps"
   },
   "priceEntry": {
     "step": "Step",
@@ -78,17 +114,40 @@
     "photo": "Photo",
     "submitting": "Submitting...",
     "submitPrice": "Submit Price",
+    "photoTips": "Photo Tips",
+    "photoTip1": "Ensure prices and fuel types are clearly visible",
+    "photoTip2": "Avoid glare and blurry images",
+    "photoTip3": "Include the fuel type labels",
+    "photoCaptured": "Photo captured successfully",
+    "capturePriceDisplay": "Capture the price display clearly",
+    "gasStation": "Gas Station",
+    "productAndPrice": "Product & Price",
+    "photoEvidence": "Photo Evidence",
+    "locationVerification": "Location Verification",
+    "perGallon": "per gallon",
+    "locationVerified": "Location verified ({distance}m away)",
+    "tooFarFromStation": "Too far from station ({distance}m away - must be within 500m)",
+    "gettingLocation": "Getting location...",
+    "next": "NEXT",
+    "submissionSuccess": "Price submitted successfully!",
+    "submissionPending": "Your submission is pending validation. You'll receive your reward once approved.",
+    "submissionFailed": "Submission failed: {error}",
     "errors": {
       "enableLocation": "Please enable location services to submit prices",
       "validPrice": "Please enter a valid price",
       "locationNotAvailable": "Location not available. Please enable location services.",
       "distanceError": "You must be within 500m of the gas station. Current distance: {distance}m",
-      "submitFailed": "Failed to submit price"
+      "submitFailed": "Failed to submit price",
+      "insufficientFunds": "Reward vault has insufficient funds. Please try again later.",
+      "simulationFailed": "Transaction simulation failed. Please try again."
     },
     "fuelTypes": {
       "regular": "Regular",
       "premium": "Premium",
-      "diesel": "Diesel"
+      "diesel": "Diesel",
+      "regularDesc": "Standard unleaded",
+      "premiumDesc": "High octane",
+      "dieselDesc": "Diesel fuel"
     }
   },
   "login": {
@@ -98,6 +157,7 @@
     "loggingIn": "Logging in",
     "loginDevMode": "Login (Dev Mode)",
     "openInWorldApp": "Please open this app in World App to authenticate",
+    "signInStatement": "Sign in to Valor to submit gas prices",
     "errors": {
       "openInWorldApp": "Please open this app in World App",
       "authFailed": "Authentication failed",
@@ -110,7 +170,9 @@
   "map": {
     "loadingMap": "Loading map...",
     "findingStations": "Finding gas stations...",
-    "yourLocation": "Your Location"
+    "yourLocation": "Your Location",
+    "loading": "Loading",
+    "loadingStations": "Loading stations"
   }
 }
 

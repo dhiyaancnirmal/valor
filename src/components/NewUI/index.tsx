@@ -211,10 +211,11 @@ export function MainUI() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#F4F4F8]">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">{t("mainUI.loadingStations")}</p>
-        </div>
+        <img 
+          src="/refuel.gif" 
+          alt={t("map.loading")} 
+          className="w-24 h-24"
+        />
       </div>
     )
   }
@@ -223,16 +224,8 @@ export function MainUI() {
     <div className="h-screen flex flex-col bg-[#F4F4F8]">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-5 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <Logo size={40} />
-          </div>
-          {userLocation && (
-            <div className="flex items-center text-xs text-gray-600 font-medium">
-              <MapPin className="w-4 h-4 mr-1.5" />
-              <span>{t("mainUI.locationEnabled")}</span>
-            </div>
-          )}
+        <div className="flex items-center justify-center">
+          <Logo size={40} />
         </div>
       </header>
 
@@ -258,8 +251,8 @@ export function MainUI() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="bg-white border-t border-gray-200 px-4 py-2 safe-area-b-4">
-        <div className="flex items-center justify-around max-w-md mx-auto">
+      <nav className="bg-white border-t border-gray-200 z-50 pt-3" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}>
+        <div className="flex justify-around items-center">
           {tabs.map((tab) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
@@ -267,14 +260,13 @@ export function MainUI() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex flex-col items-center gap-1 px-6 py-2 rounded-lg transition-all duration-200 ${
+                className={`flex items-center justify-center p-2 rounded-lg transition-colors ${
                   isActive
-                    ? "text-[#1C1C1E]"
+                    ? "text-[#7DD756]"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
               >
-                <Icon className="w-5 h-5" />
-                <span className="text-xs font-medium">{tab.label}</span>
+                <Icon size={24} />
               </button>
             )
           })}

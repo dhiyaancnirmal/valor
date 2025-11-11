@@ -1,10 +1,8 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react"
-import { NextIntlClientProvider } from "next-intl"
+import { useRouter, usePathname } from "next/navigation"
 import { Locale, locales, defaultLocale, localeNames, localeFlags } from "@/i18n/config"
-import enMessages from "@/messages/en.json"
-import esARMessages from "@/messages/es-AR.json"
 
 interface LanguageContextType {
   locale: Locale
@@ -17,51 +15,53 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 const STORAGE_KEY = "valor-language"
 
-const messages = {
-  en: enMessages,
-  "es-AR": esARMessages,
-}
+export function LanguageProvider({ children, locale }: { children: ReactNode; locale: string }) {
+  const [currentLocale, setCurrentLocale] = useState<Locale>(locale as Locale)
+  const router = useRouter()
+  const pathname = usePathname()
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(defaultLocale)
-  const [isHydrated, setIsHydrated] = useState(false)
-
-  // Load from localStorage on mount
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem(STORAGE_KEY) as Locale | null
-      if (stored && locales.includes(stored)) {
-        setLocaleState(stored)
-      }
-      setIsHydrated(true)
-    }
-  }, [])
+    setCurrentLocale(locale as Locale)
+  }, [locale])
 
   const setLocale = (newLocale: Locale) => {
-    setLocaleState(newLocale)
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY, newLocale)
-      // Reload page to apply new locale
-      window.location.reload()
     }
-  }
-
-  if (!isHydrated) {
-    return <>{children}</>
+    
+    // Navigate to the new locale
+    // Handle pathname with or without locale prefix
+    let newPath = pathname
+    
+    // Remove current locale from pathname if it exists
+    if (pathname.startsWith(`/${currentLocale}/`)) {
+      newPath = pathname.replace(`/${currentLocale}/`, '/')
+    } else if (pathname === `/${currentLocale}`) {
+      newPath = '/'
+    } else if (pathname.startsWith(`/${currentLocale}`)) {
+      newPath = pathname.replace(`/${currentLocale}`, '')
+    }
+    
+    // Add new locale prefix
+    if (newPath === '/') {
+      newPath = `/${newLocale}`
+    } else {
+      newPath = `/${newLocale}${newPath}`
+    }
+    
+    router.push(newPath)
   }
 
   return (
     <LanguageContext.Provider
       value={{
-        locale,
+        locale: currentLocale,
         setLocale,
         localeNames,
         localeFlags,
       }}
     >
-      <NextIntlClientProvider locale={locale} messages={messages[locale]}>
-        {children}
-      </NextIntlClientProvider>
+      {children}
     </LanguageContext.Provider>
   )
 }

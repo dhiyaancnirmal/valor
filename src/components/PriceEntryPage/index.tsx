@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react"
 import { ArrowLeft, Camera, Check } from "lucide-react"
 import { FuelType } from "@/types"
 import { calculateDistance } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 
 interface PriceEntryPageProps {
   stationId: string
@@ -144,9 +143,9 @@ export function PriceEntryPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F4F8] flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <header className="bg-white border-b border-gray-200 px-4 py-4">
         <div className="flex items-center space-x-3">
           <button
             onClick={() => (step > 1 ? setStep((step - 1) as Step) : router.back())}
@@ -156,21 +155,21 @@ export function PriceEntryPage({
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-[#1C1C1E]">Submit Price</h1>
+            <h1 className="text-lg font-semibold text-gray-900">Submit Price</h1>
             <p className="text-sm text-gray-600">{stationName}</p>
           </div>
         </div>
       </header>
 
       {/* Progress Bar */}
-      <div className="bg-white px-6 py-4 border-b border-gray-200">
+      <div className="bg-white px-4 py-3 border-b border-gray-200">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-gray-600">Step {step} of 4</span>
           <span className="text-xs text-gray-600">{Math.round((step / 4) * 100)}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
-            className="bg-[#7DD756] rounded-full h-2 transition-all duration-300"
+            className="bg-primary rounded-full h-2 transition-all duration-300"
             style={{ width: `${(step / 4) * 100}%` }}
           />
         </div>
@@ -178,17 +177,17 @@ export function PriceEntryPage({
 
       {/* Error Message */}
       {error && (
-        <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+        <div className="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           {error}
         </div>
       )}
 
       {/* Main Content */}
-      <main className="flex-1 px-6 py-6">
+      <main className="flex-1 px-4 py-6">
         {/* Step 1: Select Fuel Type */}
         {step === 1 && (
           <div className="max-w-md mx-auto">
-            <h2 className="text-2xl font-bold text-[#1C1C1E] mb-2">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
               Select Fuel Type
             </h2>
             <p className="text-gray-600 mb-6">
@@ -211,7 +210,7 @@ export function PriceEntryPage({
         {/* Step 2: Enter Price */}
         {step === 2 && (
           <div className="max-w-md mx-auto">
-            <h2 className="text-2xl font-bold text-[#1C1C1E] mb-2">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
               Enter Price
             </h2>
             <p className="text-gray-600 mb-6">
@@ -232,20 +231,29 @@ export function PriceEntryPage({
               </div>
               <p className="text-sm text-gray-500">Price per gallon</p>
             </div>
-            <button
-              onClick={handlePriceSubmit}
-              disabled={!price || parseFloat(price) <= 0}
-              className="w-full bg-primary text-white font-semibold py-4 px-6 rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Continue
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep(1)}
+                className="flex-1 bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-xl hover:bg-gray-300 transition-colors flex items-center justify-center space-x-2"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span>Back</span>
+              </button>
+              <button
+                onClick={handlePriceSubmit}
+                disabled={!price || parseFloat(price) <= 0}
+                className="flex-1 bg-primary text-white font-semibold py-4 px-6 rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Continue
+              </button>
+            </div>
           </div>
         )}
 
         {/* Step 3: Take Photo */}
         {step === 3 && (
           <div className="max-w-md mx-auto">
-            <h2 className="text-2xl font-bold text-[#1C1C1E] mb-2">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
               Take a Photo
             </h2>
             <p className="text-gray-600 mb-6">
@@ -273,19 +281,28 @@ export function PriceEntryPage({
                 Photo is optional but helps verify accuracy
               </p>
             </div>
-            <button
-              onClick={() => setStep(4)}
-              className="w-full bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-xl hover:bg-gray-300 transition-colors"
-            >
-              Skip Photo
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep(2)}
+                className="flex-1 bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-xl hover:bg-gray-300 transition-colors flex items-center justify-center space-x-2"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span>Back</span>
+              </button>
+              <button
+                onClick={() => setStep(4)}
+                className="flex-1 bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-xl hover:bg-gray-300 transition-colors"
+              >
+                Skip Photo
+              </button>
+            </div>
           </div>
         )}
 
         {/* Step 4: Review & Submit */}
         {step === 4 && (
           <div className="max-w-md mx-auto">
-            <h2 className="text-2xl font-bold text-[#1C1C1E] mb-2">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
               Review & Submit
             </h2>
             <p className="text-gray-600 mb-6">
@@ -302,7 +319,7 @@ export function PriceEntryPage({
               </div>
               <div>
                 <p className="text-sm text-gray-600">Price</p>
-                <p className="text-2xl font-bold text-[#7DD756]">${price}</p>
+                <p className="text-2xl font-bold text-primary">${price}</p>
               </div>
               {photoPreview && (
                 <div>
@@ -315,42 +332,52 @@ export function PriceEntryPage({
                 </div>
               )}
             </div>
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="w-full bg-primary text-white font-semibold py-4 px-6 rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <svg
-                    className="animate-spin h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  <span>Submitting...</span>
-                </>
-              ) : (
-                <>
-                  <Check className="w-5 h-5" />
-                  <span>Submit Price</span>
-                </>
-              )}
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep(3)}
+                disabled={isSubmitting}
+                className="flex-1 bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-xl hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span>Back</span>
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="flex-1 bg-primary text-white font-semibold py-4 px-6 rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    <span>Submitting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-5 h-5" />
+                    <span>Submit Price</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
       </main>

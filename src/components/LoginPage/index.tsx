@@ -54,7 +54,7 @@ export function LoginPage() {
         nonce: Date.now().toString(),
         expirationTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         notBefore: new Date(Date.now()),
-        statement: "Sign in to Valor to submit gas prices",
+        statement: t("login.signInStatement"),
       })
 
       console.log("WalletAuth response:", { commandPayload, finalPayload })
@@ -92,6 +92,10 @@ export function LoginPage() {
       console.log("Got wallet address:", walletAddress)
       console.log("Got signature:", signature)
 
+      // Get user profile data from MiniKit after successful auth
+      const userProfile = MiniKit.user
+      console.log("User profile from MiniKit:", userProfile)
+
       // Use the message from the finalPayload (SIWE message)
       const message = finalPayload.message
 
@@ -102,6 +106,8 @@ export function LoginPage() {
         walletAddress,
         signature,
         message,
+        username: userProfile?.username,
+        profilePictureUrl: userProfile?.profilePictureUrl,
         redirect: false,
       })
 

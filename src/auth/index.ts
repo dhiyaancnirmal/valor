@@ -11,6 +11,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         walletAddress: { label: "Wallet Address", type: "text" },
         signature: { label: "Signature", type: "text" },
         message: { label: "Message", type: "text" },
+        username: { label: "Username", type: "text" },
+        profilePictureUrl: { label: "Profile Picture URL", type: "text" },
       },
       async authorize(credentials) {
         console.log("NextAuth authorize called with:", {
@@ -44,6 +46,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return {
           id: credentials.walletAddress as string,
           walletAddress: credentials.walletAddress as string,
+          username: credentials.username as string || undefined,
+          profilePictureUrl: credentials.profilePictureUrl as string || undefined,
         }
       },
     }),
@@ -55,12 +59,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.walletAddress = user.walletAddress
+        token.username = user.username
+        token.profilePictureUrl = user.profilePictureUrl
       }
       return token
     },
     async session({ session, token }) {
       if (token.walletAddress) {
         session.user.walletAddress = token.walletAddress as string
+      }
+      if (token.username) {
+        session.user.username = token.username as string
+      }
+      if (token.profilePictureUrl) {
+        session.user.profilePictureUrl = token.profilePictureUrl as string
       }
       return session
     },

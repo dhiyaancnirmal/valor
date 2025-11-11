@@ -69,9 +69,14 @@ export function MiniKitProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    const cleanup = initMiniKit()
+    initMiniKit()
     return () => {
-      if (typeof cleanup === "function") cleanup()
+      try {
+        MiniKit.unsubscribe(ResponseEvent.MiniAppSendTransaction)
+        MiniKit.unsubscribe(ResponseEvent.MiniAppWalletAuth)
+      } catch (error) {
+        console.error("Cleanup error:", error)
+      }
     }
   }, [])
 

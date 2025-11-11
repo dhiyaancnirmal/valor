@@ -214,9 +214,9 @@ export function PriceEntryForm({
           const errorCode: string | undefined = (finalPayload as any)?.error_code
           let friendly = t("priceEntry.errors.submitFailed")
           if (simulationError?.includes("ERC20: transfer amount exceeds balance")) {
-            friendly = "Reward vault has insufficient funds. Please try again later."
+            friendly = t("priceEntry.errors.insufficientFunds")
           } else if (errorCode === "simulation_failed" && simulationError) {
-            friendly = simulationError
+            friendly = t("priceEntry.errors.simulationFailed")
           }
           throw new Error(friendly)
         }
@@ -308,17 +308,17 @@ export function PriceEntryForm({
           </p>
           {/* Currency selector */}
           <div className="flex justify-center mb-3">
-            <div className="inline-flex bg-gray-50 rounded-lg p-0.5 border border-gray-200">
+            <div className="inline-flex bg-gray-50 rounded-lg px-2 py-1 border border-gray-200 gap-3">
               {currencies.map((c) => (
                 <button
                   key={c.code}
                   onClick={() => setCurrency(c.code)}
-                  className={`px-3 py-1.5 rounded-lg font-medium text-xs transition-all duration-200 ${
+                  className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
                     currency === c.code ? "bg-gradient-to-r from-[#FF6B35] to-[#F7931E] text-white shadow-sm" : "text-gray-700 hover:bg-gray-100"
                   }`}
                   type="button"
                 >
-                  <span className="mr-0.5">{c.symbol}</span>
+                  <span className="mr-1">{c.symbol}</span>
                   {c.code}
                 </button>
               ))}
@@ -389,10 +389,10 @@ export function PriceEntryForm({
                 <span className="text-white text-xs font-bold">!</span>
               </div>
               <div>
-                <h4 className="text-xs font-bold text-blue-900 mb-1.5">Photo Tips</h4>
+                <h4 className="text-xs font-bold text-blue-900 mb-1.5">{t("priceEntry.photoTips")}</h4>
                 <ul className="text-xs text-blue-800 space-y-1 font-medium">
-                  <li>• Ensure prices and fuel types are clearly visible</li>
-                  <li>• Avoid glare and blurry images</li>
+                  <li>• {t("priceEntry.photoTip1")}</li>
+                  <li>• {t("priceEntry.photoTip2")}</li>
                 </ul>
               </div>
             </div>

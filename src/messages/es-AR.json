@@ -25,6 +25,7 @@
   },
   "homeTab": {
     "potentialToday": "Tu Potencial Hoy",
+    "todaysRewards": "Recompensas de Hoy",
     "stationsNearby": "Estaciones Cercanas",
     "searchPlaceholder": "Buscar estaciones de servicio...",
     "noStationsFound": "No se encontraron estaciones",
@@ -39,20 +40,51 @@
     "totalBalance": "Balance Total",
     "submissions": "Envíos",
     "rewardsEarned": "Recompensas Ganadas",
+    "usdcEarned": "USDC Ganado",
+    "rank": "Rango",
+    "account": "Cuenta",
     "signOut": "Cerrar Sesión",
     "signingOut": "Cerrando sesión...",
     "signOutFailed": "Error al cerrar sesión. Por favor intenta de nuevo.",
+    "dayStreak": "Racha de Días",
     "howItWorks": "Cómo funciona",
     "howItWorksItems": {
       "submit": "Envía precios de combustible en estaciones cercanas",
       "earn": "Gana recompensas por envíos precisos",
       "help": "Ayuda a otros a encontrar los mejores precios"
-    }
+    },
+    "anonymousUser": "Usuario Anónimo",
+    "copyWalletAddress": "Copiar dirección de billetera"
+  },
+  "settingsDrawer": {
+    "settings": "Configuración",
+    "account": "Cuenta",
+    "username": "Nombre de Usuario",
+    "notSet": "No Configurado",
+    "preferences": "Preferencias",
+    "notifications": "Notificaciones",
+    "notificationsDesc": "Recibir notificaciones sobre recompensas",
+    "notificationsWorldAppOnly": "Las notificaciones solo están disponibles en World App",
+    "locationServices": "Servicios de Ubicación",
+    "locationServicesDesc": "Encontrar estaciones de servicio cercanas",
+    "language": "Idioma",
+    "languageDesc": "Elegir tu idioma",
+    "about": "Acerca de",
+    "findStations": "Encontrar Estaciones",
+    "findStationsDesc": "Usa el mapa para descubrir estaciones de servicio cercanas. Ve precios y ubicaciones en tiempo real para tomar decisiones informadas.",
+    "submitPrices": "Enviar Precios",
+    "submitPricesDesc": "Comparte los precios actuales de combustible para ayudar a otros conductores. Cada envío verificado te gana recompensas en USDC.",
+    "earnRewards": "Ganar Recompensas",
+    "earnRewardsDesc": "Recibe USDC por cada envío de precio válido. Construye tu racha y gana recompensas adicionales por contribuciones consistentes.",
+    "version": "Versión",
+    "gotIt": "Entendido"
   },
   "settings": {
     "title": "Configuración",
     "language": "Idioma",
-    "selectLanguage": "Seleccionar Idioma"
+    "selectLanguage": "Seleccionar Idioma",
+    "english": "English",
+    "spanish": "Español"
   },
   "drawer": {
     "submitPrice": "Enviar Precio",
@@ -83,7 +115,9 @@
       "validPrice": "Por favor ingresa un precio válido",
       "locationNotAvailable": "Ubicación no disponible. Por favor habilita los servicios de ubicación.",
       "distanceError": "Debes estar dentro de 500m de la estación de servicio. Distancia actual: {distance}m",
-      "submitFailed": "Error al enviar el precio"
+      "submitFailed": "Error al enviar el precio",
+      "insufficientFunds": "La bóveda de recompensas tiene fondos insuficientes. Por favor intenta más tarde.",
+      "simulationFailed": "La simulación de transacción falló. Por favor intenta de nuevo."
     },
     "fuelTypes": {
       "regular": "Regular",
@@ -98,6 +132,7 @@
     "loggingIn": "Iniciando sesión...",
     "loginDevMode": "Iniciar sesión (Modo Dev)",
     "openInWorldApp": "Por favor abre esta aplicación en World App para autenticarte",
+    "signInStatement": "Inicia sesión en Valor para enviar precios de combustible",
     "errors": {
       "openInWorldApp": "Por favor abre esta aplicación en World App",
       "authFailed": "Error de autenticación",
@@ -110,7 +145,73 @@
   "map": {
     "loadingMap": "Cargando mapa...",
     "findingStations": "Buscando estaciones...",
-    "yourLocation": "Tu Ubicación"
+    "yourLocation": "Tu Ubicación",
+    "loading": "Cargando",
+    "loadingStations": "Cargando estaciones"
+  },
+  "drawer": {
+    "submitPrice": "Enviar Precio",
+    "away": "de distancia",
+    "lastPrice": "Último Precio",
+    "noRecentData": "No hay datos recientes disponibles",
+    "perGallon": "/gal",
+    "openInGoogleMaps": "Abrir en Google Maps"
+  },
+  "priceEntry": {
+    "step": "Paso",
+    "of": "de",
+    "selectFuelType": "Seleccionar Tipo de Combustible",
+    "chooseFuelType": "Elige el tipo de combustible que quieres reportar",
+    "enterPrice": "Ingresar Precio",
+    "pricePerGallon": "¿Cuál es el precio por galón de {fuelType}?",
+    "pricePerGallonLabel": "Precio por galón",
+    "takePhoto": "Tomar una Foto",
+    "photoDescription": "Toma una foto del cartel de precios para verificación",
+    "openCamera": "Abrir Cámara",
+    "photoOptional": "La foto es opcional pero ayuda a verificar la precisión",
+    "skipPhoto": "Omitir Foto",
+    "reviewSubmit": "Revisar y Enviar",
+    "confirmDetails": "Por favor confirma los detalles de tu envío",
+    "fuelType": "Tipo de Combustible",
+    "price": "Precio",
+    "photo": "Foto",
+    "submitting": "Enviando...",
+    "submitPrice": "Enviar Precio",
+    "photoTips": "Consejos para la Foto",
+    "photoTip1": "Asegúrate de que los precios y tipos de combustible sean claramente visibles",
+    "photoTip2": "Evita reflejos e imágenes borrosas",
+    "photoTip3": "Incluye las etiquetas del tipo de combustible",
+    "photoCaptured": "Foto capturada exitosamente",
+    "capturePriceDisplay": "Captura la pantalla de precios claramente",
+    "gasStation": "Estación de Servicio",
+    "productAndPrice": "Producto y Precio",
+    "photoEvidence": "Evidencia de Foto",
+    "locationVerification": "Verificación de Ubicación",
+    "perGallon": "por galón",
+    "locationVerified": "Ubicación verificada ({distance}m de distancia)",
+    "tooFarFromStation": "Demasiado lejos de la estación ({distance}m de distancia - debe estar dentro de 500m)",
+    "gettingLocation": "Obteniendo ubicación...",
+    "next": "SIGUIENTE",
+    "submissionSuccess": "¡Precio enviado exitosamente!",
+    "submissionPending": "Tu envío está pendiente de validación. Recibirás tu recompensa una vez aprobado.",
+    "submissionFailed": "Error al enviar: {error}",
+    "errors": {
+      "enableLocation": "Por favor habilita los servicios de ubicación para enviar precios",
+      "validPrice": "Por favor ingresa un precio válido",
+      "locationNotAvailable": "Ubicación no disponible. Por favor habilita los servicios de ubicación.",
+      "distanceError": "Debes estar dentro de 500m de la estación de servicio. Distancia actual: {distance}m",
+      "submitFailed": "Error al enviar el precio",
+      "insufficientFunds": "La bóveda de recompensas tiene fondos insuficientes. Por favor intenta más tarde.",
+      "simulationFailed": "La simulación de transacción falló. Por favor intenta de nuevo."
+    },
+    "fuelTypes": {
+      "regular": "Regular",
+      "premium": "Premium",
+      "diesel": "Diésel",
+      "regularDesc": "Sin plomo estándar",
+      "premiumDesc": "Alto octanaje",
+      "dieselDesc": "Combustible diésel"
+    }
   }
 }
 

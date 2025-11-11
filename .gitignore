@@ -26,6 +26,7 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+er.txt
 
 # vercel
 .vercel
@@ -33,3 +34,27 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Foundry
+cache/
+broadcast/
+out/
+forge_snapshot.json
+forge-cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log
+refuel.gif
+valor copy.png

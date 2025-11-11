@@ -38,6 +38,7 @@ export function GoogleMapView({ userLocation, gasStations, onStationSelect, onBo
         zoom: 14,
         disableDefaultUI: true,
         zoomControl: true,
+        keyboardShortcuts: false, // Hide keyboard shortcuts
         styles: [
           {
             featureType: "poi",
@@ -176,10 +177,11 @@ export function GoogleMapView({ userLocation, gasStations, onStationSelect, onBo
       {/* Loading overlay when fetching new stations */}
       {isLoadingStations && (
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10">
-          <div className="bg-white rounded-lg p-4 shadow-lg flex items-center gap-3">
-            <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-gray-700 font-medium">{t("map.findingStations")}</span>
-          </div>
+          <img 
+            src="/refuel.gif" 
+            alt={t("map.loadingStations")} 
+            className="w-24 h-24"
+          />
         </div>
       )}
     </div>

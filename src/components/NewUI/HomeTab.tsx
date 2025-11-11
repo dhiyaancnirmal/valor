@@ -1,13 +1,12 @@
 "use client"
 
-import { useState } from "react"
-import { Search, Navigation, Coins, TrendingUp } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Navigation, Coins } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { GasStation, UserLocation } from "@/types"
 import { formatDistance } from "@/lib/utils"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 
 interface HomeTabProps {
   gasStations: GasStation[]
@@ -17,89 +16,118 @@ interface HomeTabProps {
 
 export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabProps) {
   const t = useTranslations()
-  const [searchQuery, setSearchQuery] = useState("")
+  const [submittedStations, setSubmittedStations] = useState<Set<string>>(new Set())
+  const [todaysRewards, setTodaysRewards] = useState<number>(20.00)
 
-  // Remove duplicates by id and then filter by search query
+  // Remove duplicates by id
   const uniqueStations = gasStations.filter((station, index, self) =>
     index === self.findIndex(s => s.id === station.id)
   )
 
-  const filteredStations = uniqueStations.filter((station) =>
-    station.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Sort stations: unsubmitted first (by distance), then submitted at the end
+  const sortedStations = [...uniqueStations].sort((a, b) => {
+    const aSubmitted = submittedStations.has(a.id)
+    const bSubmitted = submittedStations.has(b.id)
+    
+    // If one is submitted and the other isn't, prioritize unsubmitted
+    if (aSubmitted && !bSubmitted) return 1
+    if (!aSubmitted && bSubmitted) return -1
+    
+    // Both same status, sort by distance
+    return (a.distance || 0) - (b.distance || 0)
+  })
 
-  // Calculate potential earnings
-  const calculateEarnings = (distance: number | undefined) => {
-    if (!distance) return 2.50
-    // Base reward: $2.50
-    // Bonus for closer stations (within 200m): +$1.00
-    // Bonus for stations within 500m: +$0.50
-    const baseReward = 2.50
-    const proximityBonus = distance < 200 ? 1.00 : distance < 500 ? 0.50 : 0
-    return baseReward + proximityBonus
+  const handleStationSubmitted = (stationId: string) => {
+    setSubmittedStations(prev => new Set([...prev, stationId]))
   }
+
+  // Fetch today's rewards on mount and every 30 seconds
+  useEffect(() => {
+    const fetchRewards = async () => {
+      try {
+        const response = await fetch('/api/todays-rewards')
+        if (response.ok) {
+          const data = await response.json()
+          setTodaysRewards(data.remaining)
+        }
+      } catch (error) {
+        console.error('Error fetching today\'s rewards:', error)
+      }
+    }
+
+    fetchRewards()
+    const interval = setInterval(fetchRewards, 30000) // Poll every 30 seconds
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // Reset submitted stations daily at midnight
+  useEffect(() => {
+    const now = new Date()
+    const tomorrow = new Date(now)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    tomorrow.setHours(0, 0, 0, 0)
+    
+    const msUntilMidnight = tomorrow.getTime() - now.getTime()
+    
+    const timer = setTimeout(() => {
+      setSubmittedStations(new Set())
+      // Set up next day's reset
+      setInterval(() => {
+        setSubmittedStations(new Set())
+      }, 24 * 60 * 60 * 1000)
+    }, msUntilMidnight)
+    
+    return () => clearTimeout(timer)
+  }, [])
 
   return (
     <div className="h-full flex flex-col bg-[#F4F4F8]">
       {/* Earnings Banner */}
-      <div className="bg-gradient-to-r from-[#7DD756] to-[#6BC647] px-5 py-4 text-white">
+      <div className="bg-gradient-to-r from-[#7DD756] to-[#6BC647] px-6 py-5 text-white shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs opacity-90">{t("homeTab.potentialToday")}</p>
-            <div className="flex items-center gap-1.5 mt-1">
-              <Coins className="w-4 h-4" />
-              <span className="text-xl font-bold">
-                ${(filteredStations.length * 2.5).toFixed(2)}
+            <p className="text-sm opacity-90 mb-1">{t("homeTab.todaysRewards")}</p>
+            <div className="flex items-center gap-2">
+              <Coins className="w-5 h-5" />
+              <span className="text-3xl font-bold">
+                ${todaysRewards.toFixed(2)}
               </span>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xs opacity-90">{t("homeTab.stationsNearby")}</p>
-            <p className="text-xl font-bold mt-1">{filteredStations.length}</p>
+            <p className="text-sm opacity-90 mb-1">{t("homeTab.stationsNearby")}</p>
+            <p className="text-3xl font-bold">{sortedStations.length}</p>
           </div>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="bg-white px-5 py-3 border-b border-gray-200">
-        <div className="relative w-full bg-gray-50 rounded-lg px-4 py-2.5">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder={t("homeTab.searchPlaceholder")}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-transparent text-gray-900 placeholder-gray-400 outline-none text-sm w-full pl-6"
-          />
-        </div>
-      </div>
-
       {/* Gas Station Cards */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {filteredStations.length === 0 ? (
-          <Card className="text-center py-8">
+      <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+        {sortedStations.length === 0 ? (
+          <Card className="text-center py-12 shadow-sm">
             <CardContent>
-              <div className="text-gray-400 text-5xl mb-3">⛽</div>
-              <p className="text-sm text-gray-600 font-medium">{t("homeTab.noStationsFound")}</p>
-              <p className="text-xs text-gray-500 mt-1">
+              <div className="text-gray-400 text-6xl mb-4">⛽</div>
+              <p className="text-base text-gray-600 font-semibold mb-2">{t("homeTab.noStationsFound")}</p>
+              <p className="text-sm text-gray-500">
                 {t("homeTab.adjustSearch")}
               </p>
             </CardContent>
           </Card>
         ) : (
-          filteredStations.map((station) => {
-            const earnings = calculateEarnings(station.distance)
+          sortedStations.map((station) => {
+            const isSubmitted = submittedStations.has(station.id)
 
             return (
               <Card
                 key={station.id}
-                className="hover:shadow-md transition-all duration-200 cursor-pointer hover:border-[#7DD756] active:scale-[0.99]"
+                className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:border-[#7DD756] active:scale-[0.98] border border-gray-200"
                 onClick={() => onStationSelect(station)}
               >
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-3">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-4">
                     {/* Station Image */}
-                    <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden">
+                    <div className="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden shadow-sm">
                       {station.photo ? (
                         <img
                           src={station.photo}
@@ -107,7 +135,7 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-2xl">
+                        <div className="w-full h-full flex items-center justify-center text-3xl">
                           ⛽
                         </div>
                       )}
@@ -115,43 +143,31 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
 
                     {/* Station Info */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate text-sm mb-1">
+                      <h3 className="font-bold text-gray-900 text-base mb-1.5 line-clamp-1">
                         {station.name}
                       </h3>
-                      <p className="text-xs text-gray-600 truncate mb-2">
+                      <p className="text-sm text-gray-600 mb-2.5 line-clamp-1">
                         {station.address}
                       </p>
 
                       <div className="flex items-center gap-2 flex-wrap">
                         {station.distance !== undefined && (
-                          <Badge variant="secondary" className="flex items-center gap-1 px-2 py-0.5 text-xs">
-                            <Navigation className="w-3 h-3" />
+                          <Badge variant="secondary" className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium">
+                            <Navigation className="w-3.5 h-3.5" />
                             <span>{formatDistance(station.distance)}</span>
                           </Badge>
                         )}
 
-                        {/* Earnings Badge */}
-                        <Badge
-                          className="bg-gradient-to-r from-[#7DD756] to-[#6BC647] text-white flex items-center gap-1 px-2 py-0.5 text-xs font-semibold"
-                        >
-                          <Coins className="w-3 h-3" />
-                          <span>{t("homeTab.earn")} ${earnings.toFixed(2)}</span>
-                        </Badge>
+                        {/* Earnings Badge - only show if not submitted */}
+                        {!isSubmitted && (
+                          <Badge
+                            className="bg-gradient-to-r from-[#7DD756] to-[#6BC647] text-white flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold shadow-sm"
+                          >
+                            <Coins className="w-3.5 h-3.5" />
+                            <span>{t("homeTab.earn")} $0.50</span>
+                          </Badge>
+                        )}
                       </div>
-                    </div>
-
-                    {/* Action Button */}
-                    <div className="flex-shrink-0">
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onStationSelect(station)
-                        }}
-                        size="sm"
-                        variant="icon"
-                      >
-                        <TrendingUp className="w-4 h-4" />
-                      </Button>
                     </div>
                   </div>
                 </CardContent>

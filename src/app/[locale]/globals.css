@@ -88,9 +88,43 @@ body {
     text-wrap: balance;
   }
 
-  /* Content spacing for consistent 24px padding */
+  /* Content spacing for consistent padding */
   .content-padding {
     padding: 24px;
+  }
+  
+  .content-padding-sm {
+    padding: 16px;
+  }
+  
+  .content-padding-lg {
+    padding: 32px;
+  }
+  
+  /* Section spacing */
+  .section-spacing {
+    margin-bottom: 48px;
+  }
+  
+  .section-spacing-sm {
+    margin-bottom: 32px;
+  }
+  
+  .section-spacing-lg {
+    margin-bottom: 64px;
+  }
+  
+  /* Component spacing */
+  .component-spacing {
+    margin-bottom: 24px;
+  }
+  
+  .component-spacing-sm {
+    margin-bottom: 16px;
+  }
+  
+  .component-spacing-lg {
+    margin-bottom: 32px;
   }
 
   /* Keyboard-aware fallback for when keyboard is open */

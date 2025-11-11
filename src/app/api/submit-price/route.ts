@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
           )
         }
         const rewardAmount =
-          (process.env.REWARD_AMOUNT_USDC && BigInt(process.env.REWARD_AMOUNT_USDC)) || 500000n // default 0.5 USDC with 6 decimals
+          (process.env.REWARD_AMOUNT_USDC && BigInt(process.env.REWARD_AMOUNT_USDC)) || BigInt(500000) // default 0.5 USDC with 6 decimals
 
         if (rewardContract && signerKey) {
           const stationBytes32 = stationIdToBytes32(gasStationId)

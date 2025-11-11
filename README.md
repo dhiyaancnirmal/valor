@@ -33,25 +33,6 @@ Before you begin, make sure you have:
 
 Your `.env.local` file is already configured with the necessary variables:
 
-```bash
-# NextAuth Configuration
-NEXTAUTH_SECRET=A2Q3wgYA2um9QQjmDyC8LnQNaHA279SumN4P1HT+VTk=
-HMAC_SECRET_KEY=HVPl1JcjG8YBalUZM81hLOqdDz6GS/CmHxEvYo6X7dk=
-
-# Auth URL (must be HTTPS for World App)
-AUTH_URL=http://localhost:3000
-
-# World ID Application ID
-NEXT_PUBLIC_APP_ID=app_7d5ee2764124e1b071f3f0fd1dfb08d8
-
-# Google Maps API Key
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyC3yrpo7M4ASx2FHma8gBH9Yg3Gy-WIynE
-
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=https://wxiesgknwzgkvyosuwjn.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
 ## Database Setup
 
 Run this SQL in your Supabase SQL Editor:

@@ -282,6 +282,7 @@ export function PriceSubmissionDrawer({
               </button>
             </div>
           </div>
+          )}
         </div>
       </div>
     </>

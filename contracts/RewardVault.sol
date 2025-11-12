@@ -146,10 +146,10 @@ contract RewardVault {
 
         for (uint256 i = 0; i < length; i++) {
             _processPayout(
-                recipients[i],
-                stationIds[i],
-                submissionIds[i],
-                amounts[i],
+                    recipients[i],
+                    stationIds[i],
+                    submissionIds[i],
+                    amounts[i],
                 deadlines[i],
                 signatures[i]
             );
@@ -179,14 +179,14 @@ contract RewardVault {
                 submissionId,
                 amount,
                 deadline
-            )
-        );
-        bytes32 digest = message.toEthSignedMessageHash();
-        require(!usedDigests[digest], "Already claimed");
+                )
+            );
+            bytes32 digest = message.toEthSignedMessageHash();
+            require(!usedDigests[digest], "Already claimed");
 
         address recovered = digest.recover(signature);
-        require(recovered == signer, "Invalid signer");
-        usedDigests[digest] = true;
+            require(recovered == signer, "Invalid signer");
+            usedDigests[digest] = true;
 
         require(IERC20(usdc).transfer(recipient, amount), "USDC transfer failed");
         emit BatchPayout(recipient, amount, submissionId);

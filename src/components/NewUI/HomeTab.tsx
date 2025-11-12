@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { Search, Navigation, Coins, TrendingUp } from "lucide-react"
 import { GasStation, UserLocation } from "@/types"
@@ -17,14 +17,22 @@ interface HomeTabProps {
 export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabProps) {
   const { t } = useTranslation(['home', 'common'])
   const [searchQuery, setSearchQuery] = useState("")
+  const [submittedStations, setSubmittedStations] = useState<Set<string>>(new Set())
+  const [todaysRewards, setTodaysRewards] = useState(0)
 
   // Remove duplicates by id
   const uniqueStations = gasStations.filter((station, index, self) =>
     index === self.findIndex(s => s.id === station.id)
   )
 
+  // Filter stations by search query
+  const filteredStations = uniqueStations.filter(station =>
+    station.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    station.address?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   // Sort stations: unsubmitted first (by distance), then submitted at the end
-  const sortedStations = [...uniqueStations].sort((a, b) => {
+  const sortedStations = [...filteredStations].sort((a, b) => {
     const aSubmitted = submittedStations.has(a.id)
     const bSubmitted = submittedStations.has(b.id)
     
@@ -137,6 +145,7 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
         ) : (
           sortedStations.map((station) => {
             const isSubmitted = submittedStations.has(station.id)
+            const earnings = calculateEarnings(station.distance)
 
             return (
               <Card

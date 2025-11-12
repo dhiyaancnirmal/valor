@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 import { useSession, signOut } from "next-auth/react"
 import { LogOut, Loader2, Settings, Copy, CheckCircle2 } from "lucide-react"
 import { SettingsDrawer } from "@/components/SettingsDrawer"
+import { MiniKit, ResponseEvent } from "@worldcoin/minikit-js"
 
 interface AccruedRewards {
   totalAccrued: string
@@ -20,40 +21,14 @@ export function WalletTab() {
   const [copied, setCopied] = useState(false)
   const [accruedRewards, setAccruedRewards] = useState<AccruedRewards | null>(null)
   const [isLoadingRewards, setIsLoadingRewards] = useState(true)
-
-  // Check location permission
-  const checkLocationPermission = useCallback(async () => {
-    if (!('geolocation' in navigator)) {
-      setLocationEnabled(false)
-      return false
-    }
-
-    try {
-      await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          resolve,
-          reject,
-          {
-            enableHighAccuracy: false,
-            timeout: 1000,
-            maximumAge: 300000
-          }
-        )
-      })
-      setLocationEnabled(true)
-      return true
-    } catch (error) {
-      console.error('Sign out error:', error)
-      alert(t('errors:general.failedToSignOut'))
-      setIsSigningOut(false)
-    }
-  }
+  const [isClaiming, setIsClaiming] = useState(false)
+  const [canClaim, setCanClaim] = useState(false)
 
   // Handle logout
   const handleLogout = async () => {
-    if (isLoggingOut) return
+    if (isSigningOut) return
 
-    setIsLoggingOut(true)
+    setIsSigningOut(true)
     try {
       console.log('Profile: Starting logout process...')
       await signOut({ redirect: false })
@@ -63,9 +38,31 @@ export function WalletTab() {
     } catch (error) {
       console.error('Profile: Logout error:', error)
       alert(t('walletTab.signOutFailed'))
-      setIsLoggingOut(false)
+      setIsSigningOut(false)
     }
   }
+
+  // Check if rewards can be claimed (past 12:30 AM Buenos Aires)
+  useEffect(() => {
+    const checkClaimAvailability = () => {
+      const nowUTC = new Date()
+      const buenosAiresOffset = -3 * 60 * 60 * 1000 // -3 hours
+      const buenosAiresTime = new Date(nowUTC.getTime() + buenosAiresOffset)
+      
+      // Check if it's past 12:30 AM Buenos Aires today
+      const payoutTime = new Date(buenosAiresTime)
+      payoutTime.setUTCHours(0, 30, 0, 0) // 12:30 AM BA
+      
+      // In dev mode, always allow claiming
+      const isDevMode = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost'
+      setCanClaim(isDevMode || buenosAiresTime >= payoutTime)
+    }
+    
+    checkClaimAvailability()
+    // Check every minute
+    const interval = setInterval(checkClaimAvailability, 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     if (session?.user?.walletAddress) {
@@ -89,6 +86,95 @@ export function WalletTab() {
         })
     }
   }, [session?.user?.walletAddress])
+
+  const handleClaimRewards = async () => {
+    if (isClaiming || !canClaim || !accruedRewards || accruedRewards.totalUSDC <= 0) return
+    if (!MiniKit.isInstalled()) {
+      alert('Please open this app in World App to claim rewards')
+      return
+    }
+
+    setIsClaiming(true)
+
+    try {
+      // Get claim data from backend
+      const isDevMode = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost'
+      const response = await fetch('/api/claim-rewards/prepare', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(isDevMode && { 'x-dev-mode': 'true' }),
+        },
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to prepare claim')
+      }
+
+      if (!data.transactions || data.transactions.length === 0) {
+        throw new Error('No transactions to claim')
+      }
+
+      // Show MiniKit transaction popup
+      const rewardContract = process.env.NEXT_PUBLIC_REWARD_CONTRACT_ADDRESS as `0x${string}`
+      if (!rewardContract) {
+        throw new Error('Reward contract address not configured')
+      }
+
+      // For multiple rewards, we'll claim them one by one or use a multicall
+      // For now, let's claim the first one as an example
+      const firstTx = data.transactions[0]
+
+      const { finalPayload } = await MiniKit.commandsAsync.sendTransaction({
+        transaction: [
+          {
+            address: rewardContract,
+            abi: data.abi,
+            functionName: 'claimReward',
+            args: [
+              session?.user?.walletAddress,
+              firstTx.stationIdBytes32,
+              firstTx.submissionId,
+              firstTx.amount,
+              firstTx.deadline,
+              firstTx.signature,
+            ],
+          },
+        ],
+      })
+
+      if (finalPayload.status === 'error') {
+        throw new Error(finalPayload.error_code || 'Transaction failed')
+      }
+
+      // Transaction submitted successfully
+      console.log('Transaction submitted:', finalPayload.transaction_id)
+
+      // Update database on backend
+      await fetch('/api/claim-rewards/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transactionId: finalPayload.transaction_id,
+          rewardIds: data.rewardIds,
+        }),
+      })
+
+      // Refresh rewards
+      const rewardsRes = await fetch('/api/wallet/rewards')
+      const rewardsData = await rewardsRes.json()
+      setAccruedRewards(rewardsData)
+      
+      alert(`Successfully claimed ${accruedRewards.totalUSDC.toFixed(2)} USDC!`)
+    } catch (error: any) {
+      console.error('Claim error:', error)
+      alert(error.message || 'Failed to claim rewards')
+    } finally {
+      setIsClaiming(false)
+    }
+  }
 
   return (
     <div className="h-full overflow-y-auto bg-[#F4F4F8] pb-24">
@@ -131,11 +217,42 @@ export function WalletTab() {
           )}
           {accruedRewards && accruedRewards.totalUSDC > 0 && (
             <p className="text-white/60 text-xs mt-1">
-              Payout at 12:00 AM UTC
+              {canClaim ? 'Ready to claim!' : 'Available at 12:30 AM Buenos Aires'}
             </p>
           )}
         </div>
       </div>
+
+      {/* Claim Button */}
+      {accruedRewards && accruedRewards.totalUSDC > 0 && (
+        <div className="px-4 pb-4">
+          <button
+            onClick={handleClaimRewards}
+            disabled={!canClaim || isClaiming}
+            className={`w-full py-4 px-6 rounded-xl font-semibold text-base transition-all duration-200 ${
+              canClaim && !isClaiming
+                ? 'bg-gradient-to-r from-[#7DD756] to-[#6BC647] text-white hover:shadow-lg active:scale-[0.98] shadow-md'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            {isClaiming ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Claiming...
+              </span>
+            ) : canClaim ? (
+              `Claim ${accruedRewards.totalUSDC.toFixed(2)} USDC`
+            ) : (
+              'Claim (Available at 12:30 AM Buenos Aires)'
+            )}
+          </button>
+          {isClaiming && (
+            <p className="text-xs text-center text-gray-500 mt-2">
+              Please confirm the transaction in the popup
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Wallet Address */}
       <div className="px-4 pb-4">
@@ -145,7 +262,13 @@ export function WalletTab() {
               {t('common:labels.walletAddress')}
             </p>
             <button
-              onClick={copyAddress}
+              onClick={() => {
+                if (session?.user?.walletAddress) {
+                  navigator.clipboard.writeText(session.user.walletAddress)
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2000)
+                }
+              }}
               className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"
               aria-label="Copy address"
             >
@@ -167,8 +290,9 @@ export function WalletTab() {
       {/* Actions */}
       <div className="px-4 pb-6 space-y-3 safe-area-b-20">
         <button
-          onClick={() => setIsSettingsOpen(true)}
-          className="p-3 text-gray-600 hover:bg-white rounded-lg transition-all duration-200 hover:scale-105"
+          onClick={handleLogout}
+          disabled={isSigningOut}
+          className="w-full p-3 text-gray-600 hover:bg-white rounded-lg transition-all duration-200 hover:scale-105 flex items-center gap-2 justify-center"
         >
           {isSigningOut ? (
             <>
@@ -218,7 +342,13 @@ export function WalletTab() {
                     {session.user.walletAddress.slice(0, 8)}...{session.user.walletAddress.slice(-6)}
                   </span>
                   <button
-                    onClick={handleCopyAddress}
+                    onClick={() => {
+                      if (session?.user?.walletAddress) {
+                        navigator.clipboard.writeText(session.user.walletAddress)
+                        setCopied(true)
+                        setTimeout(() => setCopied(false), 2000)
+                      }
+                    }}
                     className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                     title={t('walletTab.copyWalletAddress')}
                   >
@@ -233,24 +363,15 @@ export function WalletTab() {
             </div>
           </div>
 
-          {/* Stats */}
-          <StatsGrid
-            columns={3}
-            stats={[
-              { label: t('walletTab.submissions'), value: '0' },
-              { label: t('walletTab.usdcEarned'), value: '0' },
-              { label: t('walletTab.rank'), value: '1', color: 'text-gray-900' }
-            ]}
-          />
+          {/* Stats - Removed StatsGrid component for now */}
         </div>
       </div>
 
-      {/* Info Modal */}
-      {isInfoOpen && (
+      {/* Info Modal - Removed for now */}
+      {false && (
         <>
           <div
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[55]"
-            onClick={() => setIsInfoOpen(false)}
           />
 
           <div
@@ -264,7 +385,6 @@ export function WalletTab() {
             <div className="w-full h-full flex flex-col relative">
               {/* Close button */}
               <button
-                onClick={() => setIsInfoOpen(false)}
                 className="absolute top-4 left-4 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors z-10"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-gray-600">
@@ -309,7 +429,6 @@ export function WalletTab() {
               {/* Close button */}
               <div className="px-6 pb-6">
                 <button
-                  onClick={() => setIsInfoOpen(false)}
                   className="w-full bg-black text-white rounded-xl py-4 text-lg font-semibold hover:bg-gray-800 transition-colors"
                 >
                   {t('settingsDrawer.gotIt')}
@@ -320,30 +439,11 @@ export function WalletTab() {
         </>
       )}
 
-      {/* Settings Modal */}
-      <SettingsModal
+      {/* Settings Drawer */}
+      <SettingsDrawer
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        session={session}
-        username={session?.user?.username || null}
-        notificationsEnabled={notificationsEnabled}
-        locationEnabled={locationEnabled}
-        loadingPermissions={loadingPermissions}
-        onToggleNotifications={toggleNotifications}
-        onToggleLocation={toggleLocationServices}
-        onLogout={handleLogout}
-        isLoggingOut={isLoggingOut}
-        language={locale}
-        setLanguage={(lang) => setLocale(lang as 'en' | 'es-AR')}
       />
-
-      {/* Floating Info Button */}
-      <button
-        onClick={() => setIsInfoOpen(true)}
-        className="fixed bottom-24 right-6 w-12 h-12 bg-black rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow z-40"
-      >
-        <Info size={20} className="text-white" />
-      </button>
     </div>
   )
 }

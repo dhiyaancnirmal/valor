@@ -150,9 +150,9 @@ export function PriceEntryForm({
         accruedRewardAmount?: string | null
         rewardPeriodDate?: string | null
         submissionCount?: number
-      }
+        }
 
-      // Rewards now accrue and are paid out at 12:00 AM UTC daily
+      // Rewards now accrue and are paid out at 12:30 AM Buenos Aires daily
       // No immediate claim needed
 
       onSuccess()

@@ -39,13 +39,7 @@ export function GoogleMapView({ userLocation, gasStations, onStationSelect, onBo
         disableDefaultUI: true,
         zoomControl: true,
         keyboardShortcuts: false, // Hide keyboard shortcuts
-        styles: [
-          {
-            featureType: "poi",
-            elementType: "labels",
-            stylers: [{ visibility: "off" }],
-          },
-        ],
+        mapId: "31053bcd540af9d8ebbb6e83", // Custom map style ID
       })
 
       googleMapRef.current = map

@@ -82,7 +82,7 @@ export function PriceSubmissionDrawer({
 
   const handleClose = () => {
     setDrawerState("closed")
-    setTimeout(onClose, 300)
+    setTimeout(onClose, 150)
   }
 
   const handleExpand = () => {
@@ -139,7 +139,7 @@ export function PriceSubmissionDrawer({
     <>
       {/* Backdrop/Scrim */}
       <div
-        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 transition-opacity duration-500 ease-out"
+        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 transition-opacity duration-250 ease-out"
         style={{
           opacity: drawerState !== "closed" ? 1 : 0,
           pointerEvents: drawerState !== "closed" ? 'auto' : 'none'
@@ -150,7 +150,7 @@ export function PriceSubmissionDrawer({
       {/* Preview Drawer */}
       <div
         ref={drawerRef}
-        className="fixed bottom-0 left-0 right-0 z-50 transform transition-all duration-500 ease-out"
+        className="fixed bottom-0 left-0 right-0 z-50 transform transition-all duration-250 ease-out"
         style={{
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           transform: drawerState !== "closed" ? 'translateY(0)' : 'translateY(100%)',
@@ -161,7 +161,7 @@ export function PriceSubmissionDrawer({
         onTouchEnd={handleTouchEnd}
       >
         <div
-          className="bg-white shadow-lg transition-transform duration-500 ease-out overflow-hidden"
+          className="bg-white shadow-lg transition-transform duration-250 ease-out overflow-hidden"
           style={{
             borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
             boxShadow: 'var(--shadow-lg)',

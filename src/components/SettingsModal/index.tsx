@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { X, Bell, MapPin, Globe, LogOut, User, Wallet as WalletIcon } from 'lucide-react';
+import { X, Bell, MapPin, Globe, LogOut, User, Wallet as WalletIcon, Ruler } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface SettingsModalProps {
@@ -18,6 +18,8 @@ interface SettingsModalProps {
     isLoggingOut: boolean;
     language: string;
     setLanguage: (lang: string) => void;
+    units: 'metric' | 'imperial';
+    setUnits: (units: 'metric' | 'imperial') => void;
 }
 
 export default function SettingsModal({
@@ -33,7 +35,9 @@ export default function SettingsModal({
     onLogout,
     isLoggingOut,
     language,
-    setLanguage
+    setLanguage,
+    units,
+    setUnits
 }: SettingsModalProps) {
     const t = useTranslations();
 
@@ -62,7 +66,7 @@ export default function SettingsModal({
 
             {/* Modal */}
             <div
-                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[32px] shadow-2xl transform transition-all duration-300 ease-out z-[60]"
+                className="fixed bottom-0 left-0 right-0 bg-[#F4F4F8] rounded-t-[32px] shadow-2xl transform transition-all duration-300 ease-out z-[60]"
                 style={{
                     maxHeight: '90vh',
                     paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)'
@@ -75,14 +79,14 @@ export default function SettingsModal({
                     </div>
 
                     {/* Header */}
-                    <div className="px-6 pt-2 pb-6 border-b border-gray-100">
+                    <div className="px-6 pt-2 pb-6 border-b border-white/20">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-2xl font-bold text-gray-900">{t('settingsDrawer.settings')}</h2>
+                            <h2 className="text-2xl font-bold text-[#1C1C1E]">{t('settingsDrawer.settings')}</h2>
                             <button
                                 onClick={onClose}
-                                className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200 active:scale-95"
+                                className="w-10 h-10 flex items-center justify-center cursor-pointer bg-white/20 backdrop-blur-md border border-white/30 rounded-full transition-all hover:scale-105 active:scale-95"
                             >
-                                <X size={24} />
+                                <X size={20} className="text-[#1C1C1E]" strokeWidth={2} />
                             </button>
                         </div>
                     </div>
@@ -92,29 +96,29 @@ export default function SettingsModal({
                         {/* Account Section */}
                         <div className="mb-16">
                             <div className="flex items-center gap-3 mb-8">
-                                <div className="w-1.5 h-7 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
-                                <h3 className="text-xl font-bold text-gray-900">{t('walletTab.account')}</h3>
+                                <div className="w-1.5 h-7 bg-gradient-to-b from-[#7DD756] to-[#5FB840] rounded-full"></div>
+                                <h3 className="text-xl font-bold text-[#1C1C1E]">{t('walletTab.account')}</h3>
                             </div>
-                            <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl shadow-sm p-3">
+                            <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl shadow-sm p-3">
                                 <div className="space-y-4">
-                                    <div className="flex items-center gap-4 p-6 bg-white rounded-xl hover:bg-gray-50 transition-colors">
-                                        <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                                    <div className="flex items-center gap-4 p-6 bg-white/20 backdrop-blur-md border border-white/30 rounded-xl hover:bg-white/30 transition-colors">
+                                        <div className="w-14 h-14 bg-gradient-to-br from-[#7DD756] to-[#5FB840] rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
                                             <User size={24} className="text-white" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-gray-500 mb-1">{t('settingsDrawer.username')}</p>
-                                            <p className="text-lg font-semibold text-gray-900 truncate">
+                                            <p className="text-sm font-medium text-gray-600 mb-1">{t('settingsDrawer.username')}</p>
+                                            <p className="text-lg font-semibold text-[#1C1C1E] truncate">
                                                 {username || session?.user?.username || t('settingsDrawer.notSet')}
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4 p-6 bg-white rounded-xl hover:bg-gray-50 transition-colors">
-                                        <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                                    <div className="flex items-center gap-4 p-6 bg-white/20 backdrop-blur-md border border-white/30 rounded-xl hover:bg-white/30 transition-colors">
+                                        <div className="w-14 h-14 bg-gradient-to-br from-[#7DD756] to-[#5FB840] rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
                                             <WalletIcon size={24} className="text-white" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-gray-500 mb-1">{t('walletTab.walletAddress')}</p>
-                                            <p className="text-lg font-mono font-semibold text-gray-900 truncate">
+                                            <p className="text-sm font-medium text-gray-600 mb-1">{t('walletTab.walletAddress')}</p>
+                                            <p className="text-lg font-mono font-semibold text-[#1C1C1E] truncate">
                                                 {session?.user?.walletAddress ?
                                                     `${session.user.walletAddress.slice(0, 6)}...${session.user.walletAddress.slice(-4)}`
                                                     : t('walletTab.notConnected')
@@ -129,19 +133,19 @@ export default function SettingsModal({
                         {/* Preferences Section */}
                         <div className="mb-16">
                             <div className="flex items-center gap-3 mb-8">
-                                <div className="w-1.5 h-7 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
-                                <h3 className="text-xl font-bold text-gray-900">{t('settingsDrawer.preferences')}</h3>
+                                <div className="w-1.5 h-7 bg-gradient-to-b from-[#7DD756] to-[#5FB840] rounded-full"></div>
+                                <h3 className="text-xl font-bold text-[#1C1C1E]">{t('settingsDrawer.preferences')}</h3>
                             </div>
-                            <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl shadow-sm divide-y divide-gray-100">
+                            <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl shadow-sm divide-y divide-white/20">
                                 {/* Notifications */}
                                 <div className="flex items-center justify-between p-6">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-                                            <Bell size={22} className="text-blue-600" />
+                                        <div className="w-12 h-12 bg-white/20 backdrop-blur-md border border-white/30 rounded-xl flex items-center justify-center">
+                                            <Bell size={22} className="text-[#1C1C1E]" />
                                         </div>
                                         <div>
-                                            <p className="text-base font-semibold text-gray-900">{t('settingsDrawer.notifications')}</p>
-                                            <p className="text-sm text-gray-500">{t('settingsDrawer.notificationsDesc')}</p>
+                                            <p className="text-base font-semibold text-[#1C1C1E]">{t('settingsDrawer.notifications')}</p>
+                                            <p className="text-sm text-gray-600">{t('settingsDrawer.notificationsDesc')}</p>
                                         </div>
                                     </div>
                                     <button
@@ -163,12 +167,12 @@ export default function SettingsModal({
                                 {/* Location Services */}
                                 <div className="flex items-center justify-between p-6">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
-                                            <MapPin size={22} className="text-green-600" />
+                                        <div className="w-12 h-12 bg-white/20 backdrop-blur-md border border-white/30 rounded-xl flex items-center justify-center">
+                                            <MapPin size={22} className="text-[#1C1C1E]" />
                                         </div>
                                         <div>
-                                            <p className="text-base font-semibold text-gray-900">{t('settingsDrawer.locationServices')}</p>
-                                            <p className="text-sm text-gray-500">{t('settingsDrawer.locationServicesDesc')}</p>
+                                            <p className="text-base font-semibold text-[#1C1C1E]">{t('settingsDrawer.locationServices')}</p>
+                                            <p className="text-sm text-gray-600">{t('settingsDrawer.locationServicesDesc')}</p>
                                         </div>
                                     </div>
                                     <button
@@ -190,12 +194,12 @@ export default function SettingsModal({
                                 {/* Language */}
                                 <div className="p-6">
                                     <div className="flex items-center gap-4 mb-6">
-                                        <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center">
-                                            <Globe size={22} className="text-orange-600" />
+                                        <div className="w-12 h-12 bg-white/20 backdrop-blur-md border border-white/30 rounded-xl flex items-center justify-center">
+                                            <Globe size={22} className="text-[#1C1C1E]" />
                                         </div>
                                         <div>
-                                            <p className="text-base font-semibold text-gray-900">{t('settingsDrawer.language')}</p>
-                                            <p className="text-sm text-gray-500">{t('settingsDrawer.languageDesc')}</p>
+                                            <p className="text-base font-semibold text-[#1C1C1E]">{t('settingsDrawer.language')}</p>
+                                            <p className="text-sm text-gray-600">{t('settingsDrawer.languageDesc')}</p>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
@@ -203,8 +207,8 @@ export default function SettingsModal({
                                             onClick={() => setLanguage('en')}
                                             className={`flex items-center justify-center gap-3 py-4 px-4 rounded-xl transition-all duration-200 font-medium ${
                                                 language === 'en'
-                                                    ? 'bg-gradient-to-br from-[#7DD756] to-[#6BC647] text-white shadow-lg scale-[1.02]'
-                                                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                                                    ? 'bg-gradient-to-br from-[#7DD756] to-[#5FB840] text-white shadow-lg scale-[1.02]'
+                                                    : 'bg-white/20 backdrop-blur-md border border-white/30 text-[#1C1C1E] hover:bg-white/30'
                                             }`}
                                         >
                                             <span className="text-2xl">🇺🇸</span>
@@ -214,8 +218,8 @@ export default function SettingsModal({
                                             onClick={() => setLanguage('es-AR')}
                                             className={`flex items-center justify-center gap-3 py-4 px-4 rounded-xl transition-all duration-200 font-medium ${
                                                 language === 'es-AR'
-                                                    ? 'bg-gradient-to-br from-[#7DD756] to-[#6BC647] text-white shadow-lg scale-[1.02]'
-                                                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                                                    ? 'bg-gradient-to-br from-[#7DD756] to-[#5FB840] text-white shadow-lg scale-[1.02]'
+                                                    : 'bg-white/20 backdrop-blur-md border border-white/30 text-[#1C1C1E] hover:bg-white/30'
                                             }`}
                                         >
                                             <span className="text-2xl">🇦🇷</span>
@@ -226,12 +230,55 @@ export default function SettingsModal({
                             </div>
                         </div>
 
+                        {/* Units Section */}
+                        <div className="mb-16">
+                            <div className="flex items-center gap-3 mb-8">
+                                <div className="w-1.5 h-7 bg-gradient-to-b from-[#7DD756] to-[#5FB840] rounded-full"></div>
+                                <h3 className="text-xl font-bold text-[#1C1C1E]">{t('settingsDrawer.units')}</h3>
+                            </div>
+                            <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl shadow-sm p-6">
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="w-12 h-12 bg-white/20 backdrop-blur-md border border-white/30 rounded-xl flex items-center justify-center">
+                                        <Ruler size={22} className="text-[#1C1C1E]" />
+                                    </div>
+                                    <div>
+                                        <p className="text-base font-semibold text-[#1C1C1E]">{t('settingsDrawer.unitSystem')}</p>
+                                        <p className="text-sm text-gray-600">{t('settingsDrawer.unitSystemDesc')}</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button
+                                        onClick={() => setUnits('metric')}
+                                        className={`flex items-center justify-center gap-3 py-4 px-4 rounded-xl transition-all duration-200 font-medium ${
+                                            units === 'metric'
+                                                ? 'bg-gradient-to-br from-[#7DD756] to-[#5FB840] text-white shadow-lg scale-[1.02]'
+                                                : 'bg-white/20 backdrop-blur-md border border-white/30 text-[#1C1C1E] hover:bg-white/30'
+                                        }`}
+                                    >
+                                        <span className="text-2xl">📏</span>
+                                        <span className="text-base font-semibold">{t('settingsDrawer.metric')}</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setUnits('imperial')}
+                                        className={`flex items-center justify-center gap-3 py-4 px-4 rounded-xl transition-all duration-200 font-medium ${
+                                            units === 'imperial'
+                                                ? 'bg-gradient-to-br from-[#7DD756] to-[#5FB840] text-white shadow-lg scale-[1.02]'
+                                                : 'bg-white/20 backdrop-blur-md border border-white/30 text-[#1C1C1E] hover:bg-white/30'
+                                        }`}
+                                    >
+                                        <span className="text-2xl">🇺🇸</span>
+                                        <span className="text-base font-semibold">{t('settingsDrawer.imperial')}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Sign Out Button */}
                         <div className="pt-8 pb-10">
                             <button
                                 onClick={onLogout}
                                 disabled={isLoggingOut}
-                                className="w-full py-5 flex items-center justify-center gap-3 bg-red-50 text-red-600 hover:bg-red-100 active:bg-red-200 active:scale-[0.98] transition-all duration-200 rounded-2xl font-semibold border-2 border-red-200 shadow-sm disabled:opacity-50"
+                                className="w-full py-5 flex items-center justify-center gap-3 bg-white/20 backdrop-blur-md border border-white/30 text-[#1C1C1E] hover:bg-white/30 active:bg-white/40 active:scale-[0.98] transition-all duration-200 rounded-2xl font-semibold shadow-sm disabled:opacity-50"
                             >
                                 {isLoggingOut ? (
                                     <>

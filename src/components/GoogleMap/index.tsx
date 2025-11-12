@@ -119,7 +119,7 @@ export function GoogleMapView({ userLocation, gasStations, onStationSelect, onBo
         strokeColor: "#ffffff",
         strokeWeight: 3,
       },
-          title: "Your Location",
+          title: t('ui.yourLocation'),
     })
     userMarkerRef.current = userMarker
 

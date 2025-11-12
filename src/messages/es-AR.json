@@ -197,5 +197,42 @@
     "ARS": "ARS",
     "EUR": "EUR",
     "GBP": "GBP"
+  },
+  "currencyInfo": {
+    "USD": {"name": "Dólar Estadounidense", "country": "Estados Unidos"},
+    "EUR": {"name": "Euro", "country": "Unión Europea"},
+    "GBP": {"name": "Libra Esterlina", "country": "Reino Unido"},
+    "JPY": {"name": "Yen Japonés", "country": "Japón"},
+    "CNY": {"name": "Yuan Chino", "country": "China"},
+    "AUD": {"name": "Dólar Australiano", "country": "Australia"},
+    "CAD": {"name": "Dólar Canadiense", "country": "Canadá"},
+    "CHF": {"name": "Franco Suizo", "country": "Suiza"},
+    "INR": {"name": "Rupia India", "country": "India"},
+    "MXN": {"name": "Peso Mexicano", "country": "México"},
+    "BRL": {"name": "Real Brasileño", "country": "Brasil"},
+    "ARS": {"name": "Peso Argentino", "country": "Argentina"},
+    "KRW": {"name": "Won Surcoreano", "country": "Corea del Sur"},
+    "SGD": {"name": "Dólar de Singapur", "country": "Singapur"},
+    "NZD": {"name": "Dólar Neozelandés", "country": "Nueva Zelanda"},
+    "ZAR": {"name": "Rand Sudafricano", "country": "Sudáfrica"},
+    "SEK": {"name": "Corona Sueca", "country": "Suecia"},
+    "NOK": {"name": "Corona Noruega", "country": "Noruega"},
+    "DKK": {"name": "Corona Danesa", "country": "Dinamarca"},
+    "PLN": {"name": "Zloty Polaco", "country": "Polonia"}
+  },
+  "status": {
+    "noPrice": "Sin precio",
+    "moreSettingsComing": "Más configuraciones próximamente..."
+  },
+  "time": {
+    "payoutSchedule": "Pago a las 12:00 AM UTC"
+  },
+  "ui": {
+    "pricePerGallon": "Precio por galón",
+    "yourLocation": "Tu Ubicación"
+  },
+  "plurals": {
+    "update": "actualización",
+    "updates": "actualizaciones"
   }
 }

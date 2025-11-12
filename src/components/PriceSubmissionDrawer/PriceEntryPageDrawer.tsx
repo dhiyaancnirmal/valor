@@ -37,26 +37,26 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
     ];
 
     const currencies = [
-        { code: 'USD', symbol: '$', name: 'US Dollar', country: 'United States' },
-        { code: 'EUR', symbol: '€', name: 'Euro', country: 'European Union' },
-        { code: 'GBP', symbol: '£', name: 'British Pound', country: 'United Kingdom' },
-        { code: 'JPY', symbol: '¥', name: 'Japanese Yen', country: 'Japan' },
-        { code: 'CNY', symbol: '¥', name: 'Chinese Yuan', country: 'China' },
-        { code: 'AUD', symbol: '$', name: 'Australian Dollar', country: 'Australia' },
-        { code: 'CAD', symbol: '$', name: 'Canadian Dollar', country: 'Canada' },
-        { code: 'CHF', symbol: 'Fr', name: 'Swiss Franc', country: 'Switzerland' },
-        { code: 'INR', symbol: '₹', name: 'Indian Rupee', country: 'India' },
-        { code: 'MXN', symbol: '$', name: 'Mexican Peso', country: 'Mexico' },
-        { code: 'BRL', symbol: 'R$', name: 'Brazilian Real', country: 'Brazil' },
-        { code: 'ARS', symbol: '$', name: 'Argentine Peso', country: 'Argentina' },
-        { code: 'KRW', symbol: '₩', name: 'South Korean Won', country: 'South Korea' },
-        { code: 'SGD', symbol: '$', name: 'Singapore Dollar', country: 'Singapore' },
-        { code: 'NZD', symbol: '$', name: 'New Zealand Dollar', country: 'New Zealand' },
-        { code: 'ZAR', symbol: 'R', name: 'South African Rand', country: 'South Africa' },
-        { code: 'SEK', symbol: 'kr', name: 'Swedish Krona', country: 'Sweden' },
-        { code: 'NOK', symbol: 'kr', name: 'Norwegian Krone', country: 'Norway' },
-        { code: 'DKK', symbol: 'kr', name: 'Danish Krone', country: 'Denmark' },
-        { code: 'PLN', symbol: 'zł', name: 'Polish Złoty', country: 'Poland' },
+        { code: 'USD', symbol: '$', name: t('currencyInfo.USD.name'), country: t('currencyInfo.USD.country') },
+        { code: 'EUR', symbol: '€', name: t('currencyInfo.EUR.name'), country: t('currencyInfo.EUR.country') },
+        { code: 'GBP', symbol: '£', name: t('currencyInfo.GBP.name'), country: t('currencyInfo.GBP.country') },
+        { code: 'JPY', symbol: '¥', name: t('currencyInfo.JPY.name'), country: t('currencyInfo.JPY.country') },
+        { code: 'CNY', symbol: '¥', name: t('currencyInfo.CNY.name'), country: t('currencyInfo.CNY.country') },
+        { code: 'AUD', symbol: '$', name: t('currencyInfo.AUD.name'), country: t('currencyInfo.AUD.country') },
+        { code: 'CAD', symbol: '$', name: t('currencyInfo.CAD.name'), country: t('currencyInfo.CAD.country') },
+        { code: 'CHF', symbol: 'Fr', name: t('currencyInfo.CHF.name'), country: t('currencyInfo.CHF.country') },
+        { code: 'INR', symbol: '₹', name: t('currencyInfo.INR.name'), country: t('currencyInfo.INR.country') },
+        { code: 'MXN', symbol: '$', name: t('currencyInfo.MXN.name'), country: t('currencyInfo.MXN.country') },
+        { code: 'BRL', symbol: 'R$', name: t('currencyInfo.BRL.name'), country: t('currencyInfo.BRL.country') },
+        { code: 'ARS', symbol: '$', name: t('currencyInfo.ARS.name'), country: t('currencyInfo.ARS.country') },
+        { code: 'KRW', symbol: '₩', name: t('currencyInfo.KRW.name'), country: t('currencyInfo.KRW.country') },
+        { code: 'SGD', symbol: '$', name: t('currencyInfo.SGD.name'), country: t('currencyInfo.SGD.country') },
+        { code: 'NZD', symbol: '$', name: t('currencyInfo.NZD.name'), country: t('currencyInfo.NZD.country') },
+        { code: 'ZAR', symbol: 'R', name: t('currencyInfo.ZAR.name'), country: t('currencyInfo.ZAR.country') },
+        { code: 'SEK', symbol: 'kr', name: t('currencyInfo.SEK.name'), country: t('currencyInfo.SEK.country') },
+        { code: 'NOK', symbol: 'kr', name: t('currencyInfo.NOK.name'), country: t('currencyInfo.NOK.country') },
+        { code: 'DKK', symbol: 'kr', name: t('currencyInfo.DKK.name'), country: t('currencyInfo.DKK.country') },
+        { code: 'PLN', symbol: 'zł', name: t('currencyInfo.PLN.name'), country: t('currencyInfo.PLN.country') },
     ];
 
     // Determine currency based on location
@@ -637,7 +637,7 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
                             }}
                         >
                             <ArrowLeft size={20} style={{ marginRight: 'var(--spacing-xs)' }} />
-                            <span>Back</span>
+                            <span>{t('common.back')}</span>
                         </button>
                         <button
                             onClick={(e) => {
@@ -685,7 +685,7 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
                             }}
                         >
                             <ArrowLeft size={20} style={{ marginRight: 'var(--spacing-xs)' }} />
-                            <span>Back</span>
+                            <span>{t('common.back')}</span>
                         </button>
 
                         {/* Next button - always flex 1 */}

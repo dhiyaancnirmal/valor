@@ -279,7 +279,7 @@ export function PriceEntryForm({
             disabled={!price || parseFloat(price) <= 0}
             className="w-full"
           >
-            Continue
+            {t('common.continue')}
           </button>
         </div>
       )}

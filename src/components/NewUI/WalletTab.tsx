@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useTranslations } from "next-intl"
 import { useSession, signOut } from "next-auth/react"
-import { Loader2, Bell, User, Star } from "lucide-react"
+import { Loader2, Star, Settings } from "lucide-react"
 
 interface AccruedRewards {
   totalAccrued: string
@@ -20,6 +20,18 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
   const { data: session } = useSession()
   const [accruedRewards, setAccruedRewards] = useState<AccruedRewards | null>(null)
   const [isLoadingRewards, setIsLoadingRewards] = useState(true)
+
+  // Helper function to get user initials for fallback
+  const getUserInitials = (username?: string) => {
+    if (!username) return "?"
+    return username.slice(0, 2).toUpperCase()
+  }
+
+  // Helper function to format wallet address
+  const formatWalletAddress = (address?: string) => {
+    if (!address) return "Not connected"
+    return `${address.slice(0, 6)}...${address.slice(-4)}`
+  }
 
   useEffect(() => {
     if (session?.user?.walletAddress) {
@@ -46,33 +58,52 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
 
   return (
     <div className="h-full bg-[#F4F4F8] overflow-y-auto pb-24">
-      {/* Header with icon buttons */}
+      {/* Header with settings button */}
       <div style={{ padding: 'var(--spacing-xl)' }}>
-        <div className="flex items-center justify-between">
-          {/* Notifications Icon */}
-          <button
-            className="w-10 h-10 flex items-center justify-center cursor-pointer bg-white/20 backdrop-blur-md border border-white/30 rounded-full transition-all hover:scale-105 active:scale-95"
-            onClick={() => {/* Future: notifications */}}
-            aria-label="Notifications"
-          >
-            <Bell className="w-5 h-5 text-[#1C1C1E]" strokeWidth={2} />
-          </button>
-
-          {/* Profile/Settings Icon */}
+        <div className="flex items-center justify-end">
+          {/* Settings Icon */}
           <button
             className="w-10 h-10 flex items-center justify-center cursor-pointer bg-white/20 backdrop-blur-md border border-white/30 rounded-full transition-all hover:scale-105 active:scale-95"
             onClick={onOpenSettings}
             aria-label="Settings"
           >
-            <User className="w-5 h-5 text-[#1C1C1E]" strokeWidth={2} />
+            <Settings className="w-5 h-5 text-[#1C1C1E]" strokeWidth={2} />
           </button>
         </div>
       </div>
 
-      {/* Logo Viewer Area - Simplified without Three.js */}
-      <div className="h-80 relative flex items-center justify-center">
-        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#7DD756] to-[#5FB840] shadow-lg flex items-center justify-center">
-          <span className="text-6xl">⛽</span>
+      {/* Profile Section */}
+      <div className="h-80 relative flex flex-col items-center justify-center px-6">
+        {/* Profile Picture */}
+        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#7DD756] to-[#5FB840] shadow-lg flex items-center justify-center overflow-hidden mb-4">
+          {session?.user?.profilePictureUrl ? (
+            <img 
+              src={session.user.profilePictureUrl} 
+              alt="Profile" 
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // Fallback to initials if image fails to load
+                const target = e.target as HTMLImageElement
+                target.style.display = 'none'
+                target.nextElementSibling?.classList.remove('hidden')
+              }}
+            />
+          ) : null}
+          <div className={`${session?.user?.profilePictureUrl ? 'hidden' : ''} text-white text-4xl font-bold`}>
+            {getUserInitials(session?.user?.username)}
+          </div>
+        </div>
+
+        {/* Username */}
+        <h2 className="text-2xl font-bold text-[#1C1C1E] mb-2">
+          {session?.user?.username || "Anonymous User"}
+        </h2>
+
+        {/* Wallet Address */}
+        <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-full px-4 py-2">
+          <p className="text-sm text-[#1C1C1E] font-mono">
+            {formatWalletAddress(session?.user?.walletAddress)}
+          </p>
         </div>
       </div>
 
@@ -114,7 +145,7 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
       {accruedRewards && accruedRewards.totalUSDC > 0 && (
         <div style={{ padding: '0 var(--spacing-xl)' }}>
           <p className="text-center text-sm text-gray-600">
-            Payout at 12:00 AM UTC
+            {t('time.payoutSchedule')}
           </p>
         </div>
       )}

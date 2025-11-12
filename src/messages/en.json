@@ -197,5 +197,42 @@
     "ARS": "ARS",
     "EUR": "EUR",
     "GBP": "GBP"
+  },
+  "currencyInfo": {
+    "USD": {"name": "US Dollar", "country": "United States"},
+    "EUR": {"name": "Euro", "country": "European Union"},
+    "GBP": {"name": "British Pound", "country": "United Kingdom"},
+    "JPY": {"name": "Japanese Yen", "country": "Japan"},
+    "CNY": {"name": "Chinese Yuan", "country": "China"},
+    "AUD": {"name": "Australian Dollar", "country": "Australia"},
+    "CAD": {"name": "Canadian Dollar", "country": "Canada"},
+    "CHF": {"name": "Swiss Franc", "country": "Switzerland"},
+    "INR": {"name": "Indian Rupee", "country": "India"},
+    "MXN": {"name": "Mexican Peso", "country": "Mexico"},
+    "BRL": {"name": "Brazilian Real", "country": "Brazil"},
+    "ARS": {"name": "Argentine Peso", "country": "Argentina"},
+    "KRW": {"name": "South Korean Won", "country": "South Korea"},
+    "SGD": {"name": "Singapore Dollar", "country": "Singapore"},
+    "NZD": {"name": "New Zealand Dollar", "country": "New Zealand"},
+    "ZAR": {"name": "South African Rand", "country": "South Africa"},
+    "SEK": {"name": "Swedish Krona", "country": "Sweden"},
+    "NOK": {"name": "Norwegian Krone", "country": "Norway"},
+    "DKK": {"name": "Danish Krone", "country": "Denmark"},
+    "PLN": {"name": "Polish Złoty", "country": "Poland"}
+  },
+  "status": {
+    "noPrice": "No price",
+    "moreSettingsComing": "More settings coming soon..."
+  },
+  "time": {
+    "payoutSchedule": "Payout at 12:00 AM UTC"
+  },
+  "ui": {
+    "pricePerGallon": "Price per gallon",
+    "yourLocation": "Your Location"
+  },
+  "plurals": {
+    "update": "update",
+    "updates": "updates"
   }
 }

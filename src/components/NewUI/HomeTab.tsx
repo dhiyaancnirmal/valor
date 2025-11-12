@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { useTranslations } from "next-intl"
-import { Search, Navigation, Coins, TrendingUp } from "lucide-react"
+import { Navigation, Coins } from "lucide-react"
 import { GasStation, UserLocation } from "@/types"
 import { formatDistance } from "@/lib/utils"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { SearchBar } from "./SearchBar"
 
 interface HomeTabProps {
   gasStations: GasStation[]
@@ -184,16 +183,10 @@ export function HomeTab({
 
       {/* Search Bar */}
       <div className="flex-shrink-0 bg-white px-5 py-3 border-b border-gray-200">
-        <div className="relative w-full bg-gray-50 rounded-lg px-4 py-2.5">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder={t('homeTab.searchPlaceholder')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-transparent text-gray-900 placeholder-gray-400 outline-none text-sm w-full pl-6"
-          />
-        </div>
+        <SearchBar 
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+        />
       </div>
 
       {/* Gas Station Cards */}
@@ -281,18 +274,18 @@ export function HomeTab({
                             </div>
                             {submissionCount > 0 && (
                               <div className="text-xs text-gray-400" style={{ marginTop: 'var(--spacing-xs)' }}>
-                                {submissionCount} {submissionCount === 1 ? 'update' : 'updates'}
+                                {submissionCount} {submissionCount === 1 ? t('plurals.update') : t('plurals.updates')}
                               </div>
                             )}
                           </>
                         ) : (
                           <>
                             <div className="text-sm text-gray-400">
-                              No price
+                              {t('status.noPrice')}
                             </div>
                             {submissionCount > 0 && (
                               <div className="text-xs text-gray-400" style={{ marginTop: 'var(--spacing-xs)' }}>
-                                {submissionCount} {submissionCount === 1 ? 'update' : 'updates'}
+                                {submissionCount} {submissionCount === 1 ? t('plurals.update') : t('plurals.updates')}
                               </div>
                             )}
                           </>

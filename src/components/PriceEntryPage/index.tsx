@@ -231,7 +231,7 @@ export function PriceEntryPage({
                   autoFocus
                 />
               </div>
-              <p className="text-sm text-gray-500">Price per gallon</p>
+              <p className="text-sm text-gray-500">{t('ui.pricePerGallon')}</p>
             </div>
             <div className="flex gap-3">
               <button
@@ -239,14 +239,14 @@ export function PriceEntryPage({
                 className="flex-1 bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-xl hover:bg-gray-300 transition-colors flex items-center justify-center space-x-2"
               >
                 <ArrowLeft className="w-5 h-5" />
-                <span>Back</span>
+                <span>{t('common.back')}</span>
               </button>
               <button
                 onClick={handlePriceSubmit}
                 disabled={!price || parseFloat(price) <= 0}
                 className="flex-1 bg-primary text-white font-semibold py-4 px-6 rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Continue
+                {t('common.continue')}
               </button>
             </div>
           </div>

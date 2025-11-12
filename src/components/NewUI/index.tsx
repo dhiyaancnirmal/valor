@@ -28,6 +28,7 @@ export function MainUI() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isSubmitPageOpen, setIsSubmitPageOpen] = useState(false)
   const [isLoadingStations, setIsLoadingStations] = useState(false)
+  const [units, setUnits] = useState<'metric' | 'imperial'>('metric')
 
   // Shared station data state (persists across tab switches)
   const [stationData, setStationData] = useState<Record<string, {
@@ -353,6 +354,8 @@ export function MainUI() {
       <SettingsDrawer
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+        units={units}
+        setUnits={setUnits}
       />
     </div>
   )

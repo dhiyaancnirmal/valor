@@ -32,7 +32,7 @@ export default function SubmitPricePage() {
     name: decodeURIComponent(stationName),
     latitude: parseFloat(lat),
     longitude: parseFloat(lng),
-    address: address ? decodeURIComponent(address) : undefined,
+    address: address ? decodeURIComponent(address) : '',
   }
 
   const handleSuccess = () => {

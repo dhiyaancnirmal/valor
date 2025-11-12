@@ -106,6 +106,7 @@ export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
         ref={drawerRef}
         className="fixed bottom-0 left-0 right-0 z-[110] transform transition-all duration-500 ease-out"
         style={{
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           transform: drawerState === "open" ? 'translateY(0)' : 'translateY(100%)',
           opacity: drawerState === "open" ? 1 : 0
         }}
@@ -117,8 +118,7 @@ export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
           className="bg-white rounded-t-3xl shadow-lg transition-transform duration-500 ease-out"
           style={{
             boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.15)',
-            transform: drawerState === "open" ? 'scale(1)' : 'scale(0.95)',
-            marginBottom: 'calc(env(safe-area-inset-bottom, 0px) + 70px)'
+            transform: drawerState === "open" ? 'scale(1)' : 'scale(0.95)'
           }}
         >
           {/* Handle bar */}

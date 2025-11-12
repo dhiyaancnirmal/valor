@@ -146,7 +146,22 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
 
     const canSubmit = () => {
         const baseRequirements = selectedProduct && price && capturedPhoto && currentUserLocation;
-        return baseRequirements && isWithinAllowedDistance();
+        const withinDistance = isWithinAllowedDistance();
+        const canSubmitResult = baseRequirements && withinDistance;
+        
+        // Debug logging
+        if (currentStep === 'review') {
+            console.log('[Submit] Can submit check:', {
+                selectedProduct,
+                price,
+                capturedPhoto: !!capturedPhoto,
+                currentUserLocation: !!currentUserLocation,
+                withinDistance,
+                canSubmit: canSubmitResult
+            });
+        }
+        
+        return canSubmitResult;
     };
 
     const nextStep = () => {
@@ -274,7 +289,7 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
     const isStepActive = (step: Step) => currentStep === step;
 
     return (
-        <div className="min-h-screen bg-[#F4F4F8] flex flex-col">
+        <div className="h-screen bg-[#F4F4F8] flex flex-col overflow-hidden">
             <input
                 ref={fileInputRef}
                 type="file"
@@ -342,7 +357,11 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto" style={{ padding: 'var(--spacing-lg) var(--spacing-xl)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + var(--spacing-xl))' }}>
+            <div className="flex-1 overflow-y-auto overscroll-contain" style={{ 
+                padding: 'var(--spacing-lg) var(--spacing-xl)', 
+                paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + var(--spacing-xl))',
+                minHeight: 0
+            }}>
                 {/* Product Selection Step */}
                 {currentStep === 'product' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
@@ -621,11 +640,17 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
                             <span>Back</span>
                         </button>
                         <button
-                            onClick={handleSubmit}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (canSubmit() && !isSubmitting) {
+                                    handleSubmit();
+                                }
+                            }}
                             disabled={!canSubmit() || isSubmitting}
                             className={`font-semibold transition-all duration-200 flex items-center justify-center text-base ${
                                 canSubmit() && !isSubmitting
-                                    ? 'bg-[var(--valor-green)] text-white hover:opacity-90 active:scale-[0.98]'
+                                    ? 'bg-[var(--valor-green)] text-white hover:opacity-90 active:scale-[0.98] cursor-pointer'
                                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                             }`}
                             style={{

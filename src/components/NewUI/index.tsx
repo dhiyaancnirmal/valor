@@ -13,6 +13,7 @@ import PriceEntryPage from "@/components/PriceSubmissionDrawer/PriceEntryPageDra
 import { UserLocation, GasStation } from "@/types"
 import { calculateDistance } from "@/lib/utils"
 import Logo from "@/components/Logo"
+import { MiniKit } from "@worldcoin/minikit-js"
 
 type Tab = "map" | "home" | "wallet"
 
@@ -23,6 +24,7 @@ export function MainUI() {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null)
   const [gasStations, setGasStations] = useState<GasStation[]>([])
   const [loading, setLoading] = useState(true)
+  const [isMiniKitReady, setIsMiniKitReady] = useState(false)
   const [selectedStation, setSelectedStation] = useState<GasStation | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -44,7 +46,47 @@ export function MainUI() {
   const searchedBounds = useRef<Set<string>>(new Set())
   const boundsChangeTimeout = useRef<NodeJS.Timeout | null>(null)
 
+  // Check MiniKit readiness
   useEffect(() => {
+    let cancelled = false
+    let tries = 0
+    const MAX_TRIES = 50
+    const pollMiniKit = () => {
+      if (typeof window === "undefined") return
+      try {
+        const installed = MiniKit.isInstalled()
+        if (installed) {
+          if (!cancelled) setIsMiniKitReady(true)
+          return
+        }
+      } catch (e) {
+        // Swallow errors during early boot; keep polling
+      }
+      if (tries < MAX_TRIES) {
+        tries += 1
+        setTimeout(pollMiniKit, 150)
+      } else {
+        // Fallback: some World App builds may delay bridge init; if UA indicates World App, allow non-MiniKit features to proceed
+        try {
+          const ua = navigator.userAgent || ""
+          const looksLikeWorldApp = /WorldApp|WorldAppMiniKit|WorldCoin/i.test(ua)
+          if (looksLikeWorldApp && !cancelled) {
+            console.warn("MiniKit bridge not ready, but World App UA detected. Proceeding with limited features.")
+            setIsMiniKitReady(true)
+            return
+          }
+        } catch {}
+        console.error("MiniKit is not installed. Make sure you're running the application inside of World App")
+      }
+    }
+    pollMiniKit()
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    // Only start loading location after MiniKit is ready
+    if (!isMiniKitReady) return
+
     // Get user location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -65,7 +107,7 @@ export function MainUI() {
       console.error('Geolocation not supported')
       setLoading(false)
     }
-  }, [])
+  }, [isMiniKitReady])
 
   const fetchNearbyGasStations = async (location: UserLocation) => {
     try {
@@ -252,13 +294,10 @@ export function MainUI() {
     { id: "wallet" as Tab, icon: Wallet, label: t('mainUI.tabs.wallet') },
   ]
 
-  if (loading) {
+  if (loading || !isMiniKitReady) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#F4F4F8]">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">{t('mainUI.loadingStations')}</p>
-        </div>
+        <div className="w-12 h-12 border-4 border-[#7DD756] border-t-transparent rounded-full animate-spin"></div>
       </div>
     )
   }

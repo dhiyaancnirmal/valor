@@ -29,6 +29,17 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currency, setCurrency] = useState<string>('USD');
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const priceInputRef = useRef<HTMLInputElement>(null);
+
+    // Calculate font size based on number of digits
+    const getFontSize = (value: string) => {
+        const digitCount = value.replace(/[^0-9]/g, '').length
+        if (digitCount <= 3) return '3.75rem' // 60px
+        if (digitCount <= 4) return '3rem' // 48px
+        if (digitCount <= 5) return '2.5rem' // 40px
+        if (digitCount <= 6) return '2rem' // 32px
+        return '1.75rem' // 28px
+    }
 
     const gasProducts = [
         { id: 'Regular', label: t('priceEntry.fuelTypes.regular'), icon: '⛽', description: t('priceEntry.fuelTypes.regularDesc') },
@@ -288,6 +299,31 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
 
     const isStepActive = (step: Step) => currentStep === step;
 
+    // Set cursor to end when input is focused or when step changes to price
+    useEffect(() => {
+        if (currentStep === 'price' && priceInputRef.current) {
+            const input = priceInputRef.current
+            const setCursorToEnd = () => {
+                setTimeout(() => {
+                    if (input && input.type === 'text') {
+                        try {
+                            input.setSelectionRange(input.value.length, input.value.length)
+                        } catch (e) {
+                            // Ignore errors if setSelectionRange is not supported
+                        }
+                    }
+                }, 0)
+            }
+            // Set cursor position immediately when step changes
+            setCursorToEnd()
+            // Also set it on focus
+            input.addEventListener('focus', setCursorToEnd)
+            return () => {
+                input.removeEventListener('focus', setCursorToEnd)
+            }
+        }
+    }, [currentStep, price])
+
     return (
         <div className="h-screen bg-[#F4F4F8] flex flex-col overflow-hidden">
             <input
@@ -450,22 +486,58 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
                             </div>
                         </div>
 
-                        <div className="bg-gray-50 border border-gray-200" style={{ borderRadius: 'var(--radius-lg)', padding: 'var(--spacing-2xl)' }}>
-                            <div className="text-center">
+                        <div className="bg-gray-50 border border-gray-200" style={{ borderRadius: 'var(--radius-lg)', padding: 'var(--spacing-2xl)', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+                            <div className="text-center" style={{ width: '100%', maxWidth: '100%' }}>
                                 <div className="flex items-center justify-center mb-4" style={{ gap: 'var(--spacing-md)' }}>
-                                    <span className="text-5xl font-bold text-gray-300">
+                                    <span className="text-5xl font-bold text-gray-300" style={{ display: 'inline-block', flexShrink: 0 }}>
                                         {currencies.find(c => c.code === currency)?.symbol}
                                     </span>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        placeholder="0.00"
-                                        value={price}
-                                        onChange={(e) => setPrice(e.target.value)}
-                                        className="w-40 text-6xl font-bold text-[#1C1C1E] bg-transparent focus:outline-none text-center border-b-2 border-gray-300 focus:border-[#7DD756] transition-colors"
-                                        inputMode="decimal"
-                                    />
+                                    <div style={{ 
+                                        width: '200px', 
+                                        height: '80px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'flex-end',
+                                        flexShrink: 0, 
+                                        flexGrow: 0, 
+                                        overflow: 'hidden', 
+                                        boxSizing: 'border-box' 
+                                    }}>
+                                        <input
+                                            ref={priceInputRef}
+                                            type="text"
+                                            placeholder="0.00"
+                                            value={price}
+                                            onChange={(e) => {
+                                                const value = e.target.value
+                                                // Only allow numbers and decimal point
+                                                if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                                                    setPrice(value)
+                                                    // Keep cursor at end after change
+                                                    setTimeout(() => {
+                                                        if (priceInputRef.current && priceInputRef.current.type === 'text') {
+                                                            const input = priceInputRef.current
+                                                            try {
+                                                                input.setSelectionRange(input.value.length, input.value.length)
+                                                            } catch (e) {
+                                                                // Ignore errors if setSelectionRange is not supported
+                                                            }
+                                                        }
+                                                    }, 0)
+                                                }
+                                            }}
+                                            className="w-full font-bold text-[#1C1C1E] bg-transparent focus:outline-none text-right border-b-2 border-gray-300 focus:border-[#7DD756] transition-all"
+                                            style={{ 
+                                                fontSize: getFontSize(price),
+                                                lineHeight: '1',
+                                                boxSizing: 'border-box',
+                                                padding: 0,
+                                                margin: 0
+                                            }}
+                                            inputMode="decimal"
+                                            autoFocus
+                                        />
+                                    </div>
                                 </div>
                                 <div className="text-base font-medium text-gray-600">{t('priceEntry.pricePerGallonLabel')}</div>
                             </div>

@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
     let submissionCount: number = 0
 
     try {
-      const rewardPoolAmount = 500000n // 0.5 USDC in smallest units (6 decimals)
+      const rewardPoolAmount = 100000n // 0.1 USDC in smallest units (6 decimals)
       const currentUTCDate = new Date().toISOString().split('T')[0] // YYYY-MM-DD
 
       // Count submissions for this station in current UTC day

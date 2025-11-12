@@ -38,6 +38,17 @@ export function PriceEntryPage({
     longitude: number
   } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const priceInputRef = useRef<HTMLInputElement>(null)
+
+  // Calculate font size based on number of digits
+  const getFontSize = (value: string) => {
+    const digitCount = value.replace(/[^0-9]/g, '').length
+    if (digitCount <= 3) return '2.5rem' // 40px
+    if (digitCount <= 4) return '2rem' // 32px
+    if (digitCount <= 5) return '1.75rem' // 28px
+    if (digitCount <= 6) return '1.5rem' // 24px
+    return '1.25rem' // 20px
+  }
 
   // Get user location on mount
   useEffect(() => {
@@ -56,6 +67,27 @@ export function PriceEntryPage({
       )
     }
   }, [])
+
+  // Set cursor to end when input is focused or when step changes to 2
+  useEffect(() => {
+    if (step === 2 && priceInputRef.current) {
+      const input = priceInputRef.current
+      const setCursorToEnd = () => {
+        setTimeout(() => {
+          if (input) {
+            input.setSelectionRange(input.value.length, input.value.length)
+          }
+        }, 0)
+      }
+      // Set cursor position immediately when step changes
+      setCursorToEnd()
+      // Also set it on focus
+      input.addEventListener('focus', setCursorToEnd)
+      return () => {
+        input.removeEventListener('focus', setCursorToEnd)
+      }
+    }
+  }, [step, price])
 
   const fuelTypes: FuelType[] = ["Regular", "Premium", "Diesel"]
 
@@ -219,15 +251,29 @@ export function PriceEntryPage({
               {t('priceEntry.pricePerGallon', { fuelType: fuelType || '' })}
             </p>
             <div className="bg-white rounded-xl p-6 mb-6">
-              <div className="flex items-center space-x-2 mb-4">
+              <div className="flex items-center space-x-2 mb-4 overflow-hidden">
                 <span className="text-4xl font-bold text-gray-900">$</span>
                 <input
+                  ref={priceInputRef}
                   type="number"
                   step="0.01"
                   value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  onChange={(e) => {
+                    setPrice(e.target.value)
+                    // Keep cursor at end after change
+                    setTimeout(() => {
+                      if (priceInputRef.current) {
+                        const input = priceInputRef.current
+                        input.setSelectionRange(input.value.length, input.value.length)
+                      }
+                    }, 0)
+                  }}
                   placeholder="0.00"
-                  className="flex-1 text-4xl font-bold text-gray-900 focus:outline-none"
+                  className="flex-1 font-bold text-gray-900 focus:outline-none text-right overflow-hidden"
+                  style={{ 
+                    fontSize: getFontSize(price),
+                    minWidth: 0
+                  }}
                   autoFocus
                 />
               </div>

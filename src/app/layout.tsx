@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { DM_Sans } from 'next/font/google'
 import "./[locale]/globals.css"
 import { SessionProvider } from "@/components/providers/SessionProvider"
-import { MiniKitProvider } from "@/components/providers/MiniKitProvider"
+import { MiniKitProvider } from "@worldcoin/minikit-js/minikit-provider"
 
 const dmSans = DM_Sans({
   subsets: ['latin'],

@@ -3,7 +3,12 @@
 import { MiniKit, ResponseEvent } from "@worldcoin/minikit-js"
 import { ReactNode, useEffect, useState } from "react"
 
-export function MiniKitProvider({ children }: { children: ReactNode }) {
+interface MiniKitProviderProps {
+  children: ReactNode
+  onReadyChange?: (isReady: boolean) => void
+}
+
+export function MiniKitProvider({ children, onReadyChange }: MiniKitProviderProps) {
   const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
@@ -50,7 +55,8 @@ export function MiniKitProvider({ children }: { children: ReactNode }) {
           // Wait a bit for MiniKit to fully initialize
           setTimeout(() => {
             setIsReady(true)
-          }, 500)
+            onReadyChange?.(true)
+          }, 300)
 
           // Cleanup listeners on unmount
           return () => {
@@ -66,6 +72,7 @@ export function MiniKitProvider({ children }: { children: ReactNode }) {
         console.error("MiniKit installation error:", error)
         // Continue anyway - MiniKit might still work for basic functionality
         setIsReady(true)
+        onReadyChange?.(true)
       }
     }
 
@@ -78,18 +85,7 @@ export function MiniKitProvider({ children }: { children: ReactNode }) {
         console.error("Cleanup error:", error)
       }
     }
-  }, [])
-
-  if (!isReady) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Initializing MiniKit...</p>
-        </div>
-      </div>
-    )
-  }
+  }, [onReadyChange])
 
   return <>{children}</>
 }

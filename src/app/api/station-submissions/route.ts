@@ -36,10 +36,31 @@ export async function POST(request: NextRequest) {
         .lte("created_at", endOfDay.toISOString())
 
       const submissionCount = count || 0
-
-      // Calculate potential earning (0.50 USDC split among submissions + 1 for the user)
-      const rewardPool = 0.50
-      const potentialEarning = rewardPool / (submissionCount + 1)
+      
+      // Calculate remaining reward pool for this station today from reward_transactions
+      const REWARD_POOL_MICRO = 100000n // 0.1 USDC in 6-decimal smallest units
+      let totalAccruedMicro = 0n
+      try {
+        const { data: rewardTxs } = await supabaseAdmin
+          .from("reward_transactions")
+          .select("accrued_amount")
+          .eq("gas_station_id", stationId)
+          .eq("reward_period_date", currentUTCDate)
+        
+        if (Array.isArray(rewardTxs)) {
+          for (const tx of rewardTxs) {
+            const amt = tx?.accrued_amount ? BigInt(tx.accrued_amount) : 0n
+            totalAccruedMicro += amt
+          }
+        }
+      } catch (e) {
+        // If this fails, assume no accrued yet
+        totalAccruedMicro = 0n
+      }
+      
+      const remainingMicro = REWARD_POOL_MICRO > totalAccruedMicro ? (REWARD_POOL_MICRO - totalAccruedMicro) : 0n
+      const potentialMicro = submissionCount >= 0 ? (remainingMicro / BigInt(submissionCount + 1)) : remainingMicro
+      const potentialEarning = Number(potentialMicro) / 1_000_000
 
       // Get latest price submission for this station
       const { data: latestSubmission } = await supabaseAdmin

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate remaining rewards
     const DAILY_POOL = 20.00
-    const REWARD_PER_SUBMISSION = 0.50
+    const REWARD_PER_SUBMISSION = 0.10
     const payoutsToday = count || 0
     const paidOut = payoutsToday * REWARD_PER_SUBMISSION
     const remaining = Math.max(0, DAILY_POOL - paidOut)

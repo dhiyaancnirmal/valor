@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useTranslations } from "next-intl"
 import { useSession, signOut } from "next-auth/react"
-import { Loader2, Star, Settings } from "lucide-react"
+import { Loader2, Settings } from "lucide-react"
 
 interface AccruedRewards {
   totalAccrued: string
@@ -43,7 +43,12 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
             console.error('Error fetching rewards:', data.error)
             setAccruedRewards(null)
           } else {
-            setAccruedRewards(data)
+            // Ensure all values are properly set with defaults
+            setAccruedRewards({
+              totalAccrued: data.totalAccrued || '0',
+              totalUSDC: typeof data.totalUSDC === 'number' && !isNaN(data.totalUSDC) ? data.totalUSDC : 0,
+              submissionCount: typeof data.submissionCount === 'number' && !isNaN(data.submissionCount) ? Math.max(0, Math.floor(data.submissionCount)) : 0,
+            })
           }
         })
         .catch(error => {
@@ -53,8 +58,27 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
         .finally(() => {
           setIsLoadingRewards(false)
         })
+    } else {
+      setIsLoadingRewards(false)
+      setAccruedRewards(null)
     }
   }, [session?.user?.walletAddress])
+
+  // Memoize the formatted submission count to prevent re-renders
+  const formattedSubmissionCount = useMemo(() => {
+    if (isLoadingRewards) {
+      return '0'
+    }
+    const count = accruedRewards?.submissionCount
+    if (count === undefined || count === null) {
+      return '0'
+    }
+    const num = typeof count === 'number' && !isNaN(count) && isFinite(count) 
+      ? Math.max(0, Math.floor(count)) 
+      : 0
+    // Ensure we always return a clean string representation
+    return String(num)
+  }, [isLoadingRewards, accruedRewards?.submissionCount])
 
   return (
     <div className="h-full bg-[#F4F4F8] overflow-y-auto pb-24">
@@ -125,17 +149,16 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
       {/* Submission Streak Counter */}
       <div style={{ padding: 'var(--spacing-xl)' }}>
         <div className="bg-white/20 backdrop-blur-md border border-white/30" style={{ borderRadius: 'var(--radius-lg)', padding: 'var(--spacing-lg)' }}>
-          <div className="flex items-center justify-center" style={{ gap: 'var(--spacing-md)' }}>
-            <div className="w-10 h-10 bg-white/20 backdrop-blur-md border border-white/30 rounded-full flex items-center justify-center">
-              <Star className="w-5 h-5 text-[#1C1C1E]" strokeWidth={2} fill="currentColor" />
+          <div className="text-center">
+            <div className="text-2xl font-bold text-[#1C1C1E] tabular-nums">
+              {isLoadingRewards ? (
+                <span className="opacity-50">0</span>
+              ) : (
+                <span>{formattedSubmissionCount}</span>
+              )}
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-[#1C1C1E]">
-                {accruedRewards?.submissionCount || 0}
-              </div>
-              <div className="text-sm text-gray-600">
-                {t('walletTab.submissions')}
-              </div>
+            <div className="text-sm text-gray-600">
+              {t('walletTab.submissions')}
             </div>
           </div>
         </div>

@@ -98,93 +98,92 @@ export function SettingsDrawer({ isOpen, onClose, units = 'metric', setUnits }: 
 
   return (
     <>
-      {/* Backdrop */}
-      {drawerState !== "closed" && (
-        <div
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-250 ease-out z-[100]"
-          style={{
-            opacity: drawerState === "open" ? 1 : 0,
-            pointerEvents: drawerState === "open" ? 'auto' : 'none'
-          }}
-          onClick={handleClose}
-          onTouchMove={(e) => e.preventDefault()}
-          onWheel={(e) => e.preventDefault()}
-        />
-      )}
+      {/* Backdrop/Scrim */}
+      <div
+        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 transition-opacity duration-250 ease-out"
+        style={{
+          opacity: drawerState !== "closed" ? 1 : 0,
+          pointerEvents: drawerState !== "closed" ? 'auto' : 'none'
+        }}
+        onClick={handleClose}
+      />
 
       {/* Drawer */}
       <div
         ref={drawerRef}
-        className="fixed bottom-0 left-0 right-0 z-[110] transform transition-all duration-250 ease-out"
+        className="fixed bottom-0 left-0 right-0 z-50 transform transition-all duration-250 ease-out"
         style={{
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          transform: drawerState === "open" ? 'translateY(0)' : 'translateY(100%)',
-          opacity: drawerState === "open" ? 1 : 0
+          transform: drawerState !== "closed" ? 'translateY(0)' : 'translateY(100%)',
+          opacity: drawerState !== "closed" ? 1 : 0
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         <div
-          className="bg-white rounded-t-3xl shadow-lg transition-transform duration-250 ease-out"
+          className="bg-white shadow-lg transition-transform duration-250 ease-out overflow-hidden"
           style={{
-            boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.15)',
-            transform: drawerState === "open" ? 'scale(1)' : 'scale(0.95)'
+            borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
+            boxShadow: 'var(--shadow-lg)',
+            transform: drawerState !== "closed" ? 'scale(1)' : 'scale(0.95)'
           }}
         >
           {/* Handle bar */}
-          <div className="flex justify-center pt-3 pb-2">
+          <div className="flex justify-center" style={{ paddingTop: 'var(--spacing-sm)', paddingBottom: 'var(--spacing-xs)' }}>
             <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
           </div>
 
           {/* Close button */}
           <button
             onClick={handleClose}
-            className="absolute top-4 right-4 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors z-10"
+            className="absolute top-4 right-4 w-8 h-8 bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+            style={{ borderRadius: 'var(--radius-sm)' }}
           >
-            <X className="w-4 h-4 text-gray-500" />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-gray-600">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
 
           {/* Content */}
-          <div className="px-6 pt-2 pb-6">
+          <div style={{ padding: `var(--spacing-md) var(--spacing-xl) var(--spacing-xl)` }}>
             {/* Title with icon */}
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-12 h-12 bg-[#7DD756]/10 rounded-full flex items-center justify-center flex-shrink-0">
-                <Globe className="w-6 h-6 text-[#7DD756]" />
+            <div className="flex items-center" style={{ gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)' }}>
+              <div className="w-12 h-12 bg-gray-100 flex items-center justify-center flex-shrink-0" style={{ borderRadius: 'var(--radius-md)' }}>
+                <Globe className="w-6 h-6 text-[#1C1C1E]" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-2xl font-bold text-[#1C1C1E]">
+                <h2 className="text-xl font-bold text-[#1C1C1E]">
                   {t('settings.title')}
                 </h2>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-sm text-gray-600" style={{ marginTop: 'var(--spacing-xs)' }}>
                   {t('settings.selectLanguage')}
                 </p>
               </div>
             </div>
 
             {/* Language Settings */}
-            <div className="space-y-3 mb-4">
+            <div className="space-y-3" style={{ marginBottom: 'var(--spacing-lg)' }}>
               {languages.map((lang) => (
                 <button
                   key={lang.code}
                   onClick={() => changeLanguage(lang.code)}
-                  className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-200 ${
+                  className={`w-full flex items-center justify-between p-4 transition-all duration-200 ${
                     locale === lang.code
-                      ? 'border-[#7DD756] bg-[#7DD756]/5 shadow-sm'
-                      : 'border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300'
+                      ? 'bg-black text-white border-2 border-black'
+                      : 'bg-gray-50 border border-gray-200 text-[#1C1C1E] hover:bg-gray-100 hover:border-gray-300'
                   }`}
+                  style={{ borderRadius: 'var(--radius-md)' }}
                 >
-                  <div className="flex items-center gap-4">
-                    <span className="text-3xl">{lang.flag}</span>
-                    <span className={`text-base font-semibold ${
-                      locale === lang.code ? 'text-[#7DD756]' : 'text-gray-900'
-                    }`}>
+                  <div className="flex items-center" style={{ gap: 'var(--spacing-md)' }}>
+                    <span className="text-2xl">{lang.flag}</span>
+                    <span className="text-base font-semibold">
                       {lang.name}
                     </span>
                   </div>
                   {locale === lang.code && (
-                    <div className="w-6 h-6 bg-[#7DD756] rounded-full flex items-center justify-center">
-                      <Check className="w-4 h-4 text-white" />
+                    <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                      <Check className="w-4 h-4 text-black" />
                     </div>
                   )}
                 </button>
@@ -192,16 +191,16 @@ export function SettingsDrawer({ isOpen, onClose, units = 'metric', setUnits }: 
             </div>
 
             {/* Units Section */}
-            <div className="mb-4">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-[#7DD756]/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Ruler className="w-6 h-6 text-[#7DD756]" />
+            <div>
+              <div className="flex items-center" style={{ gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
+                <div className="w-12 h-12 bg-gray-100 flex items-center justify-center flex-shrink-0" style={{ borderRadius: 'var(--radius-md)' }}>
+                  <Ruler className="w-6 h-6 text-[#1C1C1E]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-bold text-[#1C1C1E]">
                     Units
                   </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-sm text-gray-600" style={{ marginTop: 'var(--spacing-xs)' }}>
                     Choose your measurement system
                   </p>
                 </div>
@@ -212,18 +211,17 @@ export function SettingsDrawer({ isOpen, onClose, units = 'metric', setUnits }: 
                   <button
                     key={unit.code}
                     onClick={() => changeUnits(unit.code)}
-                    className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-200 ${
+                    className={`w-full flex items-center justify-between p-4 transition-all duration-200 ${
                       units === unit.code
-                        ? 'border-[#7DD756] bg-[#7DD756]/5 shadow-sm'
-                        : 'border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300'
+                        ? 'bg-black text-white border-2 border-black'
+                        : 'bg-gray-50 border border-gray-200 text-[#1C1C1E] hover:bg-gray-100 hover:border-gray-300'
                     }`}
+                    style={{ borderRadius: 'var(--radius-md)' }}
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center" style={{ gap: 'var(--spacing-md)' }}>
                       <span className="text-2xl">{unit.icon}</span>
                       <div className="text-left">
-                        <span className={`text-base font-semibold block ${
-                          units === unit.code ? 'text-[#7DD756]' : 'text-gray-900'
-                        }`}>
+                        <span className="text-base font-semibold block">
                           {unit.name}
                         </span>
                         <span className="text-xs text-gray-500">
@@ -232,8 +230,8 @@ export function SettingsDrawer({ isOpen, onClose, units = 'metric', setUnits }: 
                       </div>
                     </div>
                     {units === unit.code && (
-                      <div className="w-6 h-6 bg-[#7DD756] rounded-full flex items-center justify-center">
-                        <Check className="w-4 h-4 text-white" />
+                      <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                        <Check className="w-4 h-4 text-black" />
                       </div>
                     )}
                   </button>
@@ -241,9 +239,6 @@ export function SettingsDrawer({ isOpen, onClose, units = 'metric', setUnits }: 
               </div>
             </div>
 
-            <div className="text-center text-gray-400 text-xs py-3 border-t border-gray-100">
-              {t('status.moreSettingsComing')}
-            </div>
           </div>
         </div>
       </div>

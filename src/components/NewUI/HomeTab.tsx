@@ -205,7 +205,7 @@ export function HomeTab({
               const isSubmitted = submittedStations.has(station.id)
               const data = stationData[station.id]
               const isStationLoading = isLoadingStationData && !data
-              const earnings = data?.potentialEarning || 0.50
+              const earnings = data?.potentialEarning || 0.00
               const submissionCount = data?.submissionCount || 0
               const latestPrice = data?.latestPrice
               const latestFuelType = data?.latestFuelType
@@ -251,7 +251,7 @@ export function HomeTab({
                           )}
 
                           {/* Earnings Badge */}
-                          <span className="inline-flex items-center bg-[#7DD756] text-white px-2 py-1 text-xs font-semibold" style={{ borderRadius: 'var(--spacing-xs)', gap: 'var(--spacing-xs)' }}>
+                          <span className="inline-flex items-center bg-[#7DD756] text-white py-1 text-xs font-semibold" style={{ borderRadius: 'var(--spacing-xs)', gap: 'var(--spacing-xs)', paddingLeft: 'var(--spacing-sm)', paddingRight: 'var(--spacing-sm)' }}>
                             <Coins className="w-3 h-3" />
                             ${earnings.toFixed(2)}
                           </span>

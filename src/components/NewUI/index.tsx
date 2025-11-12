@@ -237,21 +237,6 @@ export function MainUI() {
 
   return (
     <div className="h-screen flex flex-col bg-[#F4F4F8]">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-5 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <Logo size={40} />
-          </div>
-          {userLocation && (
-            <div className="flex items-center text-xs text-gray-600 font-medium">
-              <MapPin className="w-4 h-4 mr-1.5" />
-              <span>{t('common:labels.locationEnabled')}</span>
-            </div>
-          )}
-        </div>
-      </header>
-
       {/* Main Content */}
       <main className="flex-1 overflow-hidden">
         {activeTab === "map" && (
@@ -274,7 +259,7 @@ export function MainUI() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="bg-white border-t border-gray-200 z-50 pt-3" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}>
+      <nav className="bg-white border-t border-gray-200 z-50" style={{ paddingTop: '20px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)' }}>
         <div className="flex justify-around items-center">
           {tabs.map((tab) => {
             const Icon = tab.icon
@@ -283,13 +268,13 @@ export function MainUI() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center justify-center p-2 rounded-lg transition-colors ${
+                className={`flex items-center justify-center p-4 rounded-lg transition-colors ${
                   isActive
                     ? "text-[#7DD756]"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
               >
-                <Icon size={24} />
+                <Icon size={28} />
               </button>
             )
           })}

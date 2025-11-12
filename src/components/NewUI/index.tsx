@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { useSession } from "next-auth/react"
 import { Map, Home, Wallet, MapPin } from "lucide-react"
-import { useTranslations } from "next-intl"
 import { GoogleMapView } from "@/components/GoogleMap"
 import { HomeTab } from "./HomeTab"
 import { WalletTab } from "./WalletTab"
@@ -15,8 +15,8 @@ import Logo from "@/components/Logo"
 type Tab = "map" | "home" | "wallet"
 
 export function MainUI() {
+  const { t } = useTranslation(['common'])
   const { data: session } = useSession()
-  const t = useTranslations()
   const [activeTab, setActiveTab] = useState<Tab>("home")
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null)
   const [gasStations, setGasStations] = useState<GasStation[]>([])
@@ -41,12 +41,12 @@ export function MainUI() {
           fetchNearbyGasStations(location)
         },
         (error) => {
-          console.error("Error getting location:", error)
+          console.error(t('errors:location.errorGettingLocation'), error)
           setLoading(false)
         }
       )
     } else {
-      console.error("Geolocation not supported")
+      console.error(t('errors:location.geolocationNotSupported'))
       setLoading(false)
     }
   }, [])
@@ -54,7 +54,7 @@ export function MainUI() {
   const fetchNearbyGasStations = async (location: UserLocation) => {
     try {
       if (!window.google) {
-        console.error("Google Maps not loaded")
+        console.error(t('errors:map.googleMapsNotLoaded'))
         setLoading(false)
         return
       }
@@ -95,7 +95,7 @@ export function MainUI() {
         setLoading(false)
       })
     } catch (error) {
-      console.error("Error fetching gas stations:", error)
+      console.error(t('errors:map.errorFetchingGasStations'), error)
       setLoading(false)
     }
   }
@@ -203,19 +203,18 @@ export function MainUI() {
   }
 
   const tabs = [
-    { id: "map" as Tab, icon: Map, label: t("mainUI.tabs.map") },
-    { id: "home" as Tab, icon: Home, label: t("mainUI.tabs.home") },
-    { id: "wallet" as Tab, icon: Wallet, label: t("mainUI.tabs.wallet") },
+    { id: "map" as Tab, icon: Map, label: t('common:tabs.map') },
+    { id: "home" as Tab, icon: Home, label: t('common:tabs.home') },
+    { id: "wallet" as Tab, icon: Wallet, label: t('common:tabs.wallet') },
   ]
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#F4F4F8]">
-        <img 
-          src="/refuel.gif" 
-          alt={t("map.loading")} 
-          className="w-24 h-24"
-        />
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">{t('common:labels.loadingGasStations')}</p>
+        </div>
       </div>
     )
   }
@@ -224,8 +223,16 @@ export function MainUI() {
     <div className="h-screen flex flex-col bg-[#F4F4F8]">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-5 py-3">
-        <div className="flex items-center justify-center">
-          <Logo size={40} />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Logo size={40} />
+          </div>
+          {userLocation && (
+            <div className="flex items-center text-xs text-gray-600 font-medium">
+              <MapPin className="w-4 h-4 mr-1.5" />
+              <span>{t('common:labels.locationEnabled')}</span>
+            </div>
+          )}
         </div>
       </header>
 

@@ -1,0 +1,10 @@
+{
+  "balance": {
+    "totalBalance": "Saldo Total",
+    "notConnected": "No conectado"
+  },
+  "actions": {
+    "signOut": "Cerrar Sesión",
+    "signingOut": "Cerrando sesión..."
+  }
+}

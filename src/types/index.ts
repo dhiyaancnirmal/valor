@@ -29,3 +29,17 @@ export interface UserLocation {
 }
 
 export type FuelType = "Regular" | "Premium" | "Diesel"
+
+export interface RewardTransaction {
+  id: number
+  submission_id: number
+  user_wallet_address: string
+  gas_station_id: string
+  accrued_amount: string // BigInt as string
+  reward_period_date: string // YYYY-MM-DD format
+  paid: boolean
+  paid_at?: string | null
+  payout_tx_hash?: string | null
+  created_at: string
+  updated_at: string
+}

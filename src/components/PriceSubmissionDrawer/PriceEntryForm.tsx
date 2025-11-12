@@ -1,16 +1,12 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { useSession } from "next-auth/react"
 import { Camera, Check, Loader2 } from "lucide-react"
-import { useTranslations } from "next-intl"
 import { FuelType } from "@/types"
 import { calculateDistance } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { RewardVaultABI } from "@/lib/abi/RewardVault"
-import { MiniKit } from "@worldcoin/minikit-js"
 
 interface PriceEntryFormProps {
   stationId: string
@@ -33,8 +29,8 @@ export function PriceEntryForm({
   onSuccess,
   onError,
 }: PriceEntryFormProps) {
+  const { t } = useTranslation(['priceSubmission', 'common'])
   const { data: session } = useSession()
-  const t = useTranslations()
   const [step, setStep] = useState<Step>(1)
   const [fuelType, setFuelType] = useState<FuelType | null>(null)
   const [price, setPrice] = useState("")
@@ -58,18 +54,18 @@ export function PriceEntryForm({
         },
         (error) => {
           console.error("Error getting location:", error)
-          setError(t("priceEntry.errors.enableLocation"))
+          setError(t('priceSubmission:validation.enableLocationServices'))
         }
       )
     }
   }, [userLocation])
 
   const fuelTypes: FuelType[] = ["Regular", "Premium", "Diesel"]
-  
+
   const fuelTypeLabels: Record<FuelType, string> = {
-    Regular: t("priceEntry.fuelTypes.regular"),
-    Premium: t("priceEntry.fuelTypes.premium"),
-    Diesel: t("priceEntry.fuelTypes.diesel"),
+    Regular: t('priceSubmission:fuelTypes.Regular'),
+    Premium: t('priceSubmission:fuelTypes.Premium'),
+    Diesel: t('priceSubmission:fuelTypes.Diesel'),
   }
   const currencies = [
     { code: "USD", symbol: "$" },
@@ -85,7 +81,7 @@ export function PriceEntryForm({
 
   const handlePriceSubmit = () => {
     if (!price || parseFloat(price) <= 0) {
-      setError(t("priceEntry.errors.validPrice"))
+      setError(t('priceSubmission:validation.enterValidPrice'))
       return
     }
     setError(null)
@@ -107,25 +103,12 @@ export function PriceEntryForm({
 
   const handleSubmit = async () => {
     if (!userLocation) {
-      setError(t("priceEntry.errors.locationNotAvailable"))
+      setError(t('priceSubmission:validation.locationNotAvailable'))
       onError("Location not available")
       return
     }
 
     // TEMP: Removed distance check for testing
-    // const distance = calculateDistance(
-    //   userLocation.latitude,
-    //   userLocation.longitude,
-    //   stationLat,
-    //   stationLng
-    // )
-
-    // if (distance > 500) {
-    //   const errorMsg = t("priceEntry.errors.distanceError", { distance: Math.round(distance) })
-    //   setError(errorMsg)
-    //   onError(errorMsg)
-    //   return
-    // }
 
     setIsSubmitting(true)
     setError(null)
@@ -154,78 +137,28 @@ export function PriceEntryForm({
         const contentType = response.headers.get("content-type") || ""
         if (contentType.includes("application/json")) {
           const data = await response.json()
-          throw new Error(data.error || t("priceEntry.errors.submitFailed"))
+          throw new Error(data.error || "Failed to submit price")
         } else {
           const text = await response.text()
-          throw new Error(text || t("priceEntry.errors.submitFailed"))
+          throw new Error(text || "Failed to submit price")
         }
       }
 
       const data = await response.json() as {
         success: boolean
         submission: { id: number }
-        rewardEligible?: boolean
-        rewardSignature?: string | null
-        rewardDeadline?: number | null
-        stationIdBytes32?: `0x${string}` | null
-        rewardContract?: `0x${string}` | null
+        accruedRewardAmount?: string | null
+        rewardPeriodDate?: string | null
+        submissionCount?: number
       }
 
-      if (data?.rewardEligible && data.rewardSignature && data.rewardDeadline && data.stationIdBytes32) {
-        // Trigger claim via MiniKit
-        const contractAddress =
-          data.rewardContract ||
-          (process.env.NEXT_PUBLIC_REWARD_CONTRACT_ADDRESS as `0x${string}` | undefined)
-        if (!contractAddress) {
-          throw new Error("Reward contract not configured")
-        }
-
-        // stationId hashed on backend; contract checks the signature, not the stationId string
-        const { finalPayload } = await MiniKit.commandsAsync.sendTransaction({
-          transaction: [
-            {
-              address: contractAddress,
-              abi: RewardVaultABI as any,
-              functionName: "claimReward",
-              args: [
-                (session?.user?.walletAddress || "") as `0x${string}`,
-                data.stationIdBytes32,
-                BigInt(data.submission.id),
-                BigInt(data.rewardDeadline),
-                data.rewardSignature as `0x${string}`,
-              ],
-            },
-          ],
-        })
-
-        if (finalPayload.status === "success") {
-          // Confirm on backend
-          await fetch("/api/confirm-reward", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              submissionId: data.submission.id,
-              transactionId: finalPayload.transaction_id,
-            }),
-          })
-        } else if (finalPayload.status === "error") {
-          // Map MiniKit simulation error to user-friendly message
-          const simulationError: string | undefined = (finalPayload as any)?.details?.simulationError
-          const errorCode: string | undefined = (finalPayload as any)?.error_code
-          let friendly = t("priceEntry.errors.submitFailed")
-          if (simulationError?.includes("ERC20: transfer amount exceeds balance")) {
-            friendly = t("priceEntry.errors.insufficientFunds")
-          } else if (errorCode === "simulation_failed" && simulationError) {
-            friendly = t("priceEntry.errors.simulationFailed")
-          }
-          throw new Error(friendly)
-        }
-      }
+      // Rewards now accrue and are paid out at 12:00 AM UTC daily
+      // No immediate claim needed
 
       onSuccess()
     } catch (err) {
       console.error("Submission error:", err)
-      const errorMsg = err instanceof Error ? err.message : t("priceEntry.errors.submitFailed")
+      const errorMsg = err instanceof Error ? err.message : t('priceSubmission:validation.failedToSubmitPrice')
       setError(errorMsg)
       onError(errorMsg)
       setIsSubmitting(false)
@@ -237,8 +170,8 @@ export function PriceEntryForm({
       {/* Progress Bar + Step badges */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs text-gray-600">{t("priceEntry.step")} {step} {t("priceEntry.of")} 4</span>
-          <span className="text-xs text-gray-600">{Math.round((step / 4) * 100)}%</span>
+          <span className="text-xs text-gray-600">{t('common:labels.step')} {step} {t('common:labels.of')} 4</span>
+          <span className="text-xs text-gray-600">{Math.round((step / 4) * 100)}{t('common:labels.percent')}</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
           <div
@@ -277,10 +210,10 @@ export function PriceEntryForm({
       {step === 1 && (
         <div>
           <h3 className="text-lg font-bold text-[#1C1C1E] mb-2">
-            {t("priceEntry.selectFuelType")}
+            {t('priceSubmission:steps.selectFuelType')}
           </h3>
           <p className="text-gray-600 mb-4 text-sm">
-            {t("priceEntry.chooseFuelType")}
+            {t('priceSubmission:steps.chooseFuelType')}
           </p>
           <div className="space-y-2">
             {fuelTypes.map((type) => (
@@ -301,10 +234,10 @@ export function PriceEntryForm({
       {step === 2 && (
         <div>
           <h3 className="text-lg font-bold text-[#1C1C1E] mb-1.5">
-            {t("priceEntry.enterPrice")}
+            {t('priceSubmission:steps.enterPrice')}
           </h3>
           <p className="text-gray-600 mb-3 text-xs">
-            {t("priceEntry.pricePerGallon", { fuelType: fuelTypeLabels[fuelType!] })}
+            {t('priceSubmission:steps.priceForFuelType', { fuelType: fuelTypeLabels[fuelType!] })}
           </p>
           {/* Currency selector */}
           <div className="flex justify-center mb-3">
@@ -339,15 +272,15 @@ export function PriceEntryForm({
                 autoFocus
               />
             </div>
-            <p className="text-xs text-gray-600 text-center">{t("priceEntry.pricePerGallonLabel")}</p>
+            <p className="text-xs text-gray-600 text-center">{t('common:labels.perGallon')}</p>
           </div>
-          <Button
+          <button
             onClick={handlePriceSubmit}
             disabled={!price || parseFloat(price) <= 0}
             className="w-full"
           >
-            {t("common.continue")}
-          </Button>
+            Continue
+          </button>
         </div>
       )}
 
@@ -355,10 +288,10 @@ export function PriceEntryForm({
       {step === 3 && (
         <div>
           <h3 className="text-lg font-bold text-[#1C1C1E] mb-1.5">
-            {t("priceEntry.takePhoto")}
+            {t('priceSubmission:steps.takePhoto')}
           </h3>
           <p className="text-gray-600 mb-3 text-xs">
-            {t("priceEntry.photoDescription")}
+            {t('priceSubmission:steps.photoOfPriceSign')}
           </p>
           <div className="bg-gradient-to-br from-[#7DD756]/5 to-[#7DD756]/10 rounded-xl border border-[#7DD756]/30 p-6 text-center mb-4">
             <div className="w-16 h-16 bg-[#7DD756] rounded-full mx-auto mb-3 flex items-center justify-center shadow-lg">
@@ -372,15 +305,15 @@ export function PriceEntryForm({
               onChange={handlePhotoCapture}
               className="hidden"
             />
-            <Button
+            <button
               onClick={() => fileInputRef.current?.click()}
               className="mb-2"
             >
               <Camera className="w-4 h-4 mr-1.5" />
-              {t("priceEntry.openCamera")}
-            </Button>
+              {t('common:buttons.openCamera')}
+            </button>
             <p className="text-xs text-gray-500 font-medium">
-              {t("priceEntry.photoOptional")}
+              {t('common:labels.photoOptional')}
             </p>
           </div>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
@@ -389,10 +322,10 @@ export function PriceEntryForm({
                 <span className="text-white text-xs font-bold">!</span>
               </div>
               <div>
-                <h4 className="text-xs font-bold text-blue-900 mb-1.5">{t("priceEntry.photoTips")}</h4>
+                <h4 className="text-xs font-bold text-blue-900 mb-1.5">{t('common:labels.photoTips')}</h4>
                 <ul className="text-xs text-blue-800 space-y-1 font-medium">
-                  <li>• {t("priceEntry.photoTip1")}</li>
-                  <li>• {t("priceEntry.photoTip2")}</li>
+                  <li>• {t('common:labels.makeSureVisible')}</li>
+                  <li>• {t('common:labels.includeFuelType')}</li>
                 </ul>
               </div>
             </div>
@@ -402,7 +335,7 @@ export function PriceEntryForm({
             variant="outline"
             className="w-full"
           >
-            {t("priceEntry.skipPhoto")}
+            {t('common:buttons.skip')}
           </Button>
         </div>
       )}
@@ -411,25 +344,25 @@ export function PriceEntryForm({
       {step === 4 && (
         <div>
           <h3 className="text-lg font-bold text-[#1C1C1E] mb-1.5">
-            {t("priceEntry.reviewSubmit")}
+            {t('priceSubmission:steps.reviewSubmit')}
           </h3>
           <p className="text-gray-600 mb-3 text-xs">
-            {t("priceEntry.confirmDetails")}
+            {t('priceSubmission:steps.confirmDetails')}
           </p>
           <div className="bg-gray-50 rounded-lg p-4 mb-4 space-y-3">
             <div>
-              <p className="text-xs text-gray-600 mb-0.5">{t("priceEntry.fuelType")}</p>
+              <p className="text-xs text-gray-600 mb-0.5">{t('priceSubmission:form.fuelType')}</p>
               <p className="font-semibold text-gray-900 text-sm">{fuelTypeLabels[fuelType!]}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-600 mb-0.5">{t("priceEntry.price")}</p>
+              <p className="text-xs text-gray-600 mb-0.5">{t('priceSubmission:form.price')}</p>
               <p className="text-xl font-bold text-[#7DD756]">
                 {currencies.find(c => c.code === currency)?.symbol}{price}
               </p>
             </div>
             {photoPreview && (
               <div>
-                <p className="text-xs text-gray-600 mb-1.5">{t("priceEntry.photo")}</p>
+                <p className="text-xs text-gray-600 mb-1.5">{t('common:labels.photo')}</p>
                 <img
                   src={photoPreview}
                   alt="Price photo"
@@ -447,12 +380,12 @@ export function PriceEntryForm({
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                {t("priceEntry.submitting")}
+                {t('common:buttons.submitting')}
               </>
             ) : (
               <>
                 <Check className="w-4 h-4 mr-1.5" />
-                {t("priceEntry.submitPrice")}
+                {t('common:buttons.submitPrice')}
               </>
             )}
           </Button>

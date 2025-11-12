@@ -1,24 +1,25 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { useSession, signOut } from "next-auth/react"
-import { Copy, Settings, Info } from "lucide-react"
-import { useTranslations } from "next-intl"
-import { MiniKit } from "@worldcoin/minikit-js"
-import { GradientCard, StatsGrid } from "@/components/shared"
-import SettingsModal from "@/components/SettingsModal"
-import { useLanguage } from "@/components/providers/LanguageProvider"
+import { LogOut, Loader2, Settings, Copy, CheckCircle2 } from "lucide-react"
+import { SettingsDrawer } from "@/components/SettingsDrawer"
+
+interface AccruedRewards {
+  totalAccrued: string
+  totalUSDC: number
+  submissionCount: number
+}
 
 export function WalletTab() {
+  const { t } = useTranslation(['wallet', 'common'])
   const { data: session } = useSession()
-  const t = useTranslations()
-  const { locale, setLocale } = useLanguage()
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const [isInfoOpen, setIsInfoOpen] = useState(false)
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false)
-  const [locationEnabled, setLocationEnabled] = useState(false)
-  const [loadingPermissions, setLoadingPermissions] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [accruedRewards, setAccruedRewards] = useState<AccruedRewards | null>(null)
+  const [isLoadingRewards, setIsLoadingRewards] = useState(true)
 
   // Check location permission
   const checkLocationPermission = useCallback(async () => {
@@ -42,124 +43,9 @@ export function WalletTab() {
       setLocationEnabled(true)
       return true
     } catch (error) {
-      setLocationEnabled(false)
-      return false
-    }
-  }, [])
-
-  // Check all permissions
-  const checkPermissions = useCallback(async () => {
-    setLoadingPermissions(true)
-
-    // Try to get MiniKit permissions, fall back gracefully if not in World App
-    try {
-      // Add a small delay to ensure MiniKit is fully initialized
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      if (MiniKit.isInstalled()) {
-        const payload = await MiniKit.commandsAsync.getPermissions()
-
-        if (payload.finalPayload.status === 'success') {
-          const permissions = payload.finalPayload.permissions
-          if (Array.isArray(permissions)) {
-            setNotificationsEnabled(permissions.includes('notifications'))
-          } else {
-            setNotificationsEnabled(false)
-          }
-        } else {
-          setNotificationsEnabled(false)
-        }
-      } else {
-        // MiniKit not installed (not in World App) - this is expected in browser
-        setNotificationsEnabled(false)
-      }
-    } catch (error) {
-      // MiniKit not available (not in World App) - this is expected in browser
-      setNotificationsEnabled(false)
-    }
-
-    // Always check location permission (works in both browser and World App)
-    await checkLocationPermission()
-    setLoadingPermissions(false)
-  }, [checkLocationPermission])
-
-  // Check permissions when session is available
-  useEffect(() => {
-    if (session) {
-      // Add delay to ensure MiniKit is fully initialized before checking permissions
-      const timer = setTimeout(() => {
-        checkPermissions()
-      }, 1000)
-      
-      return () => clearTimeout(timer)
-    }
-  }, [session, checkPermissions])
-
-  // Toggle notifications
-  const toggleNotifications = useCallback(async () => {
-    try {
-      if (!MiniKit.isInstalled()) {
-        alert(t('settingsDrawer.notificationsWorldAppOnly'))
-        return
-      }
-
-      const payload = await MiniKit.commandsAsync.requestPermission({
-        permission: 'notifications' as any
-      })
-
-      if (payload.finalPayload.status === 'success') {
-        setNotificationsEnabled(true)
-        const checkPayload = await MiniKit.commandsAsync.getPermissions()
-        if (checkPayload.finalPayload.status === 'success') {
-          const permissions = checkPayload.finalPayload.permissions
-          if (Array.isArray(permissions)) {
-            setNotificationsEnabled(permissions.includes('notifications'))
-          } else {
-            setNotificationsEnabled(true)
-          }
-        }
-      }
-    } catch (error) {
-      // MiniKit not available (not in World App)
-      alert(t('settingsDrawer.notificationsWorldAppOnly'))
-      console.warn('MiniKit notification permission error:', error)
-    }
-  }, [t])
-
-  // Toggle location services
-  const toggleLocationServices = useCallback(async () => {
-    try {
-      if (locationEnabled) return
-
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          resolve,
-          reject,
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 60000
-          }
-        )
-      })
-
-      console.log('Location access granted:', position.coords)
-      setLocationEnabled(true)
-    } catch (error) {
-      console.error('Error requesting location permission:', error)
-      setLocationEnabled(false)
-    }
-  }, [locationEnabled])
-
-  // Handle copy wallet address
-  const handleCopyAddress = async () => {
-    if (session?.user?.walletAddress) {
-      try {
-        await navigator.clipboard.writeText(session.user.walletAddress)
-        console.log('Wallet address copied to clipboard')
-      } catch (error) {
-        console.error('Failed to copy address:', error)
-      }
+      console.error('Sign out error:', error)
+      alert(t('errors:general.failedToSignOut'))
+      setIsSigningOut(false)
     }
   }
 
@@ -181,16 +67,120 @@ export function WalletTab() {
     }
   }
 
+  useEffect(() => {
+    if (session?.user?.walletAddress) {
+      setIsLoadingRewards(true)
+      fetch('/api/wallet/rewards')
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            console.error('Error fetching rewards:', data.error)
+            setAccruedRewards(null)
+          } else {
+            setAccruedRewards(data)
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching rewards:', error)
+          setAccruedRewards(null)
+        })
+        .finally(() => {
+          setIsLoadingRewards(false)
+        })
+    }
+  }, [session?.user?.walletAddress])
+
   return (
     <div className="h-full overflow-y-auto bg-[#F4F4F8] pb-24">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 pt-8 pb-6">
-        <h1 className="text-3xl font-bold text-gray-900">{t('walletTab.account')}</h1>
+      <div className="bg-white border-b border-gray-200 px-5 py-3">
+        <div className="flex items-center justify-between">
+          <h1 className="text-base font-semibold text-gray-900">{t('common:tabs.wallet')}</h1>
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
+            aria-label="Settings"
+          >
+            <Settings className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
+      </div>
+
+      {/* Balance Card */}
+      <div className="px-4 pt-6 pb-4">
+        <div className="bg-gradient-to-br from-[#7DD756] to-[#6BC647] rounded-2xl p-6 shadow-md">
+          <p className="text-white/80 text-xs font-medium mb-2">
+            {t('wallet:balance.accruedRewards', { defaultValue: 'Accrued Rewards' })}
+          </p>
+          <div className="flex items-baseline gap-2">
+            {isLoadingRewards ? (
+              <Loader2 className="w-8 h-8 text-white animate-spin" />
+            ) : (
+              <>
+                <span className="text-5xl font-bold text-white tabular-nums">
+                  {accruedRewards?.totalUSDC.toFixed(2) || '0.00'}
+                </span>
+                <span className="text-xl font-semibold text-white/90">USDC</span>
+              </>
+            )}
+          </div>
+          {accruedRewards && accruedRewards.submissionCount > 0 && (
+            <p className="text-white/70 text-xs mt-2">
+              From {accruedRewards.submissionCount} submission{accruedRewards.submissionCount !== 1 ? 's' : ''}
+            </p>
+          )}
+          {accruedRewards && accruedRewards.totalUSDC > 0 && (
+            <p className="text-white/60 text-xs mt-1">
+              Payout at 12:00 AM UTC
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Wallet Address */}
+      <div className="px-4 pb-4">
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
+              {t('common:labels.walletAddress')}
+            </p>
+            <button
+              onClick={copyAddress}
+              className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"
+              aria-label="Copy address"
+            >
+              {copied ? (
+                <CheckCircle2 className="w-4 h-4 text-green-500" />
+              ) : (
+                <Copy className="w-4 h-4 text-gray-400" />
+              )}
+            </button>
+          </div>
+          <p className="font-mono text-sm font-medium text-gray-900 break-all">
+            {session?.user?.walletAddress
+              ? `${session.user.walletAddress.slice(0, 10)}...${session.user.walletAddress.slice(-8)}`
+              : t('wallet:balance.notConnected')}
+          </p>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="px-4 pb-6 space-y-3 safe-area-b-20">
         <button
           onClick={() => setIsSettingsOpen(true)}
           className="p-3 text-gray-600 hover:bg-white rounded-lg transition-all duration-200 hover:scale-105"
         >
-          <Settings size={24} />
+          {isSigningOut ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>{t('wallet:actions.signingOut')}</span>
+            </>
+          ) : (
+            <>
+              <LogOut className="w-4 h-4" />
+              <span>{t('wallet:actions.signOut')}</span>
+            </>
+          )}
         </button>
       </div>
 

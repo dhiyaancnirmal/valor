@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Navigation, Coins } from "lucide-react"
-import { useTranslations } from "next-intl"
+import { useState } from "react"
+import { useTranslation } from "react-i18next"
+import { Search, Navigation, Coins, TrendingUp } from "lucide-react"
 import { GasStation, UserLocation } from "@/types"
 import { formatDistance } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
@@ -15,9 +15,8 @@ interface HomeTabProps {
 }
 
 export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabProps) {
-  const t = useTranslations()
-  const [submittedStations, setSubmittedStations] = useState<Set<string>>(new Set())
-  const [todaysRewards, setTodaysRewards] = useState<number>(20.00)
+  const { t } = useTranslation(['home', 'common'])
+  const [searchQuery, setSearchQuery] = useState("")
 
   // Remove duplicates by id
   const uniqueStations = gasStations.filter((station, index, self) =>
@@ -37,8 +36,15 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
     return (a.distance || 0) - (b.distance || 0)
   })
 
-  const handleStationSubmitted = (stationId: string) => {
-    setSubmittedStations(prev => new Set([...prev, stationId]))
+  // Calculate potential earnings
+  const calculateEarnings = (distance: number | undefined) => {
+    if (!distance) return 2.50
+    // Base reward: $2.50
+    // Bonus for closer stations (within 200m): +$1.00
+    // Bonus for stations within 500m: +$0.50
+    const baseReward = parseFloat(t('home:rewards.baseReward').replace('$', ''))
+    const proximityBonus = distance < 200 ? parseFloat(t('home:rewards.proximityBonus').replace('+$', '')) : distance < 500 ? parseFloat(t('home:rewards.distanceBonus').replace('+$', '')) : 0
+    return baseReward + proximityBonus
   }
 
   // Fetch today's rewards on mount and every 30 seconds
@@ -87,18 +93,32 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
       <div className="bg-gradient-to-r from-[#7DD756] to-[#6BC647] px-6 py-5 text-white shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm opacity-90 mb-1">{t("homeTab.todaysRewards")}</p>
-            <div className="flex items-center gap-2">
-              <Coins className="w-5 h-5" />
-              <span className="text-3xl font-bold">
-                ${todaysRewards.toFixed(2)}
+            <p className="text-xs opacity-90">{t('home:earnings.potentialToday')}</p>
+            <div className="flex items-center gap-1.5 mt-1">
+              <Coins className="w-4 h-4" />
+              <span className="text-xl font-bold">
+                ${(filteredStations.length * 2.5).toFixed(2)}
               </span>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm opacity-90 mb-1">{t("homeTab.stationsNearby")}</p>
-            <p className="text-3xl font-bold">{sortedStations.length}</p>
+            <p className="text-xs opacity-90">{t('home:earnings.stationsNearby')}</p>
+            <p className="text-xl font-bold mt-1">{t('home:earnings.stationsCount', { count: filteredStations.length })}</p>
           </div>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="bg-white px-5 py-3 border-b border-gray-200">
+        <div className="relative w-full bg-gray-50 rounded-lg px-4 py-2.5">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder={t('home:search.placeholder')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-transparent text-gray-900 placeholder-gray-400 outline-none text-sm w-full pl-6"
+          />
         </div>
       </div>
 
@@ -107,10 +127,10 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
         {sortedStations.length === 0 ? (
           <Card className="text-center py-12 shadow-sm">
             <CardContent>
-              <div className="text-gray-400 text-6xl mb-4">⛽</div>
-              <p className="text-base text-gray-600 font-semibold mb-2">{t("homeTab.noStationsFound")}</p>
-              <p className="text-sm text-gray-500">
-                {t("homeTab.adjustSearch")}
+              <div className="text-gray-400 text-5xl mb-3">⛽</div>
+              <p className="text-sm text-gray-600 font-medium">{t('home:search.noStationsFound')}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {t('home:search.tryAdjustingSearch')}
               </p>
             </CardContent>
           </Card>
@@ -152,21 +172,19 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
 
                       <div className="flex items-center gap-2 flex-wrap">
                         {station.distance !== undefined && (
-                          <Badge variant="secondary" className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium">
-                            <Navigation className="w-3.5 h-3.5" />
-                            <span>{formatDistance(station.distance)}</span>
+                          <Badge variant="secondary" className="flex items-center gap-1 px-2 py-0.5 text-xs">
+                            <Navigation className="w-3 h-3" />
+                            <span>{formatDistance(station.distance, t)}</span>
                           </Badge>
                         )}
 
-                        {/* Earnings Badge - only show if not submitted */}
-                        {!isSubmitted && (
-                          <Badge
-                            className="bg-gradient-to-r from-[#7DD756] to-[#6BC647] text-white flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold shadow-sm"
-                          >
-                            <Coins className="w-3.5 h-3.5" />
-                            <span>{t("homeTab.earn")} $0.50</span>
-                          </Badge>
-                        )}
+                        {/* Earnings Badge */}
+                        <Badge
+                          className="bg-gradient-to-r from-[#7DD756] to-[#6BC647] text-white flex items-center gap-1 px-2 py-0.5 text-xs font-semibold"
+                        >
+                          <Coins className="w-3 h-3" />
+                          <span>{t('home:earnings.earnAmount', { amount: earnings.toFixed(2) })}</span>
+                        </Badge>
                       </div>
                     </div>
                   </div>

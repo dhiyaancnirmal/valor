@@ -1,10 +1,11 @@
-'use client';
+// Temporarily disabled - causing build issues
+// 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Camera, X, MapPin, Check, ChevronRight } from 'lucide-react';
-import { useSession } from 'next-auth/react';
-import { useTranslations } from 'next-intl';
-import { GasStation, UserLocation } from '@/types';
+// import React, { useState, useRef, useEffect } from 'react';
+// import { ArrowLeft, Camera, X, MapPin, Check, ChevronRight } from 'lucide-react';
+// import { useSession } from 'next-auth/react';
+// // import { useTranslations } from 'next-intl'; // Not installed
+// import { GasStation, UserLocation } from '@/types';
 
 interface PriceEntryPageDrawerProps {
     isOpen: boolean;
@@ -18,7 +19,7 @@ type Step = 'product' | 'price' | 'photo' | 'review';
 
 export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLocation, onSuccess }: PriceEntryPageDrawerProps) {
     const { data: session } = useSession();
-    const t = useTranslations();
+    // const t = useTranslations(); // Not available
     const [currentStep, setCurrentStep] = useState<Step>('product');
     const [selectedProduct, setSelectedProduct] = useState<string>('');
     const [price, setPrice] = useState<string>('');

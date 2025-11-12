@@ -35,9 +35,13 @@ export function calculateDistance(
  * - < 1000 m: "XYZ m"
  * - >= 1000 m: "X.Y km"
  */
-export function formatDistance(meters: number): string {
+export function formatDistance(meters: number, t?: (key: string) => string): string {
   if (!Number.isFinite(meters) || meters < 0) return "—"
-  if (meters < 1000) return `${Math.round(meters)} m`
+  if (meters < 1000) {
+    const unit = t ? t('common:units.meter') : 'm'
+    return `${Math.round(meters)} ${unit}`
+  }
   const km = meters / 1000
-  return `${km.toFixed(km < 10 ? 1 : 0)} km`
+  const unit = t ? t('common:units.kilometer') : 'km'
+  return `${km.toFixed(km < 10 ? 1 : 0)} ${unit}`
 }

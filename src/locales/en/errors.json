@@ -1,0 +1,16 @@
+{
+  "general": {
+    "failedToSignOut": "Failed to sign out",
+    "anErrorOccurred": "An error occurred"
+  },
+  "location": {
+    "errorGettingLocation": "Error getting location",
+    "geolocationNotSupported": "Geolocation not supported",
+    "pleaseEnableLocationServices": "Please enable location services"
+  },
+  "map": {
+    "googleMapsNotLoaded": "Google Maps not loaded",
+    "errorFetchingGasStations": "Error fetching gas stations",
+    "loadingMap": "Loading map..."
+  }
+}

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { ArrowLeft, Camera, Check } from "lucide-react"
@@ -22,6 +23,7 @@ export function PriceEntryPage({
   stationLat,
   stationLng,
 }: PriceEntryPageProps) {
+  const { t } = useTranslation(['priceSubmission', 'common'])
   const router = useRouter()
   const { data: session } = useSession()
   const [step, setStep] = useState<Step>(1)
@@ -49,7 +51,7 @@ export function PriceEntryPage({
         },
         (error) => {
           console.error("Error getting location:", error)
-          setError("Please enable location services to submit prices")
+          setError(t('priceSubmission:validation.enableLocationServices'))
         }
       )
     }
@@ -64,7 +66,7 @@ export function PriceEntryPage({
 
   const handlePriceSubmit = () => {
     if (!price || parseFloat(price) <= 0) {
-      setError("Please enter a valid price")
+      setError(t('priceSubmission:validation.enterValidPrice'))
       return
     }
     setError(null)
@@ -86,7 +88,7 @@ export function PriceEntryPage({
 
   const handleSubmit = async () => {
     if (!userLocation) {
-      setError("Location not available. Please enable location services.")
+      setError(t('priceSubmission:validation.locationNotAvailable') + '. ' + t('priceSubmission:validation.enableLocationServices'))
       return
     }
 
@@ -100,7 +102,7 @@ export function PriceEntryPage({
 
     if (distance > 500) {
       setError(
-        `You must be within 500m of the gas station to submit a price. Current distance: ${Math.round(distance)}m`
+        t('priceSubmission:validation.mustBeWithin500m', { distance: Math.round(distance) })
       )
       return
     }
@@ -137,7 +139,7 @@ export function PriceEntryPage({
       router.push("/?success=true")
     } catch (err) {
       console.error("Submission error:", err)
-      setError(err instanceof Error ? err.message : "Failed to submit price")
+      setError(err instanceof Error ? err.message : t('priceSubmission:validation.failedToSubmitPrice'))
       setIsSubmitting(false)
     }
   }
@@ -155,7 +157,7 @@ export function PriceEntryPage({
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div>
-            <h1 className="text-lg font-semibold text-gray-900">Submit Price</h1>
+            <h1 className="text-3xl font-bold text-[#1C1C1E]">{t('common:buttons.submitPriceAction')}</h1>
             <p className="text-sm text-gray-600">{stationName}</p>
           </div>
         </div>
@@ -164,8 +166,8 @@ export function PriceEntryPage({
       {/* Progress Bar */}
       <div className="bg-white px-4 py-3 border-b border-gray-200">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-gray-600">Step {step} of 4</span>
-          <span className="text-xs text-gray-600">{Math.round((step / 4) * 100)}%</span>
+          <span className="text-xs text-gray-600">{t('common:labels.step')} {step} {t('common:labels.of')} 4</span>
+          <span className="text-xs text-gray-600">{Math.round((step / 4) * 100)}{t('common:labels.percent')}</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
@@ -187,11 +189,11 @@ export function PriceEntryPage({
         {/* Step 1: Select Fuel Type */}
         {step === 1 && (
           <div className="max-w-md mx-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Select Fuel Type
+            <h2 className="text-2xl font-bold text-[#1C1C1E] mb-2">
+              {t('priceSubmission:steps.selectFuelType')}
             </h2>
             <p className="text-gray-600 mb-6">
-              Choose the type of fuel you want to report
+              {t('priceSubmission:steps.chooseFuelType')}
             </p>
             <div className="space-y-3">
               {fuelTypes.map((type) => (
@@ -210,11 +212,11 @@ export function PriceEntryPage({
         {/* Step 2: Enter Price */}
         {step === 2 && (
           <div className="max-w-md mx-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Enter Price
+            <h2 className="text-2xl font-bold text-[#1C1C1E] mb-2">
+              {t('priceSubmission:steps.enterPrice')}
             </h2>
             <p className="text-gray-600 mb-6">
-              What&apos;s the price per gallon for {fuelType}?
+              {t('priceSubmission:steps.priceForFuelType', { fuelType: fuelType })}
             </p>
             <div className="bg-white rounded-xl p-6 mb-6">
               <div className="flex items-center space-x-2 mb-4">
@@ -253,11 +255,11 @@ export function PriceEntryPage({
         {/* Step 3: Take Photo */}
         {step === 3 && (
           <div className="max-w-md mx-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Take a Photo
+            <h2 className="text-2xl font-bold text-[#1C1C1E] mb-2">
+              {t('priceSubmission:steps.takePhoto')}
             </h2>
             <p className="text-gray-600 mb-6">
-              Snap a photo of the price sign for verification
+              {t('priceSubmission:steps.photoOfPriceSign')}
             </p>
             <div className="bg-white rounded-xl p-8 text-center mb-6">
               <div className="w-24 h-24 bg-primary/10 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -275,55 +277,46 @@ export function PriceEntryPage({
                 onClick={() => fileInputRef.current?.click()}
                 className="bg-primary text-white font-semibold py-3 px-6 rounded-xl hover:bg-primary-dark transition-colors"
               >
-                Open Camera
+                {t('common:buttons.openCamera')}
               </button>
               <p className="text-xs text-gray-500 mt-4">
-                Photo is optional but helps verify accuracy
+                {t('priceSubmission:photo.photoOptional')}
               </p>
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep(2)}
-                className="flex-1 bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-xl hover:bg-gray-300 transition-colors flex items-center justify-center space-x-2"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                <span>Back</span>
-              </button>
-              <button
-                onClick={() => setStep(4)}
-                className="flex-1 bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-xl hover:bg-gray-300 transition-colors"
-              >
-                Skip Photo
-              </button>
-            </div>
+            <button
+              onClick={() => setStep(4)}
+              className="w-full bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-xl hover:bg-gray-300 transition-colors"
+            >
+              {t('common:buttons.skip')}
+            </button>
           </div>
         )}
 
         {/* Step 4: Review & Submit */}
         {step === 4 && (
           <div className="max-w-md mx-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Review & Submit
+            <h2 className="text-2xl font-bold text-[#1C1C1E] mb-2">
+              {t('priceSubmission:steps.reviewSubmit')}
             </h2>
             <p className="text-gray-600 mb-6">
-              Please confirm your submission details
+              {t('priceSubmission:steps.confirmDetails')}
             </p>
             <div className="bg-white rounded-xl p-6 mb-6 space-y-4">
               <div>
-                <p className="text-sm text-gray-600">Gas Station</p>
+                <p className="text-sm text-gray-600">{t('priceSubmission:form.gasStation')}</p>
                 <p className="font-semibold text-gray-900">{stationName}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Fuel Type</p>
+                <p className="text-sm text-gray-600">{t('priceSubmission:form.fuelType')}</p>
                 <p className="font-semibold text-gray-900">{fuelType}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Price</p>
-                <p className="text-2xl font-bold text-primary">${price}</p>
+                <p className="text-sm text-gray-600">{t('priceSubmission:form.price')}</p>
+                <p className="text-2xl font-bold text-[#7DD756]">${price}</p>
               </div>
               {photoPreview && (
                 <div>
-                  <p className="text-sm text-gray-600 mb-2">Photo</p>
+                  <p className="text-sm text-gray-600 mb-2">{t('common:labels.photo')}</p>
                   <img
                     src={photoPreview}
                     alt="Price photo"
@@ -332,52 +325,42 @@ export function PriceEntryPage({
                 </div>
               )}
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep(3)}
-                disabled={isSubmitting}
-                className="flex-1 bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-xl hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                <span>Back</span>
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="flex-1 bg-primary text-white font-semibold py-4 px-6 rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <svg
-                      className="animate-spin h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    <span>Submitting...</span>
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-5 h-5" />
-                    <span>Submit Price</span>
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="w-full bg-primary text-white font-semibold py-4 px-6 rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <svg
+                    className="animate-spin h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <span>{t('common:buttons.submitting')}</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-5 h-5" />
+                  <span>{t('common:buttons.submitPrice')}</span>
+                </>
+              )}
+            </button>
           </div>
         )}
       </main>

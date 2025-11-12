@@ -69,9 +69,17 @@ export function GoogleMapView({ userLocation, gasStations, onStationSelect, onBo
         }
 
         // Listen for map idle event (fires when map stops moving)
+        // Debounced in parent component, so this is fine
         map.addListener('idle', () => {
-          // Small delay to ensure map has fully settled
-          setTimeout(handleBoundsChanged, 200)
+          const bounds = map.getBounds()
+          if (bounds) {
+            const center = bounds.getCenter()
+            const newCenter = {
+              latitude: center.lat(),
+              longitude: center.lng()
+            }
+            onBoundsChanged(newCenter, bounds)
+          }
         })
       }
     }

@@ -18,6 +18,13 @@ interface PriceSubmissionDrawerProps {
 
 type DrawerState = "closed" | "preview" | "expanded"
 
+interface LastPrice {
+  price: number | null
+  fuelType: string | null
+  createdAt: string | null
+  submittedBy: string | null
+}
+
 export function PriceSubmissionDrawer({
   isOpen,
   station,
@@ -31,15 +38,40 @@ export function PriceSubmissionDrawer({
   const [currentY, setCurrentY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const drawerRef = useRef<HTMLDivElement>(null)
+  const [lastPrice, setLastPrice] = useState<LastPrice | null>(null)
+  const [isLoadingPrice, setIsLoadingPrice] = useState(false)
+
+  const fetchLastPrice = async (stationId: string) => {
+    setIsLoadingPrice(true)
+    try {
+      const response = await fetch(`/api/stations/${encodeURIComponent(stationId)}/last-price`)
+      const data = await response.json()
+      
+      if (data.error) {
+        console.error('Error fetching last price:', data.error)
+        setLastPrice(null)
+      } else {
+        setLastPrice(data)
+      }
+    } catch (error) {
+      console.error('Error fetching last price:', error)
+      setLastPrice(null)
+    } finally {
+      setIsLoadingPrice(false)
+    }
+  }
 
   useEffect(() => {
     console.log("Drawer state change:", { isOpen, station: station?.name })
     if (isOpen && station) {
       setDrawerState("preview")
       document.body.style.overflow = 'hidden'
+      // Fetch last price when drawer opens
+      fetchLastPrice(station.id)
     } else {
       setDrawerState("closed")
       document.body.style.overflow = 'unset'
+      setLastPrice(null)
     }
 
     return () => {
@@ -105,6 +137,10 @@ export function PriceSubmissionDrawer({
         userLocation={userLocation}
         onSuccess={() => {
           handleClose()
+          // Refresh last price after successful submission
+          if (station) {
+            fetchLastPrice(station.id)
+          }
           onSuccess()
         }}
       />
@@ -176,16 +212,36 @@ export function PriceSubmissionDrawer({
                 </button>
               </div>
 
-              {/* Last known price placeholder */}
+              {/* Last known price */}
               <div className="mb-4 p-4 bg-gradient-to-br from-[#7DD756]/5 via-[#7DD756]/10 to-[#7DD756]/5 rounded-lg border border-[#7DD756]/30">
                 <div className="flex items-baseline justify-between mb-1">
                   <span className="text-xs text-gray-600 font-medium">{t('common:labels.lastPrice')}</span>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-[#7DD756]">$—</span>
-                    <span className="text-xs text-gray-500">/gal</span>
-                  </div>
+                  {isLoadingPrice ? (
+                    <div className="h-6 w-16 bg-gray-200 animate-pulse rounded"></div>
+                  ) : lastPrice?.price ? (
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold text-[#7DD756]">${lastPrice.price.toFixed(2)}</span>
+                      <span className="text-xs text-gray-500">/gal</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold text-[#7DD756]">$—</span>
+                      <span className="text-xs text-gray-500">/gal</span>
+                    </div>
+                  )}
                 </div>
-                <p className="text-xs text-gray-400">{t('common:labels.noRecentData')}</p>
+                {lastPrice?.price ? (
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-gray-600">
+                      {lastPrice.fuelType} • {new Date(lastPrice.createdAt!).toLocaleDateString()}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {lastPrice.submittedBy ? `${lastPrice.submittedBy.slice(0, 6)}...${lastPrice.submittedBy.slice(-4)}` : 'Anonymous'}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400">{t('common:labels.noRecentData')}</p>
+                )}
               </div>
 
               {/* Actions */}
@@ -255,12 +311,32 @@ export function PriceSubmissionDrawer({
             <div className="mb-6 p-5 bg-gradient-to-br from-[#7DD756]/5 via-[#7DD756]/10 to-[#7DD756]/5 rounded-2xl border-2 border-[#7DD756]/30 shadow-sm">
               <div className="flex items-baseline justify-between mb-2">
                 <span className="text-sm text-gray-600 font-semibold">{t("drawer.lastPrice")}</span>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-bold text-[#7DD756]">$—</span>
-                  <span className="text-sm text-gray-500">{t("drawer.perGallon")}</span>
-                </div>
+                {isLoadingPrice ? (
+                  <div className="h-8 w-24 bg-gray-200 animate-pulse rounded"></div>
+                ) : lastPrice?.price ? (
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-bold text-[#7DD756]">${lastPrice.price.toFixed(2)}</span>
+                    <span className="text-sm text-gray-500">{t("drawer.perGallon")}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-bold text-[#7DD756]">$—</span>
+                    <span className="text-sm text-gray-500">{t("drawer.perGallon")}</span>
+                  </div>
+                )}
               </div>
-              <p className="text-xs text-gray-500">{t("drawer.noRecentData")}</p>
+              {lastPrice?.price ? (
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-600">
+                    {lastPrice.fuelType} • {new Date(lastPrice.createdAt!).toLocaleDateString()}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Submitted by {lastPrice.submittedBy ? `${lastPrice.submittedBy.slice(0, 6)}...${lastPrice.submittedBy.slice(-4)}` : 'Anonymous'}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500">{t("drawer.noRecentData")}</p>
+              )}
             </div>
 
             {/* Actions */}

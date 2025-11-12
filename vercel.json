@@ -2,7 +2,7 @@
     "crons": [
         {
             "path": "/api/payout-rewards",
-            "schedule": "30 3 * * *"
+            "schedule": "0 0 * * *"
         }
     ]
 }

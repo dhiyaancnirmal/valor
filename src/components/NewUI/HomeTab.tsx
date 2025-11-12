@@ -55,7 +55,7 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
     return baseReward + proximityBonus
   }
 
-  // Fetch today's rewards on mount and every 30 seconds
+  // Fetch today's rewards on mount only (no polling)
   useEffect(() => {
     const fetchRewards = async () => {
       try {
@@ -70,29 +70,33 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
     }
 
     fetchRewards()
-    const interval = setInterval(fetchRewards, 30000) // Poll every 30 seconds
-
-    return () => clearInterval(interval)
+    // Removed polling - fetch only on mount
   }, [])
 
-  // Reset submitted stations daily at midnight
+  // Reset submitted stations daily at midnight UTC
   useEffect(() => {
-    const now = new Date()
-    const tomorrow = new Date(now)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    tomorrow.setHours(0, 0, 0, 0)
+    let timer: NodeJS.Timeout | null = null
     
-    const msUntilMidnight = tomorrow.getTime() - now.getTime()
-    
-    const timer = setTimeout(() => {
-      setSubmittedStations(new Set())
-      // Set up next day's reset
-      setInterval(() => {
+    const scheduleReset = () => {
+      const now = new Date()
+      const tomorrow = new Date(now)
+      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1)
+      tomorrow.setUTCHours(0, 0, 0, 0)
+      
+      const msUntilMidnight = tomorrow.getTime() - now.getTime()
+      
+      timer = setTimeout(() => {
         setSubmittedStations(new Set())
-      }, 24 * 60 * 60 * 1000)
-    }, msUntilMidnight)
+        // Schedule next reset
+        scheduleReset()
+      }, msUntilMidnight)
+    }
     
-    return () => clearTimeout(timer)
+    scheduleReset()
+    
+    return () => {
+      if (timer) clearTimeout(timer)
+    }
   }, [])
 
   return (

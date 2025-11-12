@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next"
 import { useSession, signOut } from "next-auth/react"
 import { LogOut, Loader2, Settings, Copy, CheckCircle2 } from "lucide-react"
 import { SettingsDrawer } from "@/components/SettingsDrawer"
-import { MiniKit, ResponseEvent } from "@worldcoin/minikit-js"
 
 interface AccruedRewards {
   totalAccrued: string
@@ -21,8 +20,6 @@ export function WalletTab() {
   const [copied, setCopied] = useState(false)
   const [accruedRewards, setAccruedRewards] = useState<AccruedRewards | null>(null)
   const [isLoadingRewards, setIsLoadingRewards] = useState(true)
-  const [isClaiming, setIsClaiming] = useState(false)
-  const [canClaim, setCanClaim] = useState(false)
 
   // Handle logout
   const handleLogout = async () => {
@@ -41,28 +38,6 @@ export function WalletTab() {
       setIsSigningOut(false)
     }
   }
-
-  // Check if rewards can be claimed (past 12:30 AM Buenos Aires)
-  useEffect(() => {
-    const checkClaimAvailability = () => {
-      const nowUTC = new Date()
-      const buenosAiresOffset = -3 * 60 * 60 * 1000 // -3 hours
-      const buenosAiresTime = new Date(nowUTC.getTime() + buenosAiresOffset)
-      
-      // Check if it's past 12:30 AM Buenos Aires today
-      const payoutTime = new Date(buenosAiresTime)
-      payoutTime.setUTCHours(0, 30, 0, 0) // 12:30 AM BA
-      
-      // In dev mode, always allow claiming
-      const isDevMode = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost'
-      setCanClaim(isDevMode || buenosAiresTime >= payoutTime)
-    }
-    
-    checkClaimAvailability()
-    // Check every minute
-    const interval = setInterval(checkClaimAvailability, 60000)
-    return () => clearInterval(interval)
-  }, [])
 
   useEffect(() => {
     if (session?.user?.walletAddress) {
@@ -86,95 +61,6 @@ export function WalletTab() {
         })
     }
   }, [session?.user?.walletAddress])
-
-  const handleClaimRewards = async () => {
-    if (isClaiming || !canClaim || !accruedRewards || accruedRewards.totalUSDC <= 0) return
-    if (!MiniKit.isInstalled()) {
-      alert('Please open this app in World App to claim rewards')
-      return
-    }
-
-    setIsClaiming(true)
-
-    try {
-      // Get claim data from backend
-      const isDevMode = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost'
-      const response = await fetch('/api/claim-rewards/prepare', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(isDevMode && { 'x-dev-mode': 'true' }),
-        },
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to prepare claim')
-      }
-
-      if (!data.transactions || data.transactions.length === 0) {
-        throw new Error('No transactions to claim')
-      }
-
-      // Show MiniKit transaction popup
-      const rewardContract = process.env.NEXT_PUBLIC_REWARD_CONTRACT_ADDRESS as `0x${string}`
-      if (!rewardContract) {
-        throw new Error('Reward contract address not configured')
-      }
-
-      // For multiple rewards, we'll claim them one by one or use a multicall
-      // For now, let's claim the first one as an example
-      const firstTx = data.transactions[0]
-
-      const { finalPayload } = await MiniKit.commandsAsync.sendTransaction({
-        transaction: [
-          {
-            address: rewardContract,
-            abi: data.abi,
-            functionName: 'claimReward',
-            args: [
-              session?.user?.walletAddress,
-              firstTx.stationIdBytes32,
-              firstTx.submissionId,
-              firstTx.amount,
-              firstTx.deadline,
-              firstTx.signature,
-            ],
-          },
-        ],
-      })
-
-      if (finalPayload.status === 'error') {
-        throw new Error(finalPayload.error_code || 'Transaction failed')
-      }
-
-      // Transaction submitted successfully
-      console.log('Transaction submitted:', finalPayload.transaction_id)
-
-      // Update database on backend
-      await fetch('/api/claim-rewards/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          transactionId: finalPayload.transaction_id,
-          rewardIds: data.rewardIds,
-        }),
-      })
-
-      // Refresh rewards
-      const rewardsRes = await fetch('/api/wallet/rewards')
-      const rewardsData = await rewardsRes.json()
-      setAccruedRewards(rewardsData)
-      
-      alert(`Successfully claimed ${accruedRewards.totalUSDC.toFixed(2)} USDC!`)
-    } catch (error: any) {
-      console.error('Claim error:', error)
-      alert(error.message || 'Failed to claim rewards')
-    } finally {
-      setIsClaiming(false)
-    }
-  }
 
   return (
     <div className="h-full overflow-y-auto bg-[#F4F4F8] pb-24">
@@ -217,42 +103,11 @@ export function WalletTab() {
           )}
           {accruedRewards && accruedRewards.totalUSDC > 0 && (
             <p className="text-white/60 text-xs mt-1">
-              {canClaim ? 'Ready to claim!' : 'Available at 12:30 AM Buenos Aires'}
+              Payout at 12:00 AM UTC
             </p>
           )}
         </div>
       </div>
-
-      {/* Claim Button */}
-      {accruedRewards && accruedRewards.totalUSDC > 0 && (
-        <div className="px-4 pb-4">
-          <button
-            onClick={handleClaimRewards}
-            disabled={!canClaim || isClaiming}
-            className={`w-full py-4 px-6 rounded-xl font-semibold text-base transition-all duration-200 ${
-              canClaim && !isClaiming
-                ? 'bg-gradient-to-r from-[#7DD756] to-[#6BC647] text-white hover:shadow-lg active:scale-[0.98] shadow-md'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            {isClaiming ? (
-              <span className="flex items-center justify-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Claiming...
-              </span>
-            ) : canClaim ? (
-              `Claim ${accruedRewards.totalUSDC.toFixed(2)} USDC`
-            ) : (
-              'Claim (Available at 12:30 AM Buenos Aires)'
-            )}
-          </button>
-          {isClaiming && (
-            <p className="text-xs text-center text-gray-500 mt-2">
-              Please confirm the transaction in the popup
-            </p>
-          )}
-        </div>
-      )}
 
       {/* Wallet Address */}
       <div className="px-4 pb-4">

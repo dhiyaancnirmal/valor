@@ -7,8 +7,8 @@ import { RewardVaultABI } from "@/lib/abi/RewardVault"
 
 /**
  * Batch payout API endpoint
- * Should be called by a cron job at 12:30 AM Buenos Aires time daily (03:30 UTC)
- * Processes all unpaid rewards from the previous Buenos Aires day
+ * Should be called by a cron job at 12:00 AM UTC daily
+ * Processes all unpaid rewards from the previous UTC day
  */
 export async function POST(request: NextRequest) {
   try {
@@ -20,24 +20,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get yesterday's date in Buenos Aires timezone (UTC-3)
-    // Cron runs at 12:30 AM Buenos Aires = 03:30 UTC
+    // Get yesterday's UTC date
+    // Cron runs at 12:00 AM UTC
     const nowUTC = new Date()
-    const buenosAiresOffset = -3 * 60 * 60 * 1000 // -3 hours in milliseconds
-    const buenosAiresTime = new Date(nowUTC.getTime() + buenosAiresOffset)
-    
-    // Get yesterday in Buenos Aires time
-    const yesterdayBA = new Date(buenosAiresTime)
-    yesterdayBA.setUTCDate(yesterdayBA.getUTCDate() - 1)
-    yesterdayBA.setUTCHours(0, 0, 0, 0)
-    
-    // Format as YYYY-MM-DD
-    const year = yesterdayBA.getUTCFullYear()
-    const month = String(yesterdayBA.getUTCMonth() + 1).padStart(2, '0')
-    const day = String(yesterdayBA.getUTCDate()).padStart(2, '0')
-    const yesterdayDate = `${year}-${month}-${day}`
+    const yesterday = new Date(nowUTC)
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1)
+    yesterday.setUTCHours(0, 0, 0, 0)
+    const yesterdayDate = yesterday.toISOString().split('T')[0]
 
-    console.log(`Processing payouts for date: ${yesterdayDate} (Buenos Aires time)`)
+    console.log(`Processing payouts for date: ${yesterdayDate} (UTC)`)
 
     // Get all unpaid transactions from yesterday
     const { data: unpaidTransactions, error } = await supabaseAdmin

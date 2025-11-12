@@ -126,38 +126,18 @@ export async function POST(request: NextRequest) {
 
     try {
       const rewardPoolAmount = 500000n // 0.5 USDC in smallest units (6 decimals)
-      
-      // Get current date in Buenos Aires timezone (UTC-3)
-      const nowUTC = new Date()
-      const buenosAiresOffset = -3 * 60 * 60 * 1000 // -3 hours in milliseconds
-      
-      // Calculate what time it is in Buenos Aires
-      const baTimestamp = nowUTC.getTime() + buenosAiresOffset
-      const baDate = new Date(baTimestamp)
-      
-      // Get date string in YYYY-MM-DD format (Buenos Aires date)
-      const year = baDate.getUTCFullYear()
-      const month = String(baDate.getUTCMonth() + 1).padStart(2, '0')
-      const day = String(baDate.getUTCDate()).padStart(2, '0')
-      const currentDate = `${year}-${month}-${day}`
+      const currentUTCDate = new Date().toISOString().split('T')[0] // YYYY-MM-DD
 
-      // Calculate Buenos Aires day boundaries (00:00:00 to 23:59:59 BA time)
-      const startOfDayBA = new Date(baDate)
-      startOfDayBA.setUTCHours(0, 0, 0, 0)
-      const endOfDayBA = new Date(baDate)
-      endOfDayBA.setUTCHours(23, 59, 59, 999)
-
-      // Convert BA boundaries back to UTC for database query
-      // BA time = UTC - 3, so UTC = BA time + 3
-      const startOfDayUTC = new Date(startOfDayBA.getTime() - buenosAiresOffset)
-      const endOfDayUTC = new Date(endOfDayBA.getTime() - buenosAiresOffset)
+      // Count submissions for this station in current UTC day
+      const startOfDay = new Date(currentUTCDate + 'T00:00:00.000Z')
+      const endOfDay = new Date(currentUTCDate + 'T23:59:59.999Z')
 
       const { count, error: countError } = await supabaseAdmin
         .from("price_submissions")
         .select("*", { count: "exact", head: true })
         .eq("gas_station_id", gasStationId)
-        .gte("created_at", startOfDayUTC.toISOString())
-        .lte("created_at", endOfDayUTC.toISOString())
+        .gte("created_at", startOfDay.toISOString())
+        .lte("created_at", endOfDay.toISOString())
 
       if (countError) {
         console.error("Error counting submissions:", countError)
@@ -176,14 +156,14 @@ export async function POST(request: NextRequest) {
           user_wallet_address: walletAddress,
           gas_station_id: gasStationId,
           accrued_amount: accruedAmount.toString(),
-          reward_period_date: currentDate,
+          reward_period_date: currentUTCDate,
             })
 
       if (rewardError) {
         console.error("Error creating reward transaction:", rewardError)
         } else {
         accruedRewardAmount = accruedAmount.toString()
-        rewardPeriodDate = currentDate
+        rewardPeriodDate = currentUTCDate
       }
     } catch (e) {
       console.error("Reward accrual error:", e)

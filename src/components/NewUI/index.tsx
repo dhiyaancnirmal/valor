@@ -27,6 +27,7 @@ export function MainUI() {
 
   // Track searched areas to avoid duplicate API calls
   const searchedBounds = useRef<Set<string>>(new Set())
+  const boundsChangeTimeout = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     // Get user location
@@ -100,20 +101,28 @@ export function MainUI() {
     }
   }
 
-  // Handle map bounds changes for dynamic loading
+  // Handle map bounds changes for dynamic loading (debounced)
   const handleBoundsChanged = async (center: UserLocation, bounds: google.maps.LatLngBounds) => {
     if (!userLocation) return
 
-    // Check if we already have enough stations in this area
-    const existingStationsInBounds = gasStations.filter(station => {
-      const stationLatLng = new google.maps.LatLng(station.latitude, station.longitude)
-      return bounds.contains(stationLatLng)
-    })
-
-    // Only fetch if we have fewer than 5 stations in this visible area
-    if (existingStationsInBounds.length < 5) {
-      await fetchGasStationsInBounds(bounds)
+    // Clear any pending timeout
+    if (boundsChangeTimeout.current) {
+      clearTimeout(boundsChangeTimeout.current)
     }
+
+    // Debounce: wait 500ms after last bounds change before fetching
+    boundsChangeTimeout.current = setTimeout(async () => {
+      // Check if we already have enough stations in this area
+      const existingStationsInBounds = gasStations.filter(station => {
+        const stationLatLng = new google.maps.LatLng(station.latitude, station.longitude)
+        return bounds.contains(stationLatLng)
+      })
+
+      // Only fetch if we have fewer than 5 stations in this visible area
+      if (existingStationsInBounds.length < 5) {
+        await fetchGasStationsInBounds(bounds)
+      }
+    }, 500) // 500ms debounce
   }
 
   // Fetch gas stations within map bounds
@@ -196,11 +205,18 @@ export function MainUI() {
   }
 
   const handleSubmissionSuccess = () => {
-    // Refresh gas stations list
-    if (userLocation) {
-      fetchNearbyGasStations(userLocation)
-    }
+    // Don't refresh gas stations - prices are fetched on-demand when drawer opens
+    // This prevents excessive API calls
   }
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (boundsChangeTimeout.current) {
+        clearTimeout(boundsChangeTimeout.current)
+      }
+    }
+  }, [])
 
   const tabs = [
     { id: "map" as Tab, icon: Map, label: t('common:tabs.map') },

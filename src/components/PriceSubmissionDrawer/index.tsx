@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 import { X, Navigation } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { GasStation } from "@/types"
@@ -32,7 +32,7 @@ export function PriceSubmissionDrawer({
   onClose,
   onSuccess,
 }: PriceSubmissionDrawerProps) {
-  const { t } = useTranslation(['priceSubmission', 'common'])
+  const t = useTranslations()
   const [drawerState, setDrawerState] = useState<DrawerState>("closed")
   const [startY, setStartY] = useState(0)
   const [currentY, setCurrentY] = useState(0)
@@ -217,7 +217,7 @@ export function PriceSubmissionDrawer({
             {/* Last Known Price */}
             <div className="bg-gray-50 border border-gray-200" style={{ marginBottom: 'var(--spacing-lg)', padding: 'var(--spacing-lg)', borderRadius: 'var(--radius-md)' }}>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700 font-medium">{t('common:labels.lastPrice')}</span>
+                <span className="text-sm text-gray-700 font-medium">{t('drawer.lastPrice')}</span>
                 {isLoadingPrice ? (
                   <div className="h-8 w-20 bg-gray-200 animate-pulse rounded"></div>
                 ) : lastPrice?.price ? (
@@ -232,9 +232,9 @@ export function PriceSubmissionDrawer({
                     {lastPrice.fuelType} • {new Date(lastPrice.createdAt!).toLocaleDateString()}
                   </p>
                 ) : (
-                  <p className="text-xs text-gray-500">{t('common:labels.noRecentData')}</p>
+                  <p className="text-xs text-gray-500">{t('drawer.noRecentData')}</p>
                 )}
-                <span className="text-xs text-gray-500">/gal</span>
+                <span className="text-xs text-gray-500">{t('drawer.perGallon')}</span>
               </div>
             </div>
 
@@ -254,7 +254,7 @@ export function PriceSubmissionDrawer({
                 className="flex-1 bg-[var(--valor-green)] text-white font-semibold text-base hover:opacity-90 active:scale-[0.98] transition-all duration-200"
                 style={{ padding: 'var(--spacing-md) var(--spacing-xl)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)' }}
               >
-                {t('common:buttons.submitPrice')}
+                {t('drawer.submitPrice')}
               </button>
             </div>
           </div>

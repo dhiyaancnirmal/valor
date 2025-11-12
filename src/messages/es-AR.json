@@ -7,7 +7,11 @@
     "submit": "Enviar",
     "cancel": "Cancelar",
     "save": "Guardar",
-    "back": "Atrás"
+    "back": "Atrás",
+    "skip": "Omitir",
+    "next": "Siguiente",
+    "copied": "Copiado",
+    "percent": "%"
   },
   "app": {
     "title": "Valor - Crowdsourcing de Precios de Combustible",
@@ -32,7 +36,9 @@
     "adjustSearch": "Intenta ajustar tu búsqueda o ubicación",
     "highDemand": "ALTA DEMANDA",
     "earn": "Ganar",
-    "submit": "Enviar"
+    "submit": "Enviar",
+    "stationsCount": "{count} estaciones",
+    "earnAmount": "Ganar ${amount}"
   },
   "walletTab": {
     "walletAddress": "Dirección de Billetera",
@@ -85,69 +91,6 @@
     "selectLanguage": "Seleccionar Idioma",
     "english": "English",
     "spanish": "Español"
-  },
-  "drawer": {
-    "submitPrice": "Enviar Precio",
-    "away": "de distancia"
-  },
-  "priceEntry": {
-    "step": "Paso",
-    "of": "de",
-    "selectFuelType": "Seleccionar Tipo de Combustible",
-    "chooseFuelType": "Elige el tipo de combustible que quieres reportar",
-    "enterPrice": "Ingresar Precio",
-    "pricePerGallon": "¿Cuál es el precio por galón de {fuelType}?",
-    "pricePerGallonLabel": "Precio por galón",
-    "takePhoto": "Tomar una Foto",
-    "photoDescription": "Toma una foto del cartel de precios para verificación",
-    "openCamera": "Abrir Cámara",
-    "photoOptional": "La foto es opcional pero ayuda a verificar la precisión",
-    "skipPhoto": "Omitir Foto",
-    "reviewSubmit": "Revisar y Enviar",
-    "confirmDetails": "Por favor confirma los detalles de tu envío",
-    "fuelType": "Tipo de Combustible",
-    "price": "Precio",
-    "photo": "Foto",
-    "submitting": "Enviando...",
-    "submitPrice": "Enviar Precio",
-    "errors": {
-      "enableLocation": "Por favor habilita los servicios de ubicación para enviar precios",
-      "validPrice": "Por favor ingresa un precio válido",
-      "locationNotAvailable": "Ubicación no disponible. Por favor habilita los servicios de ubicación.",
-      "distanceError": "Debes estar dentro de 500m de la estación de servicio. Distancia actual: {distance}m",
-      "submitFailed": "Error al enviar el precio",
-      "insufficientFunds": "La bóveda de recompensas tiene fondos insuficientes. Por favor intenta más tarde.",
-      "simulationFailed": "La simulación de transacción falló. Por favor intenta de nuevo."
-    },
-    "fuelTypes": {
-      "regular": "Regular",
-      "premium": "Premium",
-      "diesel": "Diésel"
-    }
-  },
-  "login": {
-    "welcome": "Bienvenido a Valor",
-    "tagline": "Rastrea precios y gana recompensas",
-    "loginWithWorldID": "Iniciar sesión con World ID",
-    "loggingIn": "Iniciando sesión...",
-    "loginDevMode": "Iniciar sesión (Modo Dev)",
-    "openInWorldApp": "Por favor abre esta aplicación en World App para autenticarte",
-    "signInStatement": "Inicia sesión en Valor para enviar precios de combustible",
-    "errors": {
-      "openInWorldApp": "Por favor abre esta aplicación en World App",
-      "authFailed": "Error de autenticación",
-      "invalidResponse": "Error de autenticación: estado de respuesta inválido",
-      "noWalletAddress": "No se pudo obtener la dirección de billetera de World App",
-      "devLoginFailed": "Error al iniciar sesión en modo dev",
-      "generic": "Ocurrió un error. Por favor intenta de nuevo."
-    }
-  },
-  "map": {
-    "loadingMap": "Cargando mapa...",
-    "findingStations": "Buscando estaciones...",
-    "yourLocation": "Tu Ubicación",
-    "loading": "Cargando",
-    "loadingStations": "Cargando estaciones"
   },
   "drawer": {
     "submitPrice": "Enviar Precio",
@@ -212,7 +155,47 @@
       "premiumDesc": "Alto octanaje",
       "dieselDesc": "Combustible diésel"
     }
+  },
+  "login": {
+    "welcome": "Bienvenido a Valor",
+    "tagline": "Rastrea precios y gana recompensas",
+    "loginWithWorldID": "Iniciar sesión con World ID",
+    "loggingIn": "Iniciando sesión...",
+    "loginDevMode": "Iniciar sesión (Modo Dev)",
+    "openInWorldApp": "Por favor abre esta aplicación en World App para autenticarte",
+    "signInStatement": "Inicia sesión en Valor para enviar precios de combustible",
+    "errors": {
+      "openInWorldApp": "Por favor abre esta aplicación en World App",
+      "authFailed": "Error de autenticación",
+      "invalidResponse": "Error de autenticación: estado de respuesta inválido",
+      "noWalletAddress": "No se pudo obtener la dirección de billetera de World App",
+      "devLoginFailed": "Error al iniciar sesión en modo dev",
+      "generic": "Ocurrió un error. Por favor intenta de nuevo."
+    }
+  },
+  "map": {
+    "loadingMap": "Cargando mapa...",
+    "findingStations": "Buscando estaciones...",
+    "yourLocation": "Tu Ubicación",
+    "loading": "Cargando",
+    "loadingStations": "Cargando estaciones"
+  },
+  "units": {
+    "meter": "m",
+    "kilometer": "km",
+    "meters": "metros",
+    "kilometers": "kilómetros"
+  },
+  "currency": {
+    "usd": "$",
+    "ars": "$",
+    "eur": "€",
+    "gbp": "£"
+  },
+  "currencies": {
+    "USD": "USD",
+    "ARS": "ARS",
+    "EUR": "EUR",
+    "GBP": "GBP"
   }
 }
-
-

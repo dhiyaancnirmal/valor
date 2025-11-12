@@ -1,10 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 import { useSession, signOut } from "next-auth/react"
 import { Loader2, Bell, User, Star } from "lucide-react"
-import { SettingsDrawer } from "@/components/SettingsDrawer"
 
 interface AccruedRewards {
   totalAccrued: string
@@ -12,10 +11,13 @@ interface AccruedRewards {
   submissionCount: number
 }
 
-export function WalletTab() {
-  const { t } = useTranslation(['wallet', 'common'])
+interface WalletTabProps {
+  onOpenSettings: () => void
+}
+
+export function WalletTab({ onOpenSettings }: WalletTabProps) {
+  const t = useTranslations()
   const { data: session } = useSession()
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [accruedRewards, setAccruedRewards] = useState<AccruedRewards | null>(null)
   const [isLoadingRewards, setIsLoadingRewards] = useState(true)
 
@@ -59,7 +61,7 @@ export function WalletTab() {
           {/* Profile/Settings Icon */}
           <button
             className="w-10 h-10 flex items-center justify-center cursor-pointer bg-white/20 backdrop-blur-md border border-white/30 rounded-full transition-all hover:scale-105 active:scale-95"
-            onClick={() => setIsSettingsOpen(true)}
+            onClick={onOpenSettings}
             aria-label="Settings"
           >
             <User className="w-5 h-5 text-[#1C1C1E]" strokeWidth={2} />
@@ -101,7 +103,7 @@ export function WalletTab() {
                 {accruedRewards?.submissionCount || 0}
               </div>
               <div className="text-sm text-gray-600">
-                {t('wallet:balance.submissions', { defaultValue: 'Submissions' })}
+                {t('walletTab.submissions')}
               </div>
             </div>
           </div>
@@ -112,16 +114,10 @@ export function WalletTab() {
       {accruedRewards && accruedRewards.totalUSDC > 0 && (
         <div style={{ padding: '0 var(--spacing-xl)' }}>
           <p className="text-center text-sm text-gray-600">
-            {t('wallet:balance.payoutInfo', { defaultValue: 'Payout at 12:00 AM UTC' })}
+            Payout at 12:00 AM UTC
           </p>
         </div>
       )}
-
-      {/* Settings Drawer */}
-      <SettingsDrawer
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-      />
     </div>
   )
 }

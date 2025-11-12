@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Camera, X, MapPin, Check, ChevronRight } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import type { GasStation, UserLocation } from '@/types';
 
 interface PriceEntryPageDrawerProps {
@@ -18,7 +18,7 @@ type Step = 'product' | 'price' | 'photo' | 'review';
 
 export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLocation, onSuccess }: PriceEntryPageDrawerProps) {
     const { data: session } = useSession();
-    const { t } = useTranslation(['priceEntry', 'common']);
+    const t = useTranslations();
     const [currentStep, setCurrentStep] = useState<Step>('product');
     const [selectedProduct, setSelectedProduct] = useState<string>('');
     const [price, setPrice] = useState<string>('');

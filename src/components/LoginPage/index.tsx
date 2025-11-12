@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 import { signIn } from "next-auth/react"
 import { MiniKit } from "@worldcoin/minikit-js"
 import { Button } from "@/components/ui/button"
@@ -9,7 +9,7 @@ import Logo from "@/components/Logo"
 import WorldIDLogo from "@/components/WorldIDLogo"
 
 export function LoginPage() {
-  const { t } = useTranslation(['login', 'common'])
+  const t = useTranslations()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isMiniKitReady, setIsMiniKitReady] = useState(false)
@@ -41,7 +41,7 @@ export function LoginPage() {
 
       // Check if MiniKit is available
       if (!MiniKit.isInstalled()) {
-        setError(t('login:errors.notInWorldApp'))
+        setError(t('login.errors.openInWorldApp'))
         setIsLoading(false)
         return
       }
@@ -54,7 +54,7 @@ export function LoginPage() {
         nonce: Date.now().toString(),
         expirationTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         notBefore: new Date(Date.now()),
-        statement: t("login.signInStatement"),
+        statement: t('login.signInStatement'),
       })
 
       console.log("WalletAuth response:", { commandPayload, finalPayload })
@@ -66,14 +66,14 @@ export function LoginPage() {
           return
         }
         console.error("WalletAuth error:", finalPayload)
-        setError(finalPayload.error_code || t('login:errors.authFailed'))
+        setError(finalPayload.error_code || t('login.errors.authFailed'))
         setIsLoading(false)
         return
       }
 
       if (finalPayload.status !== 'success') {
         console.error("WalletAuth failed:", finalPayload)
-        setError(t('login:errors.invalidResponse'))
+        setError(t('login.errors.invalidResponse'))
         setIsLoading(false)
         return
       }
@@ -84,7 +84,7 @@ export function LoginPage() {
 
       if (!walletAddress) {
         console.error("No wallet address in response:", finalPayload)
-        setError(t('login:errors.noWalletAddress'))
+        setError(t('login.errors.noWalletAddress'))
         setIsLoading(false)
         return
       }
@@ -115,7 +115,7 @@ export function LoginPage() {
 
       if (result?.error) {
         console.error("NextAuth error:", result.error)
-        setError(`${t('login:errors.authFailed')}: ${result.error}`)
+        setError(`${t('login.errors.authFailed')}: ${result.error}`)
         setIsLoading(false)
         return
       }
@@ -125,7 +125,7 @@ export function LoginPage() {
       window.location.href = "/"
     } catch (err) {
       console.error("Login error:", err)
-      setError(err instanceof Error ? err.message : t('login:errors.errorOccurred'))
+      setError(err instanceof Error ? err.message : t('login.errors.generic'))
       setIsLoading(false)
     }
   }
@@ -156,7 +156,7 @@ export function LoginPage() {
       })
 
       if (result?.error) {
-        setError(t('login:errors.devLoginFailed'))
+        setError(t('login.errors.devLoginFailed'))
         setIsLoading(false)
         return
       }
@@ -164,7 +164,7 @@ export function LoginPage() {
       window.location.href = "/"
     } catch (err) {
       console.error("Dev login error:", err)
-      setError(t('login:errors.devLoginFailed'))
+      setError(t('login.errors.devLoginFailed'))
       setIsLoading(false)
     }
   }
@@ -181,10 +181,10 @@ export function LoginPage() {
         {/* Welcome Text */}
         <div className="text-center max-w-xs mb-10">
           <h1 className="text-2xl font-bold text-[#1C1C1E] mb-3 leading-tight">
-            {t('login:welcome.title')}
+            {t('login.welcome')}
           </h1>
           <p className="text-sm text-gray-600 font-normal leading-relaxed">
-            {t('login:welcome.subtitle')}
+            {t('login.tagline')}
           </p>
         </div>
       </div>
@@ -230,12 +230,12 @@ export function LoginPage() {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                {t('common:buttons.loggingIn')}
+                {t('login.loggingIn')}
               </>
             ) : (
               <>
                 <WorldIDLogo size={18} />
-                {t('login:login.withWorldId')}
+                {t('login.loginWithWorldID')}
               </>
             )}
           </Button>
@@ -273,14 +273,14 @@ export function LoginPage() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  {t('common:buttons.loggingIn')}
+                  {t('login.loggingIn')}
                 </>
               ) : (
-                <span>{t('login:login.devMode')}</span>
+                <span>{t('login.loginDevMode')}</span>
               )}
             </Button>
             <p className="mt-4 text-center text-gray-500 text-xs leading-relaxed">
-              {t('login:login.devModeNote')}
+              {t('login.openInWorldApp')}
             </p>
           </>
         )}

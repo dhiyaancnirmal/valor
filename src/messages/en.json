@@ -7,7 +7,11 @@
     "submit": "Submit",
     "cancel": "Cancel",
     "save": "Save",
-    "back": "Back"
+    "back": "Back",
+    "skip": "Skip",
+    "next": "Next",
+    "copied": "Copied",
+    "percent": "%"
   },
   "app": {
     "title": "Valor - Gas Price Crowdsourcing",
@@ -32,7 +36,9 @@
     "adjustSearch": "Try adjusting your search or location",
     "highDemand": "HIGH DEMAND",
     "earn": "Earn",
-    "submit": "Submit"
+    "submit": "Submit",
+    "stationsCount": "{count} stations",
+    "earnAmount": "Earn ${amount}"
   },
   "walletTab": {
     "walletAddress": "Wallet Address",
@@ -173,7 +179,23 @@
     "yourLocation": "Your Location",
     "loading": "Loading",
     "loadingStations": "Loading stations"
+  },
+  "units": {
+    "meter": "m",
+    "kilometer": "km",
+    "meters": "meters",
+    "kilometers": "kilometers"
+  },
+  "currency": {
+    "usd": "$",
+    "ars": "$",
+    "eur": "€",
+    "gbp": "£"
+  },
+  "currencies": {
+    "USD": "USD",
+    "ARS": "ARS",
+    "EUR": "EUR",
+    "GBP": "GBP"
   }
 }
-
-

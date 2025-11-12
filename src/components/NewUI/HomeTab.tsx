@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 import { Search, Navigation, Coins, TrendingUp } from "lucide-react"
 import { GasStation, UserLocation } from "@/types"
 import { formatDistance } from "@/lib/utils"
@@ -39,7 +39,7 @@ export function HomeTab({
   isLoadingStationData,
   setIsLoadingStationData
 }: HomeTabProps) {
-  const { t } = useTranslation(['home', 'common'])
+  const t = useTranslations()
   const [searchQuery, setSearchQuery] = useState("")
   const [submittedStations, setSubmittedStations] = useState<Set<string>>(new Set())
   const [todaysRewards, setTodaysRewards] = useState(0)
@@ -74,8 +74,8 @@ export function HomeTab({
     // Base reward: $2.50
     // Bonus for closer stations (within 200m): +$1.00
     // Bonus for stations within 500m: +$0.50
-    const baseReward = parseFloat(t('home:rewards.baseReward').replace('$', ''))
-    const proximityBonus = distance < 200 ? parseFloat(t('home:rewards.proximityBonus').replace('+$', '')) : distance < 500 ? parseFloat(t('home:rewards.distanceBonus').replace('+$', '')) : 0
+    const baseReward = 2.50
+    const proximityBonus = distance < 200 ? 1.00 : distance < 500 ? 0.50 : 0
     return baseReward + proximityBonus
   }
 
@@ -167,7 +167,7 @@ export function HomeTab({
       <div className="flex-shrink-0 bg-gradient-to-r from-[#7DD756] to-[#6BC647] px-6 py-5 text-white shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs opacity-90">{t('home:earnings.potentialToday')}</p>
+            <p className="text-xs opacity-90">{t('homeTab.potentialToday')}</p>
             <div className="flex items-center gap-1.5 mt-1">
               <Coins className="w-4 h-4" />
               <span className="text-xl font-bold">
@@ -176,8 +176,8 @@ export function HomeTab({
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xs opacity-90">{t('home:earnings.stationsNearby')}</p>
-            <p className="text-xl font-bold mt-1">{t('home:earnings.stationsCount', { count: filteredStations.length })}</p>
+            <p className="text-xs opacity-90">{t('homeTab.stationsNearby')}</p>
+            <p className="text-xl font-bold mt-1">{t('homeTab.stationsCount', { count: filteredStations.length })}</p>
           </div>
         </div>
       </div>
@@ -188,7 +188,7 @@ export function HomeTab({
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder={t('home:search.placeholder')}
+            placeholder={t('homeTab.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="bg-transparent text-gray-900 placeholder-gray-400 outline-none text-sm w-full pl-6"
@@ -202,9 +202,9 @@ export function HomeTab({
           {sortedStations.length === 0 ? (
             <div className="bg-white p-6 text-center" style={{ borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)' }}>
               <div className="text-gray-400 text-5xl mb-3">⛽</div>
-              <p className="text-sm text-gray-600 font-medium">{t('home:search.noStationsFound')}</p>
+              <p className="text-sm text-gray-600 font-medium">{t('homeTab.noStationsFound')}</p>
               <p className="text-xs text-gray-500 mt-1">
-                {t('home:search.tryAdjustingSearch')}
+                {t('homeTab.adjustSearch')}
               </p>
             </div>
           ) : (

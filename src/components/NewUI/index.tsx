@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 import { useSession } from "next-auth/react"
 import { Map, Home, Wallet, MapPin } from "lucide-react"
 import { GoogleMapView } from "@/components/GoogleMap"
 import { HomeTab } from "./HomeTab"
 import { WalletTab } from "./WalletTab"
 import { PriceSubmissionDrawer } from "@/components/PriceSubmissionDrawer"
+import { SettingsDrawer } from "@/components/SettingsDrawer"
 import { UserLocation, GasStation } from "@/types"
 import { calculateDistance } from "@/lib/utils"
 import Logo from "@/components/Logo"
@@ -15,7 +16,7 @@ import Logo from "@/components/Logo"
 type Tab = "map" | "home" | "wallet"
 
 export function MainUI() {
-  const { t } = useTranslation(['common'])
+  const t = useTranslations()
   const { data: session } = useSession()
   const [activeTab, setActiveTab] = useState<Tab>("home")
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null)
@@ -23,6 +24,7 @@ export function MainUI() {
   const [loading, setLoading] = useState(true)
   const [selectedStation, setSelectedStation] = useState<GasStation | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isLoadingStations, setIsLoadingStations] = useState(false)
 
   // Shared station data state (persists across tab switches)
@@ -52,12 +54,12 @@ export function MainUI() {
           fetchNearbyGasStations(location)
         },
         (error) => {
-          console.error(t('errors:location.errorGettingLocation'), error)
+          console.error('Error getting location', error)
           setLoading(false)
         }
       )
     } else {
-      console.error(t('errors:location.geolocationNotSupported'))
+      console.error('Geolocation not supported')
       setLoading(false)
     }
   }, [])
@@ -65,7 +67,7 @@ export function MainUI() {
   const fetchNearbyGasStations = async (location: UserLocation) => {
     try {
       if (!window.google) {
-        console.error(t('errors:map.googleMapsNotLoaded'))
+        console.error('Google Maps not loaded')
         setLoading(false)
         return
       }
@@ -106,7 +108,7 @@ export function MainUI() {
         setLoading(false)
       })
     } catch (error) {
-      console.error(t('errors:map.errorFetchingGasStations'), error)
+      console.error('Error fetching gas stations', error)
       setLoading(false)
     }
   }
@@ -229,9 +231,9 @@ export function MainUI() {
   }, [])
 
   const tabs = [
-    { id: "map" as Tab, icon: Map, label: t('common:tabs.map') },
-    { id: "home" as Tab, icon: Home, label: t('common:tabs.home') },
-    { id: "wallet" as Tab, icon: Wallet, label: t('common:tabs.wallet') },
+    { id: "map" as Tab, icon: Map, label: t('mainUI.tabs.map') },
+    { id: "home" as Tab, icon: Home, label: t('mainUI.tabs.home') },
+    { id: "wallet" as Tab, icon: Wallet, label: t('mainUI.tabs.wallet') },
   ]
 
   if (loading) {
@@ -239,7 +241,7 @@ export function MainUI() {
       <div className="flex items-center justify-center min-h-screen bg-[#F4F4F8]">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">{t('common:labels.loadingGasStations')}</p>
+          <p className="text-gray-600">{t('mainUI.loadingStations')}</p>
         </div>
       </div>
     )
@@ -269,11 +271,11 @@ export function MainUI() {
             setIsLoadingStationData={setIsLoadingStationData}
           />
         )}
-        {activeTab === "wallet" && <WalletTab />}
+        {activeTab === "wallet" && <WalletTab onOpenSettings={() => setIsSettingsOpen(true)} />}
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="bg-white border-t border-gray-100 z-50" style={{ paddingTop: 'var(--spacing-md)', paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + var(--spacing-md))`, boxShadow: '0 -1px 3px rgba(0, 0, 0, 0.04)' }}>
+      <nav className="relative bg-white border-t border-gray-100 z-50" style={{ paddingTop: 'var(--spacing-md)', paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + var(--spacing-md))`, boxShadow: '0 -1px 3px rgba(0, 0, 0, 0.04)' }}>
         <div className="flex justify-around items-center">
           {tabs.map((tab) => {
             const Icon = tab.icon
@@ -312,6 +314,12 @@ export function MainUI() {
         userLocation={userLocation}
         onClose={handleDrawerClose}
         onSuccess={handleSubmissionSuccess}
+      />
+
+      {/* Settings Drawer */}
+      <SettingsDrawer
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
       />
     </div>
   )

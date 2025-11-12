@@ -38,10 +38,10 @@ export function calculateDistance(
 export function formatDistance(meters: number, t?: (key: string) => string): string {
   if (!Number.isFinite(meters) || meters < 0) return "—"
   if (meters < 1000) {
-    const unit = t ? t('common:units.meter') : 'm'
+    const unit = t ? t('units.meter') : 'm'
     return `${Math.round(meters)} ${unit}`
   }
   const km = meters / 1000
-  const unit = t ? t('common:units.kilometer') : 'km'
+  const unit = t ? t('units.kilometer') : 'km'
   return `${km.toFixed(km < 10 ? 1 : 0)} ${unit}`
 }

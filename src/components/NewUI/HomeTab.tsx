@@ -197,10 +197,10 @@ export function HomeTab({
       </div>
 
       {/* Gas Station Cards */}
-      <div className="flex-1 overflow-y-auto py-4" style={{ overscrollBehavior: 'contain' }}>
-        <div className="flex flex-col items-center pb-4" style={{ gap: '16px' }}>
+      <div className="flex-1 overflow-y-auto" style={{ overscrollBehavior: 'contain', padding: 'var(--spacing-lg) var(--spacing-lg) var(--spacing-xl)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
           {sortedStations.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 text-center py-12 w-[90%] max-w-md">
+            <div className="bg-white p-6 text-center" style={{ borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)' }}>
               <div className="text-gray-400 text-5xl mb-3">⛽</div>
               <p className="text-sm text-gray-600 font-medium">{t('home:search.noStationsFound')}</p>
               <p className="text-xs text-gray-500 mt-1">
@@ -218,14 +218,15 @@ export function HomeTab({
               const latestFuelType = data?.latestFuelType
 
               return (
-                <div key={station.id} className="w-[90%] max-w-md">
+                <div key={station.id}>
                   <div
-                    className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                    className="bg-white cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+                    style={{ borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)', padding: 'var(--spacing-lg)' }}
                     onClick={() => onStationSelect(station)}
                   >
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-start" style={{ gap: 'var(--spacing-md)' }}>
                       {/* Station Image */}
-                      <div className="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                      <div className="flex-shrink-0 w-16 h-16 bg-gray-100 overflow-hidden" style={{ borderRadius: 'var(--radius-sm)' }}>
                         {station.photo ? (
                           <img
                             src={station.photo}
@@ -233,7 +234,7 @@ export function HomeTab({
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-3xl">
+                          <div className="w-full h-full flex items-center justify-center text-2xl">
                             ⛽
                           </div>
                         )}
@@ -241,28 +242,26 @@ export function HomeTab({
 
                       {/* Station Info */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-[#1C1C1E] text-base mb-1.5 line-clamp-1">
+                        <h3 className="font-semibold text-[#1C1C1E] text-base line-clamp-1" style={{ marginBottom: 'var(--spacing-xs)' }}>
                           {station.name}
                         </h3>
-                        <p className="text-sm text-gray-600 mb-2.5 line-clamp-1">
+                        <p className="text-sm text-gray-600 line-clamp-1" style={{ marginBottom: 'var(--spacing-sm)' }}>
                           {station.address}
                         </p>
 
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center flex-wrap" style={{ gap: 'var(--spacing-xs)' }}>
                           {station.distance !== undefined && (
-                            <Badge variant="secondary" className="flex items-center gap-1 px-2 py-0.5 text-xs">
+                            <span className="inline-flex items-center bg-gray-100 text-gray-700 px-2 py-1 text-xs font-medium" style={{ borderRadius: 'var(--spacing-xs)', gap: 'var(--spacing-xs)' }}>
                               <Navigation className="w-3 h-3" />
-                              <span>{formatDistance(station.distance, t)}</span>
-                            </Badge>
+                              {formatDistance(station.distance, t)}
+                            </span>
                           )}
 
                           {/* Earnings Badge */}
-                          <Badge
-                            className="bg-gradient-to-r from-[#7DD756] to-[#6BC647] text-white flex items-center gap-1 px-2 py-0.5 text-xs font-semibold"
-                          >
+                          <span className="inline-flex items-center bg-[#7DD756] text-white px-2 py-1 text-xs font-semibold" style={{ borderRadius: 'var(--spacing-xs)', gap: 'var(--spacing-xs)' }}>
                             <Coins className="w-3 h-3" />
-                            <span>Earn ${earnings.toFixed(2)}</span>
-                          </Badge>
+                            ${earnings.toFixed(2)}
+                          </span>
                         </div>
                       </div>
 
@@ -274,26 +273,26 @@ export function HomeTab({
                           </div>
                         ) : latestPrice ? (
                           <>
-                            <div className="text-lg font-bold text-[#1C1C1E]">
+                            <div className="text-xl font-bold text-[#1C1C1E]">
                               ${latestPrice.toFixed(2)}
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-gray-500" style={{ marginTop: '2px' }}>
                               {latestFuelType || 'Regular'}
                             </div>
                             {submissionCount > 0 && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                {submissionCount} {submissionCount === 1 ? 'submission' : 'submissions'}
+                              <div className="text-xs text-gray-400" style={{ marginTop: 'var(--spacing-xs)' }}>
+                                {submissionCount} {submissionCount === 1 ? 'update' : 'updates'}
                               </div>
                             )}
                           </>
                         ) : (
                           <>
-                            <div className="text-xs text-gray-400">
-                              No data
+                            <div className="text-sm text-gray-400">
+                              No price
                             </div>
                             {submissionCount > 0 && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                {submissionCount} {submissionCount === 1 ? 'submission' : 'submissions'}
+                              <div className="text-xs text-gray-400" style={{ marginTop: 'var(--spacing-xs)' }}>
+                                {submissionCount} {submissionCount === 1 ? 'update' : 'updates'}
                               </div>
                             )}
                           </>

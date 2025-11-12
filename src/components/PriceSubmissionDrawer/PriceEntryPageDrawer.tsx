@@ -208,8 +208,8 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
             <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]" onClick={onClose} />
 
             {/* Modal Container */}
-            <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
-                <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-hidden pointer-events-auto flex flex-col">
+            <div className="fixed inset-0 z-[101] flex items-center justify-center pointer-events-none" style={{ padding: 'var(--spacing-md)' }}>
+                <div className="bg-white shadow-2xl w-full max-w-md max-h-[85vh] overflow-hidden pointer-events-auto flex flex-col" style={{ borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)' }}>
                     <input
                         ref={fileInputRef}
                         type="file"
@@ -220,20 +220,21 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
                     />
 
             {/* Sticky Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0 z-10 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
+            <div className="sticky top-0 bg-white border-b border-gray-200 flex-shrink-0 z-10" style={{ padding: 'var(--spacing-lg) var(--spacing-xl) var(--spacing-md)', boxShadow: 'var(--shadow-sm)' }}>
+                <div className="flex items-center justify-between" style={{ marginBottom: 'var(--spacing-md)' }}>
                     <button
                         onClick={currentStep === 'product' ? onClose : prevStep}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
+                        className="hover:bg-gray-100 transition-all duration-200 hover:scale-105 active:scale-95"
+                        style={{ padding: 'var(--spacing-xs)', borderRadius: 'var(--radius-sm)' }}
                     >
                         <ArrowLeft size={24} className="text-gray-700" />
                     </button>
-                    <h1 className="text-2xl font-bold text-gray-900">{t('drawer.submitPrice')}</h1>
+                    <h1 className="text-xl font-bold text-gray-900">{t('drawer.submitPrice')}</h1>
                     <div className="w-10"></div>
                 </div>
 
                 {/* Progress Steps */}
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between" style={{ marginBottom: 'var(--spacing-md)' }}>
                     {(['product', 'price', 'photo', 'review'] as Step[]).map((step, index) => (
                         <div key={step} className="flex items-center flex-1">
                             <div
@@ -249,9 +250,10 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
                             </div>
                             {index < 3 && (
                                 <div
-                                    className={`flex-1 h-1 mx-2 rounded-full transition-all duration-200 ${
+                                    className={`flex-1 h-1 rounded-full transition-all duration-200 ${
                                         isStepCompleted(step) ? 'bg-[#7DD756]' : 'bg-gray-200'
                                     }`}
+                                    style={{ marginLeft: 'var(--spacing-xs)', marginRight: 'var(--spacing-xs)' }}
                                 />
                             )}
                         </div>
@@ -259,7 +261,7 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
                 </div>
 
                 {/* Location Info */}
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center" style={{ gap: 'var(--spacing-sm)' }}>
                     <div className="w-8 h-8 bg-[#7DD756]/10 rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-lg">⛽</span>
                     </div>
@@ -275,30 +277,38 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="flex-1 overflow-y-auto" style={{ padding: 'var(--spacing-lg) var(--spacing-xl)' }}>
                 {/* Product Selection Step */}
                 {currentStep === 'product' && (
-                    <div className="space-y-4">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
                         <div>
-                            <h3 className="text-xl font-bold text-[#1C1C1E] mb-2">{t('priceEntry.selectFuelType')}</h3>
+                            <h3 className="text-xl font-bold text-[#1C1C1E]" style={{ marginBottom: 'var(--spacing-xs)' }}>{t('priceEntry.selectFuelType')}</h3>
                             <p className="text-sm text-gray-600">{t('priceEntry.chooseFuelType')}</p>
                         </div>
 
-                        <div className="space-y-3">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                             {gasProducts.map((product) => (
                                 <button
                                     key={product.id}
                                     onClick={() => setSelectedProduct(product.id)}
-                                    className={`w-full p-6 rounded-2xl border-2 transition-all duration-200 text-left ${
+                                    className={`w-full border transition-all duration-200 text-left ${
                                         selectedProduct === product.id
-                                            ? 'border-[#7DD756] bg-[#7DD756]/5 shadow-lg scale-[1.02]'
-                                            : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
+                                            ? 'border-[#7DD756] bg-[#7DD756]/5 scale-[1.02]'
+                                            : 'border-gray-200 bg-white hover:border-gray-300'
                                     }`}
+                                    style={{
+                                        padding: 'var(--spacing-lg)',
+                                        borderRadius: 'var(--radius-md)',
+                                        boxShadow: selectedProduct === product.id ? 'var(--shadow-md)' : 'var(--shadow-sm)'
+                                    }}
                                 >
-                                    <div className="flex items-center space-x-4">
-                                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl ${
-                                            selectedProduct === product.id ? 'bg-[#7DD756]' : 'bg-gray-100'
-                                        }`}>
+                                    <div className="flex items-center" style={{ gap: 'var(--spacing-md)' }}>
+                                        <div
+                                            className={`flex items-center justify-center text-2xl ${
+                                                selectedProduct === product.id ? 'bg-[#7DD756]' : 'bg-gray-100'
+                                            }`}
+                                            style={{ width: '56px', height: '56px', borderRadius: 'var(--radius-sm)' }}
+                                        >
                                             {product.icon}
                                         </div>
                                         <div className="flex-1">
@@ -517,50 +527,70 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
                 )}
             </div>
 
-            {/* Sticky Footer */}
-            <div className="sticky bottom-0 bg-white border-t-2 border-gray-200 px-6 py-6 flex-shrink-0 shadow-lg z-10" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
+            {/* Sticky Footer - Fixed width button container */}
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 flex-shrink-0 z-10" style={{
+                padding: 'var(--spacing-xl)',
+                paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + var(--spacing-xl))`,
+                boxShadow: 'var(--shadow-md)'
+            }}>
                 {currentStep === 'review' ? (
-                    <div className="flex gap-3">
+                    <div className="flex" style={{ gap: 'var(--spacing-md)' }}>
                         <button
                             onClick={prevStep}
-                            className="flex-1 bg-gray-200 text-gray-700 font-bold py-5 px-8 rounded-2xl transition-all duration-200 flex items-center justify-center hover:bg-gray-300 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+                            className="bg-gray-200 text-gray-700 font-semibold transition-all duration-200 flex items-center justify-center hover:bg-gray-300 active:scale-[0.98]"
+                            style={{
+                                flex: '0 0 100px',
+                                padding: 'var(--spacing-md) var(--spacing-lg)',
+                                borderRadius: 'var(--radius-md)'
+                            }}
                         >
-                            <ArrowLeft size={20} className="mr-2" />
-                            <span>BACK</span>
+                            <ArrowLeft size={20} style={{ marginRight: 'var(--spacing-xs)' }} />
+                            <span>Back</span>
                         </button>
                         <button
                             onClick={handleSubmit}
                             disabled={!canSubmit() || isSubmitting}
-                            className={`flex-1 font-bold py-5 px-8 rounded-2xl transition-all duration-200 flex items-center justify-center text-lg ${
+                            className={`font-semibold transition-all duration-200 flex items-center justify-center text-base ${
                                 canSubmit() && !isSubmitting
-                                    ? 'bg-gradient-to-r from-[#7DD756] to-[#6BC647] text-white hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] shadow-xl'
+                                    ? 'bg-[var(--valor-green)] text-white hover:opacity-90 active:scale-[0.98]'
                                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                             }`}
+                            style={{
+                                flex: '1',
+                                padding: 'var(--spacing-md) var(--spacing-lg)',
+                                borderRadius: 'var(--radius-md)',
+                                boxShadow: canSubmit() && !isSubmitting ? 'var(--shadow-sm)' : 'none'
+                            }}
                         >
                             {isSubmitting ? (
                                 <>
-                                    <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
+                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" style={{ marginRight: 'var(--spacing-sm)' }}></div>
                                     {t('priceEntry.submitting')}...
                                 </>
                             ) : (
-                                <div className="flex items-center space-x-2">
-                                    <span>{t('drawer.submitPrice')}</span>
-                                    <span className="text-2xl">🚀</span>
-                                </div>
+                                <span>{t('drawer.submitPrice')}</span>
                             )}
                         </button>
                     </div>
                 ) : (
-                    <div className="flex gap-3">
-                        {currentStep !== 'product' && (
-                            <button
-                                onClick={prevStep}
-                                className="flex-1 bg-gray-200 text-gray-700 font-bold py-6 px-8 rounded-2xl transition-all duration-200 flex items-center justify-center hover:bg-gray-300 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] border-2 border-gray-300"
-                            >
-                                <ArrowLeft size={24} className="mr-2" />
-                                <span>BACK</span>
-                            </button>
-                        )}
+                    <div className="flex" style={{ gap: 'var(--spacing-md)' }}>
+                        {/* Back button - fixed width to prevent layout shift */}
+                        <button
+                            onClick={prevStep}
+                            className={`bg-gray-200 text-gray-700 font-semibold transition-all duration-200 flex items-center justify-center hover:bg-gray-300 active:scale-[0.98] ${
+                                currentStep === 'product' ? 'invisible' : 'visible'
+                            }`}
+                            style={{
+                                flex: '0 0 100px',
+                                padding: 'var(--spacing-md) var(--spacing-lg)',
+                                borderRadius: 'var(--radius-md)'
+                            }}
+                        >
+                            <ArrowLeft size={20} style={{ marginRight: 'var(--spacing-xs)' }} />
+                            <span>Back</span>
+                        </button>
+
+                        {/* Next button - always flex 1 */}
                         <button
                             onClick={nextStep}
                             disabled={
@@ -568,16 +598,25 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
                                 (currentStep === 'price' && !canProceedFromPrice()) ||
                                 (currentStep === 'photo' && !canProceedFromPhoto())
                             }
-                            className={`${currentStep !== 'product' ? 'flex-1' : 'w-full'} font-bold py-6 px-8 rounded-2xl transition-all duration-200 flex items-center justify-center text-xl tracking-wide ${
+                            className={`font-semibold transition-all duration-200 flex items-center justify-center text-base ${
                                 ((currentStep === 'product' && canProceedFromProduct()) ||
                                  (currentStep === 'price' && canProceedFromPrice()) ||
                                  (currentStep === 'photo' && canProceedFromPhoto()))
-                                    ? 'bg-gradient-to-r from-[#FF6B35] via-[#F7931E] to-[#FFD23F] text-white hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] shadow-xl border-2 border-[#FF6B35]'
-                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed border-2 border-gray-300'
+                                    ? 'bg-[var(--valor-green)] text-white hover:opacity-90 active:scale-[0.98]'
+                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                             }`}
+                            style={{
+                                flex: '1',
+                                padding: 'var(--spacing-md) var(--spacing-lg)',
+                                borderRadius: 'var(--radius-md)',
+                                boxShadow: ((currentStep === 'product' && canProceedFromProduct()) ||
+                                           (currentStep === 'price' && canProceedFromPrice()) ||
+                                           (currentStep === 'photo' && canProceedFromPhoto()))
+                                    ? 'var(--shadow-sm)' : 'none'
+                            }}
                         >
                             <span>{t('priceEntry.next')}</span>
-                            <ChevronRight size={24} className="ml-3" />
+                            <ChevronRight size={20} style={{ marginLeft: 'var(--spacing-sm)' }} />
                         </button>
                     </div>
                 )}

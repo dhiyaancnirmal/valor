@@ -273,7 +273,7 @@ export function MainUI() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="bg-white border-t border-gray-200 z-50" style={{ paddingTop: '20px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)' }}>
+      <nav className="bg-white border-t border-gray-100 z-50" style={{ paddingTop: 'var(--spacing-md)', paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + var(--spacing-md))`, boxShadow: '0 -1px 3px rgba(0, 0, 0, 0.04)' }}>
         <div className="flex justify-around items-center">
           {tabs.map((tab) => {
             const Icon = tab.icon
@@ -282,13 +282,23 @@ export function MainUI() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center justify-center p-4 rounded-lg transition-colors ${
-                  isActive
-                    ? "text-[#7DD756]"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
+                className="flex flex-col items-center justify-center transition-all"
+                style={{ gap: 'var(--spacing-xs)', minWidth: '64px', padding: 'var(--spacing-xs)' }}
               >
-                <Icon size={28} />
+                <div className={`flex items-center justify-center transition-all ${
+                  isActive ? "bg-[#7DD756]/10" : ""
+                }`} style={{ borderRadius: 'var(--radius-sm)', padding: 'var(--spacing-xs)' }}>
+                  <Icon
+                    size={24}
+                    className={isActive ? "text-[#7DD756]" : "text-gray-500"}
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
+                </div>
+                <span className={`text-xs font-medium ${
+                  isActive ? "text-[#7DD756]" : "text-gray-500"
+                }`}>
+                  {tab.label}
+                </span>
               </button>
             )
           })}

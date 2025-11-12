@@ -1,0 +1,100 @@
+@font-face {
+    font-family: 'Garet Book';
+    src: url('/Garet-Book.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+  }
+  
+  @import 'tailwindcss';
+  
+  :root {
+    --background: #ffffff;
+    --foreground: #171717;
+    --valor-green: #7DD756;
+    --valor-green-dark: #5FB840;
+    --safe-area-inset-bottom: 0px;
+    --safe-area-inset-bottom-plus: 12px;
+  }
+  
+  @theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: var(--font-dm-sans);
+  
+    --spacing-pb-safe-area-inset-bottom: calc(var(--safe-area-inset-bottom));
+    --spacing-pb-safe-area-inset-bottom-plus: calc(var(--safe-area-inset-bottom) + var(--safe-area-inset-bottom-plus));
+  }
+  
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: #0a0a0a;
+      --foreground: #ededed;
+    }
+  }
+  
+  html,
+  body {
+    width: 100vw;
+    height: 100vh;
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+    overflow-x: hidden; /* Only hide horizontal overflow */
+    overflow-y: hidden; /* Prevent body scrolling - page container will scroll */
+    -webkit-overflow-scrolling: touch;
+    /* Disable zoom on the entire website */
+    touch-action: pan-x pan-y;
+    zoom: 1;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: 'DM Sans', sans-serif;
+  }
+  
+  /* Jersey 20 font class */
+  .jersey-20-regular {
+    font-family: var(--font-jersey-20), sans-serif;
+    font-weight: 400;
+    font-style: normal;
+  }
+  
+  /* Slide-up animation for profile drawer */
+  @keyframes slide-up {
+    0% {
+      transform: translateY(100%);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+  
+  .slide-up-enter {
+    animation: slide-up 0.3s ease-out;
+  }
+  
+  /* Hide scrollbar while keeping scrollability */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;             /* Chrome, Safari and Opera */
+  }
+  
+  /* Continuous scrolling animation for streak banner - synced across pages */
+  @keyframes scroll-left {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+  
+  .animate-scroll-left {
+    animation: scroll-left 20s linear infinite;
+  }

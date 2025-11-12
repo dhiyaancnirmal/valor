@@ -149,216 +149,111 @@ export function PriceSubmissionDrawer({
 
   return (
     <>
-      {/* Backdrop */}
-      {drawerState !== "closed" && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 z-40"
-          onClick={handleClose}
-          onTouchMove={(e) => e.preventDefault()}
-          onWheel={(e) => e.preventDefault()}
-        />
-      )}
+      {/* Backdrop/Scrim */}
+      <div
+        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 transition-opacity duration-500 ease-out"
+        style={{
+          opacity: drawerState !== "closed" ? 1 : 0,
+          pointerEvents: drawerState !== "closed" ? 'auto' : 'none'
+        }}
+        onClick={handleClose}
+      />
 
       {/* Preview Drawer */}
       <div
         ref={drawerRef}
-        className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl transition-all duration-300 ease-out z-50 overflow-hidden"
+        className="fixed bottom-0 left-0 right-0 z-50 transform transition-all duration-500 ease-out"
         style={{
-          height: getDrawerHeight(),
-          transform: getTransform(),
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          transform: drawerState !== "closed" ? 'translateY(0)' : 'translateY(100%)',
+          opacity: drawerState !== "closed" ? 1 : 0
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Drag Handle */}
-        <div className="flex justify-center py-2 cursor-pointer">
-          <div className="w-10 h-1 bg-gray-300 rounded-full" />
-        </div>
-
-        {/* Content */}
         <div
-          className="h-full overflow-y-auto no-scrollbar safe-area-b-20"
-          onTouchMove={(e) => e.stopPropagation()}
-          onWheel={(e) => e.stopPropagation()}
+          className="bg-white rounded-t-3xl shadow-lg transition-transform duration-500 ease-out overflow-hidden"
+          style={{
+            boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.15)',
+            transform: drawerState !== "closed" ? 'scale(1)' : 'scale(0.95)',
+            height: drawerState === "preview" ? "auto" : "auto"
+          }}
         >
-          {drawerState === "preview" ? (
-            // Preview State: Station Info Only
-            <div className="px-5 py-4">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1 flex gap-3">
-                  {/* Emoji/Icon tile */}
-                  <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center flex-shrink-0 border border-gray-200">
-                    <span className="text-xl">⛽</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-base font-semibold text-[#1C1C1E] mb-1">
-                      {station.name}
-                    </h2>
-                    <p className="text-xs text-gray-600 mb-1.5 truncate">{station.address}</p>
-                    {station.distance !== undefined && (
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Navigation className="w-3 h-3 mr-1" />
-                        <span>{formatDistance(station.distance, t)} {t('common:labels.away')}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={handleClose}
-                  className="text-gray-400 hover:text-gray-600 p-1.5 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+          {/* Handle bar */}
+          <div className="flex justify-center pt-3 pb-2">
+            <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
+          </div>
 
-              {/* Last known price */}
-              <div className="mb-4 p-4 bg-gradient-to-br from-[#7DD756]/5 via-[#7DD756]/10 to-[#7DD756]/5 rounded-lg border border-[#7DD756]/30">
-                <div className="flex items-baseline justify-between mb-1">
-                  <span className="text-xs text-gray-600 font-medium">{t('common:labels.lastPrice')}</span>
-                  {isLoadingPrice ? (
-                    <div className="h-6 w-16 bg-gray-200 animate-pulse rounded"></div>
-                  ) : lastPrice?.price ? (
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-[#7DD756]">${lastPrice.price.toFixed(2)}</span>
-                      <span className="text-xs text-gray-500">/gal</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-[#7DD756]">$—</span>
-                      <span className="text-xs text-gray-500">/gal</span>
-                    </div>
-                  )}
-                </div>
-                {lastPrice?.price ? (
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-gray-600">
-                      {lastPrice.fuelType} • {new Date(lastPrice.createdAt!).toLocaleDateString()}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {lastPrice.submittedBy ? `${lastPrice.submittedBy.slice(0, 6)}...${lastPrice.submittedBy.slice(-4)}` : 'Anonymous'}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-400">{t('common:labels.noRecentData')}</p>
+          {/* Close button */}
+          <button
+            onClick={handleClose}
+            className="absolute top-4 right-4 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-gray-500">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+
+          {/* Content */}
+          <div className="px-6 pt-2 pb-6">
+            {/* Title with icon */}
+            <div className="flex items-center space-x-3 mb-5">
+              <div className="w-12 h-12 bg-[var(--valor-green)]/10 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-2xl">⛽</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-2xl font-bold text-[#1C1C1E] truncate">
+                  {station.name}
+                </h2>
+                {station.address && (
+                  <p className="text-xs text-gray-500 truncate mt-0.5">{station.address}</p>
                 )}
               </div>
-
-              {/* Actions */}
-              <div className="flex gap-2">
-                <a
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${station.latitude},${station.longitude}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-12 h-12 bg-white border-2 border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center flex-shrink-0 shadow-sm"
-                  aria-label="Open in Google Maps"
-                >
-                  <span className="text-lg">📍</span>
-                </a>
-                <button
-                  onClick={handleExpand}
-                  className="flex-1 bg-gradient-to-r from-[#7DD756] to-[#6BC647] text-white font-semibold text-sm py-3 px-5 rounded-lg hover:shadow-lg active:scale-[0.99] transition-all duration-200 shadow-md"
-                >
-                  {t('common:buttons.submitPrice')}
-                </button>
-              </div>
-              <button
-                onClick={handleClose}
-                className="text-gray-400 hover:text-gray-600 p-2 transition-colors hover:bg-gray-100 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
-          ) : (
-            // Expanded State: Price Entry Form
-            <div className="px-5 py-3">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setDrawerState("preview")}
-                    className="text-gray-600 hover:text-gray-900 p-1 transition-colors"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 19l-7-7 7-7"
-                      />
-                    </svg>
-                  </button>
-                  <div>
-                    <h3 className="text-base font-semibold text-[#1C1C1E]">
-                      {t('common:buttons.submitPriceAction')}
-                    </h3>
-                    <p className="text-xs text-gray-600">{station.name}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleClose}
-                  className="text-gray-400 hover:text-gray-600 p-1.5 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
 
-            {/* Last known price card */}
-            <div className="mb-6 p-5 bg-gradient-to-br from-[#7DD756]/5 via-[#7DD756]/10 to-[#7DD756]/5 rounded-2xl border-2 border-[#7DD756]/30 shadow-sm">
-              <div className="flex items-baseline justify-between mb-2">
-                <span className="text-sm text-gray-600 font-semibold">{t("drawer.lastPrice")}</span>
+            {/* Last Known Price */}
+            <div className="mb-4 p-4 bg-gradient-to-r from-[var(--valor-green)]/10 to-green-100/50 rounded-xl border border-[var(--valor-green)]/20">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-700 font-medium">{t('common:labels.lastPrice')}</span>
                 {isLoadingPrice ? (
-                  <div className="h-8 w-24 bg-gray-200 animate-pulse rounded"></div>
+                  <div className="h-8 w-20 bg-gray-200 animate-pulse rounded"></div>
                 ) : lastPrice?.price ? (
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-bold text-[#7DD756]">${lastPrice.price.toFixed(2)}</span>
-                    <span className="text-sm text-gray-500">{t("drawer.perGallon")}</span>
-                  </div>
+                  <span className="text-2xl font-bold text-[var(--valor-green)]">${lastPrice.price.toFixed(2)}</span>
                 ) : (
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-bold text-[#7DD756]">$—</span>
-                    <span className="text-sm text-gray-500">{t("drawer.perGallon")}</span>
-                  </div>
+                  <span className="text-2xl font-bold text-[var(--valor-green)]">$—</span>
                 )}
               </div>
-              {lastPrice?.price ? (
-                <div className="space-y-1">
-                  <p className="text-xs text-gray-600">
+              <div className="flex items-center justify-between mt-1">
+                {lastPrice?.price ? (
+                  <p className="text-xs text-gray-500">
                     {lastPrice.fuelType} • {new Date(lastPrice.createdAt!).toLocaleDateString()}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    Submitted by {lastPrice.submittedBy ? `${lastPrice.submittedBy.slice(0, 6)}...${lastPrice.submittedBy.slice(-4)}` : 'Anonymous'}
-                  </p>
-                </div>
-              ) : (
-                <p className="text-xs text-gray-500">{t("drawer.noRecentData")}</p>
-              )}
+                ) : (
+                  <p className="text-xs text-gray-500">{t('common:labels.noRecentData')}</p>
+                )}
+                <span className="text-xs text-gray-500">/gal</span>
+              </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-3">
+            {/* Action buttons */}
+            <div className="flex space-x-3 mt-4">
               <a
                 href={`https://www.google.com/maps/dir/?api=1&destination=${station.latitude},${station.longitude}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-14 h-14 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center flex-shrink-0 shadow-sm"
-                aria-label={t("drawer.openInGoogleMaps")}
+                className="w-14 h-14 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-all duration-200 hover:scale-105 flex items-center justify-center flex-shrink-0 shadow-sm"
               >
                 <span className="text-2xl">📍</span>
               </a>
               <button
                 onClick={handleExpand}
-                className="flex-1 bg-gradient-to-r from-[#7DD756] to-[#6BC647] text-white font-bold text-base py-4 px-6 rounded-xl hover:shadow-lg active:scale-[0.98] transition-all duration-200 shadow-md"
+                className="flex-1 bg-[var(--valor-green)] text-white font-semibold text-base py-4 px-6 rounded-xl hover:shadow-lg active:scale-98 transition-all duration-200 shadow-md"
               >
-                {t("drawer.submitPrice")}
+                {t('common:buttons.submitPrice')}
               </button>
             </div>
           </div>
-          )}
         </div>
       </div>
     </>

@@ -25,6 +25,16 @@ export function MainUI() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isLoadingStations, setIsLoadingStations] = useState(false)
 
+  // Shared station data state (persists across tab switches)
+  const [stationData, setStationData] = useState<Record<string, {
+    submissionCount: number
+    potentialEarning: number
+    latestPrice?: number
+    latestFuelType?: string
+    priceUpdatedAt?: string
+  }>>({})
+  const [isLoadingStationData, setIsLoadingStationData] = useState(false)
+
   // Track searched areas to avoid duplicate API calls
   const searchedBounds = useRef<Set<string>>(new Set())
   const boundsChangeTimeout = useRef<NodeJS.Timeout | null>(null)
@@ -253,6 +263,10 @@ export function MainUI() {
             gasStations={gasStations}
             userLocation={userLocation}
             onStationSelect={handleStationSelect}
+            stationData={stationData}
+            setStationData={setStationData}
+            isLoadingStationData={isLoadingStationData}
+            setIsLoadingStationData={setIsLoadingStationData}
           />
         )}
         {activeTab === "wallet" && <WalletTab />}

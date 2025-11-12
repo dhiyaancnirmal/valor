@@ -203,15 +203,21 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
     const isStepActive = (step: Step) => currentStep === step;
 
     return (
-        <div className="fixed inset-0 bg-[#F4F4F8] z-[100] flex flex-col overflow-hidden">
-            <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleFileInput}
-                className="hidden"
-            />
+        <>
+            {/* Backdrop with blur */}
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]" onClick={onClose} />
+
+            {/* Modal Container */}
+            <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
+                <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-hidden pointer-events-auto flex flex-col">
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleFileInput}
+                        className="hidden"
+                    />
 
             {/* Sticky Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0 z-10 shadow-sm">
@@ -576,7 +582,9 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
                     </div>
                 )}
             </div>
-        </div>
+                </div>
+            </div>
+        </>
     );
 }
 

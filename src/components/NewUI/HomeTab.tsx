@@ -12,9 +12,33 @@ interface HomeTabProps {
   gasStations: GasStation[]
   userLocation: UserLocation | null
   onStationSelect: (station: GasStation) => void
+  stationData: Record<string, {
+    submissionCount: number
+    potentialEarning: number
+    latestPrice?: number
+    latestFuelType?: string
+    priceUpdatedAt?: string
+  }>
+  setStationData: React.Dispatch<React.SetStateAction<Record<string, {
+    submissionCount: number
+    potentialEarning: number
+    latestPrice?: number
+    latestFuelType?: string
+    priceUpdatedAt?: string
+  }>>>
+  isLoadingStationData: boolean
+  setIsLoadingStationData: React.Dispatch<React.SetStateAction<boolean>>
 }
 
-export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabProps) {
+export function HomeTab({
+  gasStations,
+  userLocation,
+  onStationSelect,
+  stationData,
+  setStationData,
+  isLoadingStationData,
+  setIsLoadingStationData
+}: HomeTabProps) {
   const { t } = useTranslation(['home', 'common'])
   const [searchQuery, setSearchQuery] = useState("")
   const [submittedStations, setSubmittedStations] = useState<Set<string>>(new Set())
@@ -73,6 +97,44 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
     // Removed polling - fetch only on mount
   }, [])
 
+  // Fetch station data when stations load (with caching)
+  useEffect(() => {
+    const fetchStationData = async () => {
+      if (uniqueStations.length === 0) return
+
+      // Check which stations we don't have data for yet
+      const stationIdsToFetch = uniqueStations
+        .filter(s => !stationData[s.id])
+        .map(s => s.id)
+
+      // If we already have data for all stations, skip fetching
+      if (stationIdsToFetch.length === 0) return
+
+      setIsLoadingStationData(true)
+      try {
+        const response = await fetch('/api/station-submissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stationIds: stationIdsToFetch }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            // Merge new data with existing data (caching)
+            setStationData(prev => ({ ...prev, ...data.stationData }))
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching station data:', error)
+      } finally {
+        setIsLoadingStationData(false)
+      }
+    }
+
+    fetchStationData()
+  }, [uniqueStations.length])
+
   // Reset submitted stations daily at midnight UTC
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null
@@ -100,9 +162,9 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
   }, [])
 
   return (
-    <div className="h-full flex flex-col bg-[#F4F4F8]">
+    <div className="h-full flex flex-col bg-[#F4F4F8] overflow-hidden">
       {/* Earnings Banner */}
-      <div className="bg-gradient-to-r from-[#7DD756] to-[#6BC647] px-6 py-5 text-white shadow-sm">
+      <div className="flex-shrink-0 bg-gradient-to-r from-[#7DD756] to-[#6BC647] px-6 py-5 text-white shadow-sm">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs opacity-90">{t('home:earnings.potentialToday')}</p>
@@ -121,7 +183,7 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
       </div>
 
       {/* Search Bar */}
-      <div className="bg-white px-5 py-3 border-b border-gray-200">
+      <div className="flex-shrink-0 bg-white px-5 py-3 border-b border-gray-200">
         <div className="relative w-full bg-gray-50 rounded-lg px-4 py-2.5">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
@@ -135,77 +197,115 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
       </div>
 
       {/* Gas Station Cards */}
-      <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
-        {sortedStations.length === 0 ? (
-          <Card className="text-center py-12 shadow-sm">
-            <CardContent>
+      <div className="flex-1 overflow-y-auto py-4" style={{ overscrollBehavior: 'contain' }}>
+        <div className="flex flex-col items-center pb-4" style={{ gap: '16px' }}>
+          {sortedStations.length === 0 ? (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 text-center py-12 w-[90%] max-w-md">
               <div className="text-gray-400 text-5xl mb-3">⛽</div>
               <p className="text-sm text-gray-600 font-medium">{t('home:search.noStationsFound')}</p>
               <p className="text-xs text-gray-500 mt-1">
                 {t('home:search.tryAdjustingSearch')}
               </p>
-            </CardContent>
-          </Card>
-        ) : (
-          sortedStations.map((station) => {
-            const isSubmitted = submittedStations.has(station.id)
-            const earnings = calculateEarnings(station.distance)
+            </div>
+          ) : (
+            sortedStations.map((station) => {
+              const isSubmitted = submittedStations.has(station.id)
+              const data = stationData[station.id]
+              const isStationLoading = isLoadingStationData && !data
+              const earnings = data?.potentialEarning || 0.50
+              const submissionCount = data?.submissionCount || 0
+              const latestPrice = data?.latestPrice
+              const latestFuelType = data?.latestFuelType
 
-            return (
-              <Card
-                key={station.id}
-                className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:border-[#7DD756] active:scale-[0.98] border border-gray-200"
-                onClick={() => onStationSelect(station)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-4">
-                    {/* Station Image */}
-                    <div className="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden shadow-sm">
-                      {station.photo ? (
-                        <img
-                          src={station.photo}
-                          alt={station.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-3xl">
-                          ⛽
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Station Info */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-gray-900 text-base mb-1.5 line-clamp-1">
-                        {station.name}
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-2.5 line-clamp-1">
-                        {station.address}
-                      </p>
-
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {station.distance !== undefined && (
-                          <Badge variant="secondary" className="flex items-center gap-1 px-2 py-0.5 text-xs">
-                            <Navigation className="w-3 h-3" />
-                            <span>{formatDistance(station.distance, t)}</span>
-                          </Badge>
+              return (
+                <div key={station.id} className="w-[90%] max-w-md">
+                  <div
+                    className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                    onClick={() => onStationSelect(station)}
+                  >
+                    <div className="flex items-start gap-4">
+                      {/* Station Image */}
+                      <div className="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                        {station.photo ? (
+                          <img
+                            src={station.photo}
+                            alt={station.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-3xl">
+                            ⛽
+                          </div>
                         )}
+                      </div>
 
-                        {/* Earnings Badge */}
-                        <Badge
-                          className="bg-gradient-to-r from-[#7DD756] to-[#6BC647] text-white flex items-center gap-1 px-2 py-0.5 text-xs font-semibold"
-                        >
-                          <Coins className="w-3 h-3" />
-                          <span>{t('home:earnings.earnAmount', { amount: earnings.toFixed(2) })}</span>
-                        </Badge>
+                      {/* Station Info */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-[#1C1C1E] text-base mb-1.5 line-clamp-1">
+                          {station.name}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-2.5 line-clamp-1">
+                          {station.address}
+                        </p>
+
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {station.distance !== undefined && (
+                            <Badge variant="secondary" className="flex items-center gap-1 px-2 py-0.5 text-xs">
+                              <Navigation className="w-3 h-3" />
+                              <span>{formatDistance(station.distance, t)}</span>
+                            </Badge>
+                          )}
+
+                          {/* Earnings Badge */}
+                          <Badge
+                            className="bg-gradient-to-r from-[#7DD756] to-[#6BC647] text-white flex items-center gap-1 px-2 py-0.5 text-xs font-semibold"
+                          >
+                            <Coins className="w-3 h-3" />
+                            <span>Earn ${earnings.toFixed(2)}</span>
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Latest Price Section */}
+                      <div className="flex-shrink-0 text-right">
+                        {isStationLoading ? (
+                          <div className="flex items-center justify-center">
+                            <div className="w-5 h-5 border-2 border-gray-300 border-t-[#7DD756] rounded-full animate-spin"></div>
+                          </div>
+                        ) : latestPrice ? (
+                          <>
+                            <div className="text-lg font-bold text-[#1C1C1E]">
+                              ${latestPrice.toFixed(2)}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {latestFuelType || 'Regular'}
+                            </div>
+                            {submissionCount > 0 && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {submissionCount} {submissionCount === 1 ? 'submission' : 'submissions'}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <div className="text-xs text-gray-400">
+                              No data
+                            </div>
+                            {submissionCount > 0 && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {submissionCount} {submissionCount === 1 ? 'submission' : 'submissions'}
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            )
-          })
-        )}
+                </div>
+              )
+            })
+          )}
+        </div>
       </div>
     </div>
   )

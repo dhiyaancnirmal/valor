@@ -9,6 +9,7 @@ import { HomeTab } from "./HomeTab"
 import { WalletTab } from "./WalletTab"
 import { PriceSubmissionDrawer } from "@/components/PriceSubmissionDrawer"
 import { SettingsDrawer } from "@/components/SettingsDrawer"
+import PriceEntryPage from "@/components/PriceSubmissionDrawer/PriceEntryPageDrawer"
 import { UserLocation, GasStation } from "@/types"
 import { calculateDistance } from "@/lib/utils"
 import Logo from "@/components/Logo"
@@ -25,6 +26,7 @@ export function MainUI() {
   const [selectedStation, setSelectedStation] = useState<GasStation | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isSubmitPageOpen, setIsSubmitPageOpen] = useState(false)
   const [isLoadingStations, setIsLoadingStations] = useState(false)
 
   // Shared station data state (persists across tab switches)
@@ -221,6 +223,19 @@ export function MainUI() {
     // This prevents excessive API calls
   }
 
+  const handleOpenSubmitPage = (station: GasStation) => {
+    // Open overlay immediately without closing drawer
+    setIsSubmitPageOpen(true)
+    // Keep selectedStation set so drawer stays in background
+  }
+
+  const handleCloseSubmitPage = () => {
+    setIsSubmitPageOpen(false)
+    // Close drawer and clear station immediately
+    setIsDrawerOpen(false)
+    setSelectedStation(null)
+  }
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -307,14 +322,32 @@ export function MainUI() {
         </div>
       </nav>
 
-      {/* Price Submission Drawer */}
-      <PriceSubmissionDrawer
-        isOpen={isDrawerOpen}
-        station={selectedStation}
-        userLocation={userLocation}
-        onClose={handleDrawerClose}
-        onSuccess={handleSubmissionSuccess}
-      />
+      {/* Price Submission Drawer - Hide when submit page is open */}
+      {!isSubmitPageOpen && (
+        <PriceSubmissionDrawer
+          isOpen={isDrawerOpen}
+          station={selectedStation}
+          userLocation={userLocation}
+          onClose={handleDrawerClose}
+          onSuccess={handleSubmissionSuccess}
+          onOpenSubmitPage={handleOpenSubmitPage}
+        />
+      )}
+
+      {/* Submit Price Page Overlay - Full screen overlay */}
+      {isSubmitPageOpen && selectedStation && (
+        <div className="fixed inset-0 z-[100] bg-[#F4F4F8]">
+          <PriceEntryPage
+            station={selectedStation}
+            userLocation={userLocation}
+            onSuccess={() => {
+              handleSubmissionSuccess()
+              handleCloseSubmitPage()
+            }}
+            onClose={handleCloseSubmitPage}
+          />
+        </div>
+      )}
 
       {/* Settings Drawer */}
       <SettingsDrawer

@@ -6,7 +6,6 @@ import { X, Navigation } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { GasStation } from "@/types"
 import { formatDistance } from "@/lib/utils"
-import PriceEntryPageDrawer from "./PriceEntryPageDrawer"
 
 interface PriceSubmissionDrawerProps {
   isOpen: boolean
@@ -14,6 +13,7 @@ interface PriceSubmissionDrawerProps {
   userLocation: { latitude: number; longitude: number } | null
   onClose: () => void
   onSuccess: () => void
+  onOpenSubmitPage?: (station: GasStation) => void
 }
 
 type DrawerState = "closed" | "preview" | "expanded"
@@ -31,6 +31,7 @@ export function PriceSubmissionDrawer({
   userLocation,
   onClose,
   onSuccess,
+  onOpenSubmitPage,
 }: PriceSubmissionDrawerProps) {
   const t = useTranslations()
   const [drawerState, setDrawerState] = useState<DrawerState>("closed")
@@ -85,7 +86,13 @@ export function PriceSubmissionDrawer({
   }
 
   const handleExpand = () => {
-    setDrawerState("expanded")
+    if (!station) return
+    // Open submit page overlay without closing drawer first
+    // The overlay will be on top, and drawer will stay in background
+    if (onOpenSubmitPage) {
+      onOpenSubmitPage(station)
+      // Don't close drawer - let overlay handle visibility
+    }
   }
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -127,25 +134,6 @@ export function PriceSubmissionDrawer({
     return "translateY(0)"
   }
 
-  // Show full-screen entry page when expanded
-  if (drawerState === "expanded") {
-    return (
-      <PriceEntryPageDrawer
-        isOpen={true}
-        onClose={() => setDrawerState("preview")}
-        station={station}
-        userLocation={userLocation}
-        onSuccess={() => {
-          handleClose()
-          // Refresh last price after successful submission
-          if (station) {
-            fetchLastPrice(station.id)
-          }
-          onSuccess()
-        }}
-      />
-    )
-  }
 
   return (
     <>

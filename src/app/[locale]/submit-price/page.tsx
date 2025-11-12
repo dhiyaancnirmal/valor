@@ -1,28 +1,49 @@
-import { auth } from "@/auth"
-import { redirect } from "next/navigation"
-import { PriceEntryPage } from "@/components/PriceEntryPage"
+'use client'
 
-export default async function SubmitPricePage({
-  searchParams,
-}: {
-  searchParams: { stationId?: string; stationName?: string; lat?: string; lng?: string }
-}) {
-  const session = await auth()
+import { useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useSession } from "next-auth/react"
+import PriceEntryPage from "@/components/PriceSubmissionDrawer/PriceEntryPageDrawer"
+import type { GasStation } from "@/types"
 
-  if (!session?.user?.walletAddress) {
-    redirect("/")
+export default function SubmitPricePage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { data: session } = useSession()
+
+  useEffect(() => {
+    if (!session?.user?.walletAddress) {
+      router.push("/")
+    }
+  }, [session, router])
+
+  const stationId = searchParams.get('stationId')
+  const stationName = searchParams.get('stationName')
+  const lat = searchParams.get('lat')
+  const lng = searchParams.get('lng')
+  const address = searchParams.get('address')
+
+  if (!stationId || !stationName || !lat || !lng) {
+    return null
   }
 
-  if (!searchParams.stationId || !searchParams.stationName || !searchParams.lat || !searchParams.lng) {
-    redirect("/")
+  const station: GasStation = {
+    id: stationId,
+    name: decodeURIComponent(stationName),
+    latitude: parseFloat(lat),
+    longitude: parseFloat(lng),
+    address: address ? decodeURIComponent(address) : undefined,
+  }
+
+  const handleSuccess = () => {
+    // Success is handled by the component (router.back())
   }
 
   return (
     <PriceEntryPage
-      stationId={searchParams.stationId}
-      stationName={decodeURIComponent(searchParams.stationName)}
-      stationLat={parseFloat(searchParams.lat)}
-      stationLng={parseFloat(searchParams.lng)}
+      station={station}
+      userLocation={null}
+      onSuccess={handleSuccess}
     />
   )
 }

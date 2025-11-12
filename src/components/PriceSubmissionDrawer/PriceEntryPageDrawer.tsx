@@ -4,21 +4,24 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Camera, X, MapPin, Check, ChevronRight } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
+import { useRouter, usePathname } from 'next/navigation';
 import type { GasStation, UserLocation } from '@/types';
 
-interface PriceEntryPageDrawerProps {
-    isOpen: boolean;
-    onClose: () => void;
+interface PriceEntryPageProps {
     station: GasStation;
     userLocation: UserLocation | null;
     onSuccess: () => void;
+    onClose?: () => void;
 }
 
 type Step = 'product' | 'price' | 'photo' | 'review';
 
-export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLocation, onSuccess }: PriceEntryPageDrawerProps) {
+export default function PriceEntryPage({ station, userLocation, onSuccess, onClose }: PriceEntryPageProps) {
     const { data: session } = useSession();
     const t = useTranslations();
+    // Always call hooks, but only use them if not in overlay mode
+    const router = useRouter();
+    const pathname = usePathname();
     const [currentStep, setCurrentStep] = useState<Step>('product');
     const [selectedProduct, setSelectedProduct] = useState<string>('');
     const [price, setPrice] = useState<string>('');
@@ -83,13 +86,33 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
         }
     };
 
-    // Set currency based on location when component opens
+    // Fetch user location if not provided
+    const [currentUserLocation, setCurrentUserLocation] = useState<UserLocation | null>(userLocation);
+
     useEffect(() => {
-        if (isOpen && userLocation) {
-            getCurrencyFromLocation(userLocation.latitude, userLocation.longitude)
+        if (!currentUserLocation && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const location = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                    };
+                    setCurrentUserLocation(location);
+                },
+                (error) => {
+                    console.error('Error getting location:', error);
+                }
+            );
+        }
+    }, [currentUserLocation]);
+
+    // Set currency based on location when component mounts
+    useEffect(() => {
+        if (currentUserLocation) {
+            getCurrencyFromLocation(currentUserLocation.latitude, currentUserLocation.longitude)
                 .then(detectedCurrency => setCurrency(detectedCurrency));
         }
-    }, [isOpen, userLocation]);
+    }, [currentUserLocation]);
 
     const canProceedFromProduct = () => selectedProduct !== '';
     const canProceedFromPrice = () => price !== '' && parseFloat(price) > 0;
@@ -111,10 +134,10 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
     };
 
     const isWithinAllowedDistance = () => {
-        if (!userLocation) return false;
+        if (!currentUserLocation) return false;
         const distance = calculateDistance(
-            userLocation.latitude,
-            userLocation.longitude,
+            currentUserLocation.latitude,
+            currentUserLocation.longitude,
             station.latitude,
             station.longitude
         );
@@ -122,7 +145,7 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
     };
 
     const canSubmit = () => {
-        const baseRequirements = selectedProduct && price && capturedPhoto && userLocation;
+        const baseRequirements = selectedProduct && price && capturedPhoto && currentUserLocation;
         return baseRequirements && isWithinAllowedDistance();
     };
 
@@ -157,26 +180,17 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
         }
     };
 
-    useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = 'hidden';
-            document.body.style.position = 'fixed';
-            document.body.style.width = '100%';
-            document.body.style.top = '0';
-        } else {
-            document.body.style.overflow = '';
-            document.body.style.position = '';
-            document.body.style.width = '';
-            document.body.style.top = '';
+    const handleBack = () => {
+        // Close the overlay if onClose is provided, otherwise navigate
+        if (onClose) {
+            onClose();
+        } else if (router && pathname) {
+            // Fallback to navigation if used as a page
+            const localeMatch = pathname.match(/^\/([^/]+)/);
+            const locale = localeMatch ? localeMatch[1] : 'en';
+            router.push(`/${locale}`);
         }
-        
-        return () => {
-            document.body.style.overflow = '';
-            document.body.style.position = '';
-            document.body.style.width = '';
-            document.body.style.top = '';
-        };
-    }, [isOpen]);
+    };
 
     const handleSubmit = async () => {
         if (!canSubmit()) return;
@@ -198,8 +212,8 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
             formData.append("gas_station_id", station.id);
             formData.append("price", price);
             formData.append("fuel_type", selectedProduct);
-            formData.append("user_latitude", userLocation!.latitude.toString());
-            formData.append("user_longitude", userLocation!.longitude.toString());
+            formData.append("user_latitude", currentUserLocation!.latitude.toString());
+            formData.append("user_longitude", currentUserLocation!.longitude.toString());
             formData.append("gas_station_latitude", station.latitude.toString());
             formData.append("gas_station_longitude", station.longitude.toString());
             if (photoFile) {
@@ -226,7 +240,15 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
             setCapturedPhoto(null);
 
             onSuccess();
-            onClose();
+            // Close the overlay if onClose is provided, otherwise navigate
+            if (onClose) {
+                onClose();
+            } else if (router && pathname) {
+                // Fallback to navigation if used as a page
+                const localeMatch = pathname.match(/^\/([^/]+)/);
+                const locale = localeMatch ? localeMatch[1] : 'en';
+                router.push(`/${locale}`);
+            }
         } catch (error) {
             console.error('[Submit] ✗ Error:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -235,8 +257,6 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
             setIsSubmitting(false);
         }
     };
-
-    if (!isOpen) return null;
 
     const getStepNumber = (step: Step) => {
         const steps: Step[] = ['product', 'price', 'photo', 'review'];
@@ -254,27 +274,21 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
     const isStepActive = (step: Step) => currentStep === step;
 
     return (
-        <>
-            {/* Backdrop with blur */}
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]" onClick={onClose} />
+        <div className="min-h-screen bg-[#F4F4F8] flex flex-col">
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileInput}
+                className="hidden"
+            />
 
-            {/* Modal Container */}
-            <div className="fixed inset-0 z-[101] flex items-center justify-center pointer-events-none" style={{ padding: 'var(--spacing-md)' }}>
-                <div className="bg-white shadow-2xl w-full max-w-md max-h-[85vh] overflow-hidden pointer-events-auto flex flex-col" style={{ borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)' }}>
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={handleFileInput}
-                        className="hidden"
-                    />
-
-            {/* Sticky Header */}
+            {/* Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 flex-shrink-0 z-10" style={{ padding: 'var(--spacing-lg) var(--spacing-xl) var(--spacing-md)', boxShadow: 'var(--shadow-sm)' }}>
                 <div className="flex items-center justify-between" style={{ marginBottom: 'var(--spacing-md)' }}>
                     <button
-                        onClick={currentStep === 'product' ? onClose : prevStep}
+                        onClick={handleBack}
                         className="hover:bg-gray-100 transition-all duration-200 hover:scale-105 active:scale-95"
                         style={{ padding: 'var(--spacing-xs)', borderRadius: 'var(--radius-sm)' }}
                     >
@@ -328,7 +342,7 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto" style={{ padding: 'var(--spacing-lg) var(--spacing-xl)' }}>
+            <div className="flex-1 overflow-y-auto" style={{ padding: 'var(--spacing-lg) var(--spacing-xl)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + var(--spacing-xl))' }}>
                 {/* Product Selection Step */}
                 {currentStep === 'product' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
@@ -553,11 +567,11 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
 
                         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                             <h4 className="text-sm font-semibold text-gray-700 mb-3">{t('priceEntry.locationVerification')}</h4>
-                            {userLocation ? (
+                            {currentUserLocation ? (
                                 (() => {
                                     const distance = calculateDistance(
-                                        userLocation.latitude,
-                                        userLocation.longitude,
+                                        currentUserLocation.latitude,
+                                        currentUserLocation.longitude,
                                         station.latitude,
                                         station.longitude
                                     );
@@ -586,7 +600,7 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
                 )}
             </div>
 
-            {/* Sticky Footer - Fixed width button container */}
+            {/* Footer - Fixed width button container */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 flex-shrink-0 z-10" style={{
                 padding: 'var(--spacing-xl)',
                 paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + var(--spacing-xl))`,
@@ -680,9 +694,7 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
                     </div>
                 )}
             </div>
-                </div>
-            </div>
-        </>
+        </div>
     );
 }
 

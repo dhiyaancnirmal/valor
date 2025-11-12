@@ -6,9 +6,6 @@ import { useSession } from "next-auth/react"
 import { Camera, Check, Loader2 } from "lucide-react"
 import { FuelType } from "@/types"
 import { calculateDistance } from "@/lib/utils"
-import { RewardVaultABI } from "@/lib/abi/RewardVault"
-import { MiniKit } from "@worldcoin/minikit-js"
-import { SendTransactionErrorCodes } from "@worldcoin/minikit-js"
 import { Button } from "@/components/ui/button"
 
 interface PriceEntryFormProps {
@@ -150,63 +147,13 @@ export function PriceEntryForm({
       const data = await response.json() as {
         success: boolean
         submission: { id: number }
-        rewardEligible?: boolean
-        rewardSignature?: string | null
-        rewardDeadline?: number | null
-        stationIdBytes32?: `0x${string}` | null
-        rewardContract?: `0x${string}` | null
+        accruedRewardAmount?: string | null
+        rewardPeriodDate?: string | null
+        submissionCount?: number
       }
 
-      if (data?.rewardEligible && data.rewardSignature && data.rewardDeadline && data.stationIdBytes32) {
-        // Trigger claim via MiniKit
-        const contractAddress =
-          data.rewardContract ||
-          (process.env.NEXT_PUBLIC_REWARD_CONTRACT_ADDRESS as `0x${string}` | undefined)
-        if (!contractAddress) {
-          throw new Error("Reward contract not configured")
-        }
-
-        // stationId hashed on backend; contract checks the signature, not the stationId string
-        const { finalPayload } = await MiniKit.commandsAsync.sendTransaction({
-          transaction: [
-            {
-              address: contractAddress,
-              abi: RewardVaultABI as any,
-              functionName: "claimReward",
-              args: [
-                (session?.user?.walletAddress || "") as `0x${string}`,
-                data.stationIdBytes32,
-                BigInt(data.submission.id),
-                BigInt(data.rewardDeadline),
-                data.rewardSignature as `0x${string}`,
-              ],
-            },
-          ],
-        })
-
-        if (finalPayload.status === "success") {
-          // Confirm on backend
-          await fetch("/api/confirm-reward", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              submissionId: data.submission.id,
-              transactionId: finalPayload.transaction_id,
-            }),
-          })
-        } else if (finalPayload.status === "error") {
-          // Map MiniKit simulation error to user-friendly message
-          const simulationError: string | undefined = (finalPayload as any)?.details?.simulationError
-          const errorCode: string | undefined = (finalPayload as any)?.error_code
-          let friendly = t('priceSubmission:validation.failedToSubmitPrice')
-          if (simulationError?.includes("ERC20: transfer amount exceeds balance")) {
-            friendly = t('priceSubmission:validation.insufficientFunds')
-          } else if (errorCode === "simulation_failed" && simulationError) {
-            friendly = t('priceSubmission:validation.transactionSimulationFailed')
-          }
-          throw new Error(friendly)
-        }
-      }
+      // Rewards now accrue and are paid out at 12:00 AM UTC daily
+      // No immediate claim needed
 
       onSuccess()
     } catch (err) {

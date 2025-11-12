@@ -14,7 +14,9 @@ contract DeployScript is Script {
         address signer = 0x94b381D02e57E7fbfbE8687568cA96d619078Adb;
 
         vm.startBroadcast(deployerKey);
-        new RewardVault(usdc, signer, 500000);
+        RewardVault vault = new RewardVault(usdc, signer);
+        console.log("RewardVault deployed at:");
+        console.logAddress(address(vault));
         vm.stopBroadcast();
     }
 }

@@ -1,10 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { useSession, signOut } from "next-auth/react"
 import { LogOut, Loader2, Settings, Copy, CheckCircle2 } from "lucide-react"
 import { SettingsDrawer } from "@/components/SettingsDrawer"
+
+interface AccruedRewards {
+  totalAccrued: string
+  totalUSDC: number
+  submissionCount: number
+}
 
 export function WalletTab() {
   const { t } = useTranslation(['wallet', 'common'])
@@ -12,6 +18,8 @@ export function WalletTab() {
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [accruedRewards, setAccruedRewards] = useState<AccruedRewards | null>(null)
+  const [isLoadingRewards, setIsLoadingRewards] = useState(true)
 
   const handleSignOut = async () => {
     if (isSigningOut) return
@@ -35,6 +43,29 @@ export function WalletTab() {
     }
   }
 
+  useEffect(() => {
+    if (session?.user?.walletAddress) {
+      setIsLoadingRewards(true)
+      fetch('/api/wallet/rewards')
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            console.error('Error fetching rewards:', data.error)
+            setAccruedRewards(null)
+          } else {
+            setAccruedRewards(data)
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching rewards:', error)
+          setAccruedRewards(null)
+        })
+        .finally(() => {
+          setIsLoadingRewards(false)
+        })
+    }
+  }, [session?.user?.walletAddress])
+
   return (
     <div className="h-full overflow-y-auto bg-[#F4F4F8]">
       {/* Header */}
@@ -54,11 +85,31 @@ export function WalletTab() {
       {/* Balance Card */}
       <div className="px-4 pt-6 pb-4">
         <div className="bg-gradient-to-br from-[#7DD756] to-[#6BC647] rounded-2xl p-6 shadow-md">
-          <p className="text-white/80 text-xs font-medium mb-2">{t('wallet:balance.totalBalance')}</p>
+          <p className="text-white/80 text-xs font-medium mb-2">
+            {t('wallet:balance.accruedRewards', { defaultValue: 'Accrued Rewards' })}
+          </p>
           <div className="flex items-baseline gap-2">
-            <span className="text-5xl font-bold text-white tabular-nums">0</span>
-            <span className="text-xl font-semibold text-white/90">WLD</span>
+            {isLoadingRewards ? (
+              <Loader2 className="w-8 h-8 text-white animate-spin" />
+            ) : (
+              <>
+                <span className="text-5xl font-bold text-white tabular-nums">
+                  {accruedRewards?.totalUSDC.toFixed(2) || '0.00'}
+                </span>
+                <span className="text-xl font-semibold text-white/90">USDC</span>
+              </>
+            )}
           </div>
+          {accruedRewards && accruedRewards.submissionCount > 0 && (
+            <p className="text-white/70 text-xs mt-2">
+              From {accruedRewards.submissionCount} submission{accruedRewards.submissionCount !== 1 ? 's' : ''}
+            </p>
+          )}
+          {accruedRewards && accruedRewards.totalUSDC > 0 && (
+            <p className="text-white/60 text-xs mt-1">
+              Payout at 12:00 AM UTC
+            </p>
+          )}
         </div>
       </div>
 

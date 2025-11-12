@@ -27,7 +27,7 @@ contract RewardVaultTest {
 
     function setUp() public {
         usdc = new MockUSDC();
-        vault = new RewardVault(address(usdc), address(this), 500000);
+        vault = new RewardVault(address(usdc), address(this));
         usdc.mint(address(vault), 1_000_000_000);
     }
 }

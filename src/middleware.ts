@@ -5,6 +5,14 @@ import {NextRequest} from 'next/server';
 const intlMiddleware = createMiddleware(routing);
 
 export default function middleware(request: NextRequest) {
+  // Check if user has manually selected a language preference
+  // If they have, respect their choice and don't auto-detect
+  const manualLanguagePreference = request.cookies.get('valor-language-manual')?.value
+  if (manualLanguagePreference) {
+    // User has manually selected a language, skip auto-detection
+    return intlMiddleware(request)
+  }
+
   // Check for Argentina country code from various sources
   const countryCode = 
     request.headers.get('x-vercel-ip-country') || // Vercel

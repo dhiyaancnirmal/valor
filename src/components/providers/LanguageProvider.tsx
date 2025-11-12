@@ -27,6 +27,8 @@ export function LanguageProvider({ children, locale }: { children: ReactNode; lo
   const setLocale = (newLocale: Locale) => {
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY, newLocale)
+      // Set a cookie to indicate manual language selection (for middleware)
+      document.cookie = `valor-language-manual=${newLocale}; path=/; max-age=31536000` // 1 year
     }
     
     // Navigate to the new locale

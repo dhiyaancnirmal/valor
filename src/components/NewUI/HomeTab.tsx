@@ -163,7 +163,7 @@ export function HomeTab({
   return (
     <div className="h-full flex flex-col bg-[#F4F4F8] overflow-hidden">
       {/* Earnings Banner */}
-      <div className="flex-shrink-0 bg-gradient-to-r from-[#7DD756] to-[#6BC647] px-6 py-5 text-white shadow-sm">
+      <div className="flex-shrink-0 bg-gradient-to-r from-[#7DD756] to-[#6BC647] px-8 py-5 text-white shadow-sm" style={{ paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 2rem)', paddingRight: 'calc(env(safe-area-inset-right, 0px) + 2rem)' }}>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs opacity-90">{t('homeTab.potentialToday')}</p>
@@ -182,7 +182,7 @@ export function HomeTab({
       </div>
 
       {/* Search Bar */}
-      <div className="flex-shrink-0 bg-white px-5 py-3 border-b border-gray-200">
+      <div className="flex-shrink-0 bg-white py-3 border-b border-gray-200" style={{ paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 1.5rem)', paddingRight: 'calc(env(safe-area-inset-right, 0px) + 1.5rem)' }}>
         <SearchBar 
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}

@@ -15,6 +15,14 @@ export function ArgentinaLocaleDetector() {
   const currentLocale = params?.locale as string
 
   useEffect(() => {
+    // Check if user has manually selected a language preference
+    // If they have, don't auto-detect - respect their choice
+    const manualLanguagePreference = localStorage.getItem('valor-language')
+    if (manualLanguagePreference) {
+      // User has manually selected a language, don't auto-detect
+      return
+    }
+
     // Only run once and only if not already on Spanish locale
     if (currentLocale === 'es-AR') {
       return

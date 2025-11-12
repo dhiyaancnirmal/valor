@@ -59,7 +59,7 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
   return (
     <div className="h-full bg-[#F4F4F8] overflow-y-auto pb-24">
       {/* Header with settings button */}
-      <div style={{ padding: 'var(--spacing-xl)' }}>
+      <div style={{ padding: 'var(--spacing-xl)', paddingLeft: 'calc(env(safe-area-inset-left, 0px) + var(--spacing-xl))', paddingRight: 'calc(env(safe-area-inset-right, 0px) + var(--spacing-xl))' }}>
         <div className="flex items-center justify-end">
           {/* Settings Icon */}
           <button

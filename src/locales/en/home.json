@@ -1,0 +1,25 @@
+{
+  "earnings": {
+    "potentialToday": "Potential earnings today",
+    "stationsNearby": "Stations nearby",
+    "stationsCount": "{{count}} stations",
+    "earnAmount": "Earn ${{amount}}"
+  },
+  "search": {
+    "placeholder": "Search gas stations...",
+    "noStationsFound": "No stations found",
+    "tryAdjustingSearch": "Try adjusting your search or location"
+  },
+  "station": {
+    "name": "Name",
+    "address": "Address",
+    "distance": "Distance",
+    "fuelType": "Fuel Type",
+    "price": "Price"
+  },
+  "rewards": {
+    "baseReward": "$2.50",
+    "proximityBonus": "+$1.00",
+    "distanceBonus": "+$0.50"
+  }
+}

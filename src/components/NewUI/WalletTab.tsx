@@ -1,11 +1,13 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useSession, signOut } from "next-auth/react"
 import { LogOut, Loader2, Settings, Copy, CheckCircle2 } from "lucide-react"
 import { SettingsDrawer } from "@/components/SettingsDrawer"
 
 export function WalletTab() {
+  const { t } = useTranslation(['wallet', 'common'])
   const { data: session } = useSession()
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -20,7 +22,7 @@ export function WalletTab() {
       window.location.href = '/'
     } catch (error) {
       console.error('Sign out error:', error)
-      alert("Failed to sign out")
+      alert(t('errors:general.failedToSignOut'))
       setIsSigningOut(false)
     }
   }
@@ -38,7 +40,7 @@ export function WalletTab() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-5 py-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-base font-semibold text-gray-900">Wallet</h1>
+          <h1 className="text-base font-semibold text-gray-900">{t('common:tabs.wallet')}</h1>
           <button
             onClick={() => setIsSettingsOpen(true)}
             className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
@@ -52,7 +54,7 @@ export function WalletTab() {
       {/* Balance Card */}
       <div className="px-4 pt-6 pb-4">
         <div className="bg-gradient-to-br from-[#7DD756] to-[#6BC647] rounded-2xl p-6 shadow-md">
-          <p className="text-white/80 text-xs font-medium mb-2">Total Balance</p>
+          <p className="text-white/80 text-xs font-medium mb-2">{t('wallet:balance.totalBalance')}</p>
           <div className="flex items-baseline gap-2">
             <span className="text-5xl font-bold text-white tabular-nums">0</span>
             <span className="text-xl font-semibold text-white/90">WLD</span>
@@ -65,7 +67,7 @@ export function WalletTab() {
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
-              Wallet Address
+              {t('common:labels.walletAddress')}
             </p>
             <button
               onClick={copyAddress}
@@ -82,7 +84,7 @@ export function WalletTab() {
           <p className="font-mono text-sm font-medium text-gray-900 break-all">
             {session?.user?.walletAddress
               ? `${session.user.walletAddress.slice(0, 10)}...${session.user.walletAddress.slice(-8)}`
-              : "Not connected"}
+              : t('wallet:balance.notConnected')}
           </p>
         </div>
       </div>
@@ -97,12 +99,12 @@ export function WalletTab() {
           {isSigningOut ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Signing out...</span>
+              <span>{t('wallet:actions.signingOut')}</span>
             </>
           ) : (
             <>
               <LogOut className="w-4 h-4" />
-              <span>Sign Out</span>
+              <span>{t('wallet:actions.signOut')}</span>
             </>
           )}
         </button>

@@ -1,0 +1,16 @@
+{
+  "general": {
+    "failedToSignOut": "Falló al cerrar sesión",
+    "anErrorOccurred": "Ocurrió un error"
+  },
+  "location": {
+    "errorGettingLocation": "Error obteniendo ubicación",
+    "geolocationNotSupported": "Geolocalización no soportada",
+    "pleaseEnableLocationServices": "Por favor habilita los servicios de ubicación"
+  },
+  "map": {
+    "googleMapsNotLoaded": "Google Maps no cargado",
+    "errorFetchingGasStations": "Error al buscar estaciones de servicio",
+    "loadingMap": "Cargando mapa..."
+  }
+}

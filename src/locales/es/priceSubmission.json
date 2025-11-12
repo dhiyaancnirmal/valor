@@ -1,0 +1,46 @@
+{
+  "steps": {
+    "selectFuelType": "Seleccionar Tipo de Combustible",
+    "chooseFuelType": "Elige el tipo de combustible que quieres reportar",
+    "enterPrice": "Ingresar Precio",
+    "priceForFuelType": "Precio por galón para {{fuelType}}",
+    "takePhoto": "Tomar Foto",
+    "photoOfPriceSign": "Toma una foto del cartel de precios para verificación",
+    "reviewSubmit": "Revisar y Enviar",
+    "confirmDetails": "Por favor confirma los detalles de tu envío"
+  },
+  "fuelTypes": {
+    "Regular": "Regular",
+    "Premium": "Premium",
+    "Diesel": "Diésel"
+  },
+  "form": {
+    "pricePlaceholder": "0.00",
+    "perGallon": "por galón",
+    "gasStation": "Estación de Servicio",
+    "fuelType": "Tipo de Combustible",
+    "price": "Precio"
+  },
+  "validation": {
+    "enterValidPrice": "Por favor ingresa un precio válido",
+    "locationNotAvailable": "Ubicación no disponible",
+    "enableLocationServices": "Por favor habilita los servicios de ubicación para enviar precios",
+    "mustBeWithin500m": "Debes estar dentro de 500m de la estación de servicio para enviar un precio. Distancia actual: {{distance}}m",
+    "insufficientFunds": "Fondos insuficientes",
+    "transactionSimulationFailed": "Falló la simulación de transacción",
+    "failedToSubmitPrice": "Falló al enviar precio"
+  },
+  "photo": {
+    "photoOptional": "La foto es opcional pero ayuda a verificar la precisión",
+    "photoTips": "Consejos para fotos"
+  },
+  "review": {
+    "submissionDetails": "Detalles del envío"
+  },
+  "errors": {
+    "missingRequiredFields": "Faltan campos requeridos",
+    "walletAddressMismatch": "Dirección de billetera no coincide",
+    "serverMisconfigured": "Servidor mal configurado",
+    "internalServerError": "Error interno del servidor"
+  }
+}

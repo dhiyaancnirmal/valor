@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Search, Navigation, Coins, TrendingUp } from "lucide-react"
 import { GasStation, UserLocation } from "@/types"
 import { formatDistance } from "@/lib/utils"
@@ -15,6 +16,7 @@ interface HomeTabProps {
 }
 
 export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabProps) {
+  const { t } = useTranslation(['home', 'common'])
   const [searchQuery, setSearchQuery] = useState("")
 
   // Remove duplicates by id and then filter by search query
@@ -32,8 +34,8 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
     // Base reward: $2.50
     // Bonus for closer stations (within 200m): +$1.00
     // Bonus for stations within 500m: +$0.50
-    const baseReward = 2.50
-    const proximityBonus = distance < 200 ? 1.00 : distance < 500 ? 0.50 : 0
+    const baseReward = parseFloat(t('home:rewards.baseReward').replace('$', ''))
+    const proximityBonus = distance < 200 ? parseFloat(t('home:rewards.proximityBonus').replace('+$', '')) : distance < 500 ? parseFloat(t('home:rewards.distanceBonus').replace('+$', '')) : 0
     return baseReward + proximityBonus
   }
 
@@ -43,7 +45,7 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
       <div className="bg-gradient-to-r from-[#7DD756] to-[#6BC647] px-5 py-4 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs opacity-90">Potential earnings today</p>
+            <p className="text-xs opacity-90">{t('home:earnings.potentialToday')}</p>
             <div className="flex items-center gap-1.5 mt-1">
               <Coins className="w-4 h-4" />
               <span className="text-xl font-bold">
@@ -52,8 +54,8 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xs opacity-90">Stations nearby</p>
-            <p className="text-xl font-bold mt-1">{filteredStations.length}</p>
+            <p className="text-xs opacity-90">{t('home:earnings.stationsNearby')}</p>
+            <p className="text-xl font-bold mt-1">{t('home:earnings.stationsCount', { count: filteredStations.length })}</p>
           </div>
         </div>
       </div>
@@ -64,7 +66,7 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search gas stations..."
+            placeholder={t('home:search.placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="bg-transparent text-gray-900 placeholder-gray-400 outline-none text-sm w-full pl-6"
@@ -78,9 +80,9 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
           <Card className="text-center py-8">
             <CardContent>
               <div className="text-gray-400 text-5xl mb-3">⛽</div>
-              <p className="text-sm text-gray-600 font-medium">No stations found</p>
+              <p className="text-sm text-gray-600 font-medium">{t('home:search.noStationsFound')}</p>
               <p className="text-xs text-gray-500 mt-1">
-                Try adjusting your search or location
+                {t('home:search.tryAdjustingSearch')}
               </p>
             </CardContent>
           </Card>
@@ -124,7 +126,7 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
                         {station.distance !== undefined && (
                           <Badge variant="secondary" className="flex items-center gap-1 px-2 py-0.5 text-xs">
                             <Navigation className="w-3 h-3" />
-                            <span>{formatDistance(station.distance)}</span>
+                            <span>{formatDistance(station.distance, t)}</span>
                           </Badge>
                         )}
 
@@ -133,7 +135,7 @@ export function HomeTab({ gasStations, userLocation, onStationSelect }: HomeTabP
                           className="bg-gradient-to-r from-[#7DD756] to-[#6BC647] text-white flex items-center gap-1 px-2 py-0.5 text-xs font-semibold"
                         >
                           <Coins className="w-3 h-3" />
-                          <span>Earn ${earnings.toFixed(2)}</span>
+                          <span>{t('home:earnings.earnAmount', { amount: earnings.toFixed(2) })}</span>
                         </Badge>
                       </div>
                     </div>

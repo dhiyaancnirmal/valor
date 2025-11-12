@@ -1,0 +1,25 @@
+{
+  "earnings": {
+    "potentialToday": "Ganancias potenciales hoy",
+    "stationsNearby": "Estaciones cercanas",
+    "stationsCount": "{{count}} estaciones",
+    "earnAmount": "Ganar ${{amount}}"
+  },
+  "search": {
+    "placeholder": "Buscar estaciones de servicio...",
+    "noStationsFound": "No se encontraron estaciones",
+    "tryAdjustingSearch": "Intenta ajustar tu búsqueda o ubicación"
+  },
+  "station": {
+    "name": "Nombre",
+    "address": "Dirección",
+    "distance": "Distancia",
+    "fuelType": "Tipo de combustible",
+    "price": "Precio"
+  },
+  "rewards": {
+    "baseReward": "$2.50",
+    "proximityBonus": "+$1.00",
+    "distanceBonus": "+$0.50"
+  }
+}

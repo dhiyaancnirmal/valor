@@ -1,0 +1,10 @@
+{
+  "balance": {
+    "totalBalance": "Total Balance",
+    "notConnected": "Not connected"
+  },
+  "actions": {
+    "signOut": "Sign Out",
+    "signingOut": "Signing out..."
+  }
+}

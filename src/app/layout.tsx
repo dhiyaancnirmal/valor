@@ -3,6 +3,7 @@ import { DM_Sans } from 'next/font/google'
 import "./globals.css"
 import { SessionProvider } from "@/components/providers/SessionProvider"
 import { MiniKitProvider } from "@/components/providers/MiniKitProvider"
+import { I18nProvider } from "@/components/providers/I18nProvider"
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -20,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={dmSans.variable}>
+    <html lang="es" className={dmSans.variable}>
       <head>
         <script
           src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
@@ -29,11 +30,13 @@ export default function RootLayout({
         ></script>
       </head>
       <body className="antialiased font-sans">
-        <SessionProvider>
-          <MiniKitProvider>
-            {children}
-          </MiniKitProvider>
-        </SessionProvider>
+        <I18nProvider>
+          <SessionProvider>
+            <MiniKitProvider>
+              {children}
+            </MiniKitProvider>
+          </SessionProvider>
+        </I18nProvider>
       </body>
     </html>
   )

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { X, Navigation } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { GasStation } from "@/types"
@@ -24,6 +25,7 @@ export function PriceSubmissionDrawer({
   onClose,
   onSuccess,
 }: PriceSubmissionDrawerProps) {
+  const { t } = useTranslation(['priceSubmission', 'common'])
   const [drawerState, setDrawerState] = useState<DrawerState>("closed")
   const [startY, setStartY] = useState(0)
   const [currentY, setCurrentY] = useState(0)
@@ -145,7 +147,7 @@ export function PriceSubmissionDrawer({
                     {station.distance !== undefined && (
                       <div className="flex items-center text-xs text-gray-500">
                         <Navigation className="w-3 h-3 mr-1" />
-                        <span>{formatDistance(station.distance)} away</span>
+                        <span>{formatDistance(station.distance, t)} {t('common:labels.away')}</span>
                       </div>
                     )}
                   </div>
@@ -161,13 +163,13 @@ export function PriceSubmissionDrawer({
               {/* Last known price placeholder */}
               <div className="mb-4 p-4 bg-gradient-to-br from-[#7DD756]/5 via-[#7DD756]/10 to-[#7DD756]/5 rounded-lg border border-[#7DD756]/30">
                 <div className="flex items-baseline justify-between mb-1">
-                  <span className="text-xs text-gray-600 font-medium">Last Price</span>
+                  <span className="text-xs text-gray-600 font-medium">{t('common:labels.lastPrice')}</span>
                   <div className="flex items-baseline gap-1">
                     <span className="text-2xl font-bold text-[#7DD756]">$—</span>
                     <span className="text-xs text-gray-500">/gal</span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-400">No recent data</p>
+                <p className="text-xs text-gray-400">{t('common:labels.noRecentData')}</p>
               </div>
 
               {/* Actions */}
@@ -185,7 +187,7 @@ export function PriceSubmissionDrawer({
                   onClick={handleExpand}
                   className="flex-1 bg-gradient-to-r from-[#7DD756] to-[#6BC647] text-white font-semibold text-sm py-3 px-5 rounded-lg hover:shadow-lg active:scale-[0.99] transition-all duration-200 shadow-md"
                 >
-                  Submit Price
+                  {t('common:buttons.submitPrice')}
                 </button>
               </div>
             </div>
@@ -214,7 +216,7 @@ export function PriceSubmissionDrawer({
                   </button>
                   <div>
                     <h3 className="text-base font-semibold text-[#1C1C1E]">
-                      Submit Price
+                      {t('common:buttons.submitPriceAction')}
                     </h3>
                     <p className="text-xs text-gray-600">{station.name}</p>
                   </div>

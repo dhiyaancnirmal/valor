@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     if (!session?.user?.walletAddress) {
       console.log("Unauthorized: no wallet address in session")
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "priceSubmission:errors.missingRequiredFields", message: "Unauthorized" }, { status: 401 })
     }
 
     // Parse form data
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       !userLongitude
     ) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "priceSubmission:errors.missingRequiredFields", message: "Missing required fields" },
         { status: 400 }
       )
     }
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     // Verify wallet address matches session
     if (walletAddress !== session.user.walletAddress) {
       return NextResponse.json(
-        { error: "Wallet address mismatch" },
+        { error: "priceSubmission:errors.walletAddressMismatch", message: "Wallet address mismatch" },
         { status: 403 }
       )
     }
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       console.error("Database error:", dbError)
       console.error("Full error details:", JSON.stringify(dbError, null, 2))
       return NextResponse.json(
-        { error: "Failed to save submission", details: dbError.message },
+        { error: "priceSubmission:errors.internalServerError", message: "Failed to save submission", details: dbError.message },
         { status: 500 }
       )
     }
@@ -155,14 +155,14 @@ export async function POST(request: NextRequest) {
         if (!signerKey || !isHex(signerKey, 66)) {
           console.error("Invalid REWARD_SIGNER_PRIVATE_KEY: must be 0x-prefixed 32-byte hex")
           return NextResponse.json(
-            { error: "Server misconfigured: invalid REWARD_SIGNER_PRIVATE_KEY (expected 0x + 64 hex chars)" },
+            { error: "priceSubmission:errors.serverMisconfigured", message: "Server misconfigured: invalid REWARD_SIGNER_PRIVATE_KEY (expected 0x + 64 hex chars)" },
             { status: 500 }
           )
         }
         if (!isAddress(rewardContract)) {
           console.error("Invalid reward contract address:", rewardContract)
           return NextResponse.json(
-            { error: "Server misconfigured: invalid reward contract address" },
+            { error: "priceSubmission:errors.serverMisconfigured", message: "Server misconfigured: invalid reward contract address" },
             { status: 500 }
           )
         }
@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("API error:", error)
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "priceSubmission:errors.internalServerError", message: "Internal server error" },
       { status: 500 }
     )
   }

@@ -34,11 +34,62 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
     ];
 
     const currencies = [
-        { code: 'USD', symbol: '$', name: 'US Dollar' },
-        { code: 'ARS', symbol: '$', name: 'Argentine Peso' },
-        { code: 'EUR', symbol: '€', name: 'Euro' },
-        { code: 'GBP', symbol: '£', name: 'British Pound' },
+        { code: 'USD', symbol: '$', name: 'US Dollar', country: 'United States' },
+        { code: 'EUR', symbol: '€', name: 'Euro', country: 'European Union' },
+        { code: 'GBP', symbol: '£', name: 'British Pound', country: 'United Kingdom' },
+        { code: 'JPY', symbol: '¥', name: 'Japanese Yen', country: 'Japan' },
+        { code: 'CNY', symbol: '¥', name: 'Chinese Yuan', country: 'China' },
+        { code: 'AUD', symbol: '$', name: 'Australian Dollar', country: 'Australia' },
+        { code: 'CAD', symbol: '$', name: 'Canadian Dollar', country: 'Canada' },
+        { code: 'CHF', symbol: 'Fr', name: 'Swiss Franc', country: 'Switzerland' },
+        { code: 'INR', symbol: '₹', name: 'Indian Rupee', country: 'India' },
+        { code: 'MXN', symbol: '$', name: 'Mexican Peso', country: 'Mexico' },
+        { code: 'BRL', symbol: 'R$', name: 'Brazilian Real', country: 'Brazil' },
+        { code: 'ARS', symbol: '$', name: 'Argentine Peso', country: 'Argentina' },
+        { code: 'KRW', symbol: '₩', name: 'South Korean Won', country: 'South Korea' },
+        { code: 'SGD', symbol: '$', name: 'Singapore Dollar', country: 'Singapore' },
+        { code: 'NZD', symbol: '$', name: 'New Zealand Dollar', country: 'New Zealand' },
+        { code: 'ZAR', symbol: 'R', name: 'South African Rand', country: 'South Africa' },
+        { code: 'SEK', symbol: 'kr', name: 'Swedish Krona', country: 'Sweden' },
+        { code: 'NOK', symbol: 'kr', name: 'Norwegian Krone', country: 'Norway' },
+        { code: 'DKK', symbol: 'kr', name: 'Danish Krone', country: 'Denmark' },
+        { code: 'PLN', symbol: 'zł', name: 'Polish Złoty', country: 'Poland' },
     ];
+
+    // Determine currency based on location
+    const getCurrencyFromLocation = async (lat: number, lng: number) => {
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+            const data = await response.json();
+            const countryCode = data.address?.country_code?.toUpperCase();
+
+            // Map country codes to currencies
+            const currencyMap: Record<string, string> = {
+                'US': 'USD', 'GB': 'GBP', 'JP': 'JPY', 'CN': 'CNY', 'AU': 'AUD',
+                'CA': 'CAD', 'CH': 'CHF', 'IN': 'INR', 'MX': 'MXN', 'BR': 'BRL',
+                'AR': 'ARS', 'KR': 'KRW', 'SG': 'SGD', 'NZ': 'NZD', 'ZA': 'ZAR',
+                'SE': 'SEK', 'NO': 'NOK', 'DK': 'DKK', 'PL': 'PLN',
+                // EU countries
+                'DE': 'EUR', 'FR': 'EUR', 'IT': 'EUR', 'ES': 'EUR', 'NL': 'EUR',
+                'BE': 'EUR', 'AT': 'EUR', 'PT': 'EUR', 'IE': 'EUR', 'FI': 'EUR',
+                'GR': 'EUR', 'EE': 'EUR', 'LV': 'EUR', 'LT': 'EUR', 'SK': 'EUR',
+                'SI': 'EUR', 'CY': 'EUR', 'MT': 'EUR', 'LU': 'EUR',
+            };
+
+            return currencyMap[countryCode] || 'USD';
+        } catch (error) {
+            console.error('Error fetching location currency:', error);
+            return 'USD';
+        }
+    };
+
+    // Set currency based on location when component opens
+    useEffect(() => {
+        if (isOpen && userLocation) {
+            getCurrencyFromLocation(userLocation.latitude, userLocation.longitude)
+                .then(detectedCurrency => setCurrency(detectedCurrency));
+        }
+    }, [isOpen, userLocation]);
 
     const canProceedFromProduct = () => selectedProduct !== '';
     const canProceedFromPrice = () => price !== '' && parseFloat(price) > 0;
@@ -333,35 +384,43 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
 
                 {/* Price Input Step */}
                 {currentStep === 'price' && (
-                    <div className="space-y-4">
-                        <div>
-                            <h3 className="text-xl font-bold text-[#1C1C1E] mb-2">{t('priceEntry.enterPrice')}</h3>
-                            <p className="text-sm text-gray-600">{t('priceEntry.pricePerGallonLabel')}</p>
-                        </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xl font-bold text-[#1C1C1E]" style={{ marginBottom: 'var(--spacing-xs)' }}>{t('priceEntry.enterPrice')}</h3>
+                                <p className="text-sm text-gray-600">{t('priceEntry.pricePerGallonLabel')}</p>
+                            </div>
 
-                        <div className="bg-gradient-to-br from-[#FF6B35]/5 via-[#F7931E]/5 to-[#FFD23F]/5 rounded-3xl p-8 border-2 border-[#FF6B35]/20 shadow-xl">
-                            <div className="flex justify-center mb-8">
-                                <div className="inline-flex bg-white rounded-2xl px-3 py-2 shadow-md border border-gray-200 gap-3">
+                            {/* Currency Dropdown */}
+                            <div className="relative">
+                                <select
+                                    value={currency}
+                                    onChange={(e) => setCurrency(e.target.value)}
+                                    className="appearance-none bg-white border border-gray-300 text-gray-900 font-semibold text-sm focus:outline-none focus:border-[#7DD756] transition-colors cursor-pointer pr-8"
+                                    style={{
+                                        padding: 'var(--spacing-xs) var(--spacing-sm)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        minWidth: '100px'
+                                    }}
+                                >
                                     {currencies.map((curr) => (
-                                        <button
-                                            key={curr.code}
-                                            onClick={() => setCurrency(curr.code)}
-                                            className={`px-6 py-3 rounded-xl font-bold transition-all duration-200 ${
-                                                currency === curr.code
-                                                    ? 'bg-gradient-to-r from-[#FF6B35] to-[#F7931E] text-white shadow-lg'
-                                                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            <span className="text-lg">{curr.symbol}</span>
-                                            <span className="ml-2 text-sm">{curr.code}</span>
-                                        </button>
+                                        <option key={curr.code} value={curr.code}>
+                                            {curr.symbol} {curr.code}
+                                        </option>
                                     ))}
+                                </select>
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-gray-600">
+                                        <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
                                 </div>
                             </div>
-                            
+                        </div>
+
+                        <div className="bg-gray-50 border border-gray-200" style={{ borderRadius: 'var(--radius-lg)', padding: 'var(--spacing-2xl)' }}>
                             <div className="text-center">
-                                <div className="flex items-center justify-center space-x-4 mb-4">
-                                    <span className="text-6xl font-bold text-gray-300">
+                                <div className="flex items-center justify-center mb-4" style={{ gap: 'var(--spacing-md)' }}>
+                                    <span className="text-5xl font-bold text-gray-300">
                                         {currencies.find(c => c.code === currency)?.symbol}
                                     </span>
                                     <input
@@ -371,11 +430,11 @@ export default function PriceEntryPageDrawer({ isOpen, onClose, station, userLoc
                                         placeholder="0.00"
                                         value={price}
                                         onChange={(e) => setPrice(e.target.value)}
-                                        className="w-40 text-7xl font-bold text-[#1C1C1E] bg-transparent focus:outline-none text-center border-b-4 border-[#FF6B35]/30 focus:border-[#FF6B35] transition-colors"
+                                        className="w-40 text-6xl font-bold text-[#1C1C1E] bg-transparent focus:outline-none text-center border-b-2 border-gray-300 focus:border-[#7DD756] transition-colors"
                                         inputMode="decimal"
                                     />
                                 </div>
-                                <div className="text-xl font-semibold text-gray-600">{t('priceEntry.pricePerGallonLabel')}</div>
+                                <div className="text-base font-medium text-gray-600">{t('priceEntry.pricePerGallonLabel')}</div>
                             </div>
                         </div>
                     </div>

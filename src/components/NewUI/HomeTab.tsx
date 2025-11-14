@@ -220,18 +220,9 @@ export function HomeTab({
 
   return (
     <div className="h-full flex flex-col bg-[#F4F4F8] overflow-hidden">
-      {/* Earnings Banner */}
+      {/* Stations Nearby Banner */}
       <div className="flex-shrink-0 bg-gradient-to-r from-[#7DD756] to-[#6BC647] px-8 py-5 text-white shadow-sm" style={{ paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 2rem)', paddingRight: 'calc(env(safe-area-inset-right, 0px) + 2rem)' }}>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs opacity-90">{t('homeTab.potentialToday')}</p>
-            <div className="flex items-center gap-1.5 mt-1">
-              <Coins className="w-4 h-4" />
-              <span className="text-xl font-bold">
-                ${(filteredStations.length * 2.5).toFixed(2)}
-              </span>
-            </div>
-          </div>
+        <div className="flex items-center justify-end">
           <div className="text-right">
             <p className="text-xs opacity-90">{t('homeTab.stationsNearby')}</p>
             <p className="text-xl font-bold mt-1">{t('homeTab.stationsCount', { count: filteredStations.length })}</p>
@@ -248,18 +239,18 @@ export function HomeTab({
               onSearchChange={setSearchQuery}
             />
           </div>
-          <div className="relative">
+          <div className="relative flex-shrink-0">
             <select
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value as SortOption)}
-              className="appearance-none bg-white border border-gray-300 text-gray-900 text-sm font-medium px-4 py-2 pr-8 rounded-lg focus:outline-none focus:border-[#7DD756] transition-colors cursor-pointer"
+              className="appearance-none bg-white border border-gray-300 text-gray-900 text-sm font-medium pl-4 pr-10 py-2.5 rounded-full focus:outline-none focus:border-[#7DD756] focus:ring-2 focus:ring-[#7DD756]/20 transition-all cursor-pointer min-w-[140px]"
             >
               <option value="proximity">{t('homeTab.sort.proximity')}</option>
               <option value="priority">{t('homeTab.sort.priority')}</option>
               <option value="price-low">{t('homeTab.sort.priceLow')}</option>
               <option value="price-high">{t('homeTab.sort.priceHigh')}</option>
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
           </div>
         </div>
       </div>

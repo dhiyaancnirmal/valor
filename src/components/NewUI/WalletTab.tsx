@@ -267,12 +267,22 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
       console.log("Transaction successful:", finalPayload)
 
       // Step 3: Confirm transaction on backend and update database
+      // Extract transaction hash from finalPayload (MiniKit response structure)
+      const txHash = (finalPayload as any).txHash || (finalPayload as any).hash || (finalPayload as any).transactionHash || ''
+      
+      if (!txHash) {
+        console.error("No transaction hash in response:", finalPayload)
+        setClaimError("Transaction succeeded but no hash received. Please contact support.")
+        setIsClaiming(false)
+        return
+      }
+
       const confirmResponse = await fetch('/api/confirm-claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           transactionIds: prepareData.transactionIds,
-          txHash: finalPayload.txHash || finalPayload.hash,
+          txHash,
         }),
       })
 

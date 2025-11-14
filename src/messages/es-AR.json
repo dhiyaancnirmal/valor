@@ -38,7 +38,13 @@
     "earn": "Ganar",
     "submit": "Enviar",
     "stationsCount": "{count} estaciones",
-    "earnAmount": "Ganar ${amount}"
+    "earnAmount": "Ganar ${amount}",
+    "sort": {
+      "proximity": "Proximidad",
+      "priority": "Prioridad",
+      "priceLow": "Precio: Bajo",
+      "priceHigh": "Precio: Alto"
+    }
   },
   "walletTab": {
     "walletAddress": "Dirección de Billetera",

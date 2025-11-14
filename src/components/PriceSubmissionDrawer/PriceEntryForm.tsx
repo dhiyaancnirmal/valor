@@ -4,15 +4,12 @@ import { useState, useRef, useEffect } from "react"
 import { useTranslations } from "next-intl"
 import { useSession } from "next-auth/react"
 import { Camera, Check, Loader2 } from "lucide-react"
-import { FuelType } from "@/types"
+import { FuelType, GasStation } from "@/types"
 import { calculateDistance } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 interface PriceEntryFormProps {
-  stationId: string
-  stationName: string
-  stationLat: number
-  stationLng: number
+  station: GasStation
   userLocation: { latitude: number; longitude: number } | null
   onSuccess: () => void
   onError: (error: string) => void
@@ -21,10 +18,7 @@ interface PriceEntryFormProps {
 type Step = 1 | 2 | 3 | 4
 
 export function PriceEntryForm({
-  stationId,
-  stationName,
-  stationLat,
-  stationLng,
+  station,
   userLocation: initialUserLocation,
   onSuccess,
   onError,
@@ -40,6 +34,7 @@ export function PriceEntryForm({
   const [error, setError] = useState<string | null>(null)
   const [currency, setCurrency] = useState<"USD" | "ARS" | "EUR" | "GBP">("USD")
   const [userLocation, setUserLocation] = useState(initialUserLocation)
+  const [submittedFuelTypes, setSubmittedFuelTypes] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Get user location if not provided
@@ -59,6 +54,22 @@ export function PriceEntryForm({
       )
     }
   }, [userLocation])
+
+  // Fetch user's submitted fuel types for this station
+  useEffect(() => {
+    if (session?.user?.walletAddress && station.id) {
+      fetch('/api/user-station-submissions')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.stationSubmissions[station.id]) {
+            setSubmittedFuelTypes(data.stationSubmissions[station.id])
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching user submissions:', error)
+        })
+    }
+  }, [session?.user?.walletAddress, station.id])
 
   const fuelTypes: FuelType[] = ["Regular", "Premium", "Diesel"]
 
@@ -116,14 +127,28 @@ export function PriceEntryForm({
     try {
       const formData = new FormData()
       formData.append("user_wallet_address", session?.user?.walletAddress || "")
-      formData.append("gas_station_name", stationName)
-      formData.append("gas_station_id", stationId)
+      formData.append("gas_station_name", station.name)
+      formData.append("gas_station_id", station.id)
+      formData.append("gas_station_address", station.address || "")
       formData.append("price", price)
       formData.append("fuel_type", fuelType || "")
+      formData.append("currency", currency)
       formData.append("user_latitude", userLocation.latitude.toString())
       formData.append("user_longitude", userLocation.longitude.toString())
-      formData.append("gas_station_latitude", stationLat.toString())
-      formData.append("gas_station_longitude", stationLng.toString())
+      formData.append("gas_station_latitude", station.latitude.toString())
+      formData.append("gas_station_longitude", station.longitude.toString())
+      // POI fields from Google Places API
+      if (station.placeId) {
+        formData.append("poi_place_id", station.placeId)
+      }
+      if (station.name) {
+        formData.append("poi_name", station.name)
+      }
+      formData.append("poi_lat", station.latitude.toString())
+      formData.append("poi_long", station.longitude.toString())
+      if (station.types && station.types.length > 0) {
+        formData.append("poi_types", JSON.stringify(station.types))
+      }
       if (photo) {
         formData.append("photo", photo)
       }
@@ -216,16 +241,29 @@ export function PriceEntryForm({
             {t('priceEntry.chooseFuelType')}
           </p>
           <div className="space-y-2">
-            {fuelTypes.map((type) => (
-              <Button
-                key={type}
-                onClick={() => handleFuelTypeSelect(type)}
-                variant="outline"
-                className="w-full justify-start text-sm"
-              >
-                <span className="font-semibold">{fuelTypeLabels[type]}</span>
-              </Button>
-            ))}
+            {fuelTypes.map((type) => {
+              const isSubmitted = submittedFuelTypes.includes(type)
+              return (
+                <Button
+                  key={type}
+                  onClick={() => !isSubmitted && handleFuelTypeSelect(type)}
+                  disabled={isSubmitted}
+                  variant="outline"
+                  className={`w-full justify-start text-sm ${
+                    isSubmitted 
+                      ? 'opacity-50 cursor-not-allowed bg-gray-100' 
+                      : ''
+                  }`}
+                >
+                  <span className="font-semibold flex items-center gap-2">
+                    {fuelTypeLabels[type]}
+                    {isSubmitted && (
+                      <Check className="w-4 h-4 text-green-600" />
+                    )}
+                  </span>
+                </Button>
+              )
+            })}
           </div>
         </div>
       )}

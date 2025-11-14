@@ -28,6 +28,7 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
     const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currency, setCurrency] = useState<string>('USD');
+    const [submittedFuelTypes, setSubmittedFuelTypes] = useState<string[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const priceInputRef = useRef<HTMLInputElement>(null);
 
@@ -124,6 +125,22 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
                 .then(detectedCurrency => setCurrency(detectedCurrency));
         }
     }, [currentUserLocation]);
+
+    // Fetch user's submitted fuel types for this station
+    useEffect(() => {
+        if (session?.user?.walletAddress && station.id) {
+            fetch('/api/user-station-submissions')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.stationSubmissions[station.id]) {
+                        setSubmittedFuelTypes(data.stationSubmissions[station.id]);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching user submissions:', error);
+                });
+        }
+    }, [session?.user?.walletAddress, station.id]);
 
     const canProceedFromProduct = () => selectedProduct !== '';
     const canProceedFromPrice = () => price !== '' && parseFloat(price) > 0;
@@ -236,12 +253,26 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
             formData.append("user_wallet_address", session?.user?.walletAddress || "");
             formData.append("gas_station_name", station.name);
             formData.append("gas_station_id", station.id);
+            formData.append("gas_station_address", station.address || "");
             formData.append("price", price);
             formData.append("fuel_type", selectedProduct);
+            formData.append("currency", currency);
             formData.append("user_latitude", currentUserLocation!.latitude.toString());
             formData.append("user_longitude", currentUserLocation!.longitude.toString());
             formData.append("gas_station_latitude", station.latitude.toString());
             formData.append("gas_station_longitude", station.longitude.toString());
+            // POI fields from Google Places API
+            if (station.placeId) {
+                formData.append("poi_place_id", station.placeId);
+            }
+            if (station.name) {
+                formData.append("poi_name", station.name);
+            }
+            formData.append("poi_lat", station.latitude.toString());
+            formData.append("poi_long", station.longitude.toString());
+            if (station.types && station.types.length > 0) {
+                formData.append("poi_types", JSON.stringify(station.types));
+            }
             if (photoFile) {
                 formData.append("photo", photoFile);
             }
@@ -407,46 +438,61 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-                            {gasProducts.map((product) => (
-                                <button
-                                    key={product.id}
-                                    onClick={() => setSelectedProduct(product.id)}
-                                    className={`w-full border transition-all duration-200 text-left ${
-                                        selectedProduct === product.id
-                                            ? 'border-[#7DD756] bg-[#7DD756]/5 scale-[1.02]'
-                                            : 'border-gray-200 bg-white hover:border-gray-300'
-                                    }`}
-                                    style={{
-                                        padding: 'var(--spacing-lg)',
-                                        borderRadius: 'var(--radius-md)',
-                                        boxShadow: selectedProduct === product.id ? 'var(--shadow-md)' : 'var(--shadow-sm)'
-                                    }}
-                                >
-                                    <div className="flex items-center" style={{ gap: 'var(--spacing-md)' }}>
-                                        <div
-                                            className={`flex items-center justify-center text-2xl ${
-                                                selectedProduct === product.id ? 'bg-[#7DD756]' : 'bg-gray-100'
-                                            }`}
-                                            style={{ width: '56px', height: '56px', borderRadius: 'var(--radius-sm)' }}
-                                        >
-                                            {product.icon}
-                                        </div>
-                                        <div className="flex-1">
-                                            <h4 className={`text-lg font-bold ${
-                                                selectedProduct === product.id ? 'text-[#7DD756]' : 'text-[#1C1C1E]'
-                                            }`}>
-                                                {product.label}
-                                            </h4>
-                                            <p className="text-sm text-gray-600">{product.description}</p>
-                                        </div>
-                                        {selectedProduct === product.id && (
-                                            <div className="w-8 h-8 bg-[#7DD756] rounded-full flex items-center justify-center">
-                                                <Check size={20} className="text-white" />
+                            {gasProducts.map((product) => {
+                                const isSubmitted = submittedFuelTypes.includes(product.id);
+                                return (
+                                    <button
+                                        key={product.id}
+                                        onClick={() => !isSubmitted && setSelectedProduct(product.id)}
+                                        disabled={isSubmitted}
+                                        className={`w-full border transition-all duration-200 text-left ${
+                                            isSubmitted
+                                                ? 'opacity-50 cursor-not-allowed bg-gray-100 border-gray-200'
+                                                : selectedProduct === product.id
+                                                ? 'border-[#7DD756] bg-[#7DD756]/5 scale-[1.02]'
+                                                : 'border-gray-200 bg-white hover:border-gray-300'
+                                        }`}
+                                        style={{
+                                            padding: 'var(--spacing-lg)',
+                                            borderRadius: 'var(--radius-md)',
+                                            boxShadow: selectedProduct === product.id ? 'var(--shadow-md)' : 'var(--shadow-sm)'
+                                        }}
+                                    >
+                                        <div className="flex items-center" style={{ gap: 'var(--spacing-md)' }}>
+                                            <div
+                                                className={`flex items-center justify-center text-2xl ${
+                                                    isSubmitted
+                                                        ? 'bg-gray-200'
+                                                        : selectedProduct === product.id ? 'bg-[#7DD756]' : 'bg-gray-100'
+                                                }`}
+                                                style={{ width: '56px', height: '56px', borderRadius: 'var(--radius-sm)' }}
+                                            >
+                                                {product.icon}
                                             </div>
-                                        )}
-                                    </div>
-                                </button>
-                            ))}
+                                            <div className="flex-1">
+                                                <h4 className={`text-lg font-bold ${
+                                                    isSubmitted
+                                                        ? 'text-gray-500'
+                                                        : selectedProduct === product.id ? 'text-[#7DD756]' : 'text-[#1C1C1E]'
+                                                }`}>
+                                                    {product.label}
+                                                    {isSubmitted && <span className="ml-2 text-sm text-green-600">(Submitted)</span>}
+                                                </h4>
+                                                <p className="text-sm text-gray-600">{product.description}</p>
+                                            </div>
+                                            {isSubmitted ? (
+                                                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                                    <Check size={20} className="text-green-600" />
+                                                </div>
+                                            ) : selectedProduct === product.id && (
+                                                <div className="w-8 h-8 bg-[#7DD756] rounded-full flex items-center justify-center">
+                                                    <Check size={20} className="text-white" />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 )}

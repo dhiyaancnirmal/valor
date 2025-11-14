@@ -33,6 +33,8 @@ export default function SubmitPricePage() {
     latitude: parseFloat(lat),
     longitude: parseFloat(lng),
     address: address ? decodeURIComponent(address) : '',
+    placeId: stationId, // Use stationId as placeId if not provided separately
+    types: [], // Types not available from URL params
   }
 
   const handleSuccess = () => {

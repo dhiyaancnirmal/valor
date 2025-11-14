@@ -6,6 +6,8 @@ export interface GasStation {
   longitude: number
   distance?: number
   photo?: string
+  placeId?: string // Google Places place_id
+  types?: string[] // Google Places types array
 }
 
 export interface PriceSubmission {
@@ -19,7 +21,14 @@ export interface PriceSubmission {
   user_longitude: number
   gas_station_latitude?: number
   gas_station_longitude?: number
+  gas_station_address?: string
+  currency?: string
   photo_url?: string
+  poi_place_id?: string
+  poi_name?: string
+  poi_lat?: number
+  poi_long?: number
+  poi_types?: string[]
   created_at: string
 }
 

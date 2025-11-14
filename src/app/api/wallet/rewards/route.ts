@@ -9,10 +9,10 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Sum all unpaid accrued rewards for this user
+    // Get all unpaid accrued rewards for this user
     const { data, error } = await supabaseAdmin
       .from("reward_transactions")
-      .select("accrued_amount")
+      .select("accrued_amount, reward_period_date")
       .eq("user_wallet_address", session.user.walletAddress)
       .eq("paid", false)
       .not("accrued_amount", "is", null)
@@ -22,7 +22,18 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    const totalAccrued = data.reduce((sum, row) => {
+    // Filter to only claimable rewards (from days that have ended)
+    // Rewards become claimable after 12:00 AM UTC the day after they were earned
+    const nowUTC = new Date()
+    const currentUTCDate = nowUTC.toISOString().split('T')[0] // YYYY-MM-DD
+    
+    const claimableRewards = data?.filter(tx => {
+      const rewardDate = tx.reward_period_date // YYYY-MM-DD format
+      // Only include rewards from days that have ended (before today)
+      return rewardDate < currentUTCDate
+    }) || []
+
+    const totalAccrued = claimableRewards.reduce((sum, row) => {
       return sum + BigInt(row.accrued_amount || 0)
     }, 0n)
 
@@ -32,7 +43,7 @@ export async function GET() {
     return NextResponse.json({
       totalAccrued: totalAccrued.toString(),
       totalUSDC,
-      submissionCount: data.length,
+      submissionCount: claimableRewards.length,
     })
   } catch (error) {
     console.error("API error:", error)

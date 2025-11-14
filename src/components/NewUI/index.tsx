@@ -144,6 +144,8 @@ export function MainUI() {
                 )
               : undefined,
             photo: place.photos?.[0]?.getUrl({ maxWidth: 400 }),
+            placeId: place.place_id || "",
+            types: place.types || [],
           }))
 
           // Sort by distance
@@ -236,6 +238,8 @@ export function MainUI() {
                   )
                 : undefined,
               photo: place.photos?.[0]?.getUrl({ maxWidth: 400 }),
+              placeId: place.place_id || "",
+              types: place.types || [],
             }))
 
           if (newStations.length > 0) {

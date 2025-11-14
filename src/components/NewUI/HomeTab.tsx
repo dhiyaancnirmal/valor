@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { useTranslations } from "next-intl"
-import { Navigation, Coins } from "lucide-react"
+import { Navigation, Coins, ChevronDown, Check } from "lucide-react"
 import { GasStation, UserLocation } from "@/types"
 import { formatDistance } from "@/lib/utils"
 import { SearchBar } from "./SearchBar"
+import { useSession } from "next-auth/react"
 
 interface HomeTabProps {
   gasStations: GasStation[]
@@ -29,6 +30,8 @@ interface HomeTabProps {
   setIsLoadingStationData: React.Dispatch<React.SetStateAction<boolean>>
 }
 
+type SortOption = 'proximity' | 'priority' | 'price-low' | 'price-high'
+
 export function HomeTab({
   gasStations,
   userLocation,
@@ -39,8 +42,10 @@ export function HomeTab({
   setIsLoadingStationData
 }: HomeTabProps) {
   const t = useTranslations()
+  const { data: session } = useSession()
   const [searchQuery, setSearchQuery] = useState("")
-  const [submittedStations, setSubmittedStations] = useState<Set<string>>(new Set())
+  const [sortOption, setSortOption] = useState<SortOption>('proximity')
+  const [userStationSubmissions, setUserStationSubmissions] = useState<Record<string, string[]>>({})
   const [todaysRewards, setTodaysRewards] = useState(0)
 
   // Remove duplicates by id
@@ -54,17 +59,59 @@ export function HomeTab({
     station.address?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  // Sort stations: unsubmitted first (by distance), then submitted at the end
+  // Determine if station is complete (all 3 fuel types submitted by user)
+  const isStationComplete = (stationId: string) => {
+    const submittedTypes = userStationSubmissions[stationId] || []
+    return submittedTypes.length >= 3
+  }
+
+  // Get user submission count for a station
+  const getUserSubmissionCount = (stationId: string) => {
+    return (userStationSubmissions[stationId] || []).length
+  }
+
+  // Sort stations based on selected option
   const sortedStations = [...filteredStations].sort((a, b) => {
-    const aSubmitted = submittedStations.has(a.id)
-    const bSubmitted = submittedStations.has(b.id)
-    
-    // If one is submitted and the other isn't, prioritize unsubmitted
-    if (aSubmitted && !bSubmitted) return 1
-    if (!aSubmitted && bSubmitted) return -1
-    
-    // Both same status, sort by distance
-    return (a.distance || 0) - (b.distance || 0)
+    const aComplete = isStationComplete(a.id)
+    const bComplete = isStationComplete(b.id)
+    const aSubmissionCount = getUserSubmissionCount(a.id)
+    const bSubmissionCount = getUserSubmissionCount(b.id)
+    const aPrice = stationData[a.id]?.latestPrice || 0
+    const bPrice = stationData[b.id]?.latestPrice || 0
+    const aDistance = a.distance || Infinity
+    const bDistance = b.distance || Infinity
+
+    switch (sortOption) {
+      case 'proximity':
+        // Sort by distance, but complete stations at end
+        if (aComplete && !bComplete) return 1
+        if (!aComplete && bComplete) return -1
+        return aDistance - bDistance
+
+      case 'priority':
+        // Unsubmitted stations first (by distance), then submitted (by distance)
+        if (aSubmissionCount === 0 && bSubmissionCount > 0) return -1
+        if (aSubmissionCount > 0 && bSubmissionCount === 0) return 1
+        // Both same priority level, sort by distance
+        return aDistance - bDistance
+
+      case 'price-low':
+        // Lowest price first, then by distance
+        if (aPrice === 0 && bPrice > 0) return 1
+        if (aPrice > 0 && bPrice === 0) return -1
+        if (aPrice !== bPrice) return aPrice - bPrice
+        return aDistance - bDistance
+
+      case 'price-high':
+        // Highest price first, then by distance
+        if (aPrice === 0 && bPrice > 0) return 1
+        if (aPrice > 0 && bPrice === 0) return -1
+        if (aPrice !== bPrice) return bPrice - aPrice
+        return aDistance - bDistance
+
+      default:
+        return aDistance - bDistance
+    }
   })
 
   // Calculate potential earnings
@@ -77,6 +124,22 @@ export function HomeTab({
     const proximityBonus = distance < 200 ? 1.00 : distance < 500 ? 0.50 : 0
     return baseReward + proximityBonus
   }
+
+  // Fetch user's station submissions
+  useEffect(() => {
+    if (session?.user?.walletAddress) {
+      fetch('/api/user-station-submissions')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.stationSubmissions) {
+            setUserStationSubmissions(data.stationSubmissions)
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching user submissions:', error)
+        })
+    }
+  }, [session?.user?.walletAddress])
 
   // Fetch today's rewards on mount only (no polling)
   useEffect(() => {
@@ -134,31 +197,26 @@ export function HomeTab({
     fetchStationData()
   }, [uniqueStations.length])
 
-  // Reset submitted stations daily at midnight UTC
+  // Refresh user submissions after successful submission (polling every 30s)
   useEffect(() => {
-    let timer: NodeJS.Timeout | null = null
-    
-    const scheduleReset = () => {
-      const now = new Date()
-      const tomorrow = new Date(now)
-      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1)
-      tomorrow.setUTCHours(0, 0, 0, 0)
-      
-      const msUntilMidnight = tomorrow.getTime() - now.getTime()
-      
-      timer = setTimeout(() => {
-        setSubmittedStations(new Set())
-        // Schedule next reset
-        scheduleReset()
-      }, msUntilMidnight)
+    if (!session?.user?.walletAddress) return
+
+    const refreshSubmissions = () => {
+      fetch('/api/user-station-submissions')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.stationSubmissions) {
+            setUserStationSubmissions(data.stationSubmissions)
+          }
+        })
+        .catch(error => {
+          console.error('Error refreshing user submissions:', error)
+        })
     }
-    
-    scheduleReset()
-    
-    return () => {
-      if (timer) clearTimeout(timer)
-    }
-  }, [])
+
+    const interval = setInterval(refreshSubmissions, 30000) // Refresh every 30 seconds
+    return () => clearInterval(interval)
+  }, [session?.user?.walletAddress])
 
   return (
     <div className="h-full flex flex-col bg-[#F4F4F8] overflow-hidden">
@@ -181,12 +239,29 @@ export function HomeTab({
         </div>
       </div>
 
-      {/* Search Bar */}
+      {/* Search Bar and Sort Dropdown */}
       <div className="flex-shrink-0 bg-white py-3 border-b border-gray-200" style={{ paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 1.5rem)', paddingRight: 'calc(env(safe-area-inset-right, 0px) + 1.5rem)' }}>
-        <SearchBar 
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-        />
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <SearchBar 
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+            />
+          </div>
+          <div className="relative">
+            <select
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value as SortOption)}
+              className="appearance-none bg-white border border-gray-300 text-gray-900 text-sm font-medium px-4 py-2 pr-8 rounded-lg focus:outline-none focus:border-[#7DD756] transition-colors cursor-pointer"
+            >
+              <option value="proximity">{t('homeTab.sort.proximity')}</option>
+              <option value="priority">{t('homeTab.sort.priority')}</option>
+              <option value="price-low">{t('homeTab.sort.priceLow')}</option>
+              <option value="price-high">{t('homeTab.sort.priceHigh')}</option>
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+          </div>
+        </div>
       </div>
 
       {/* Gas Station Cards */}
@@ -202,7 +277,8 @@ export function HomeTab({
             </div>
           ) : (
             sortedStations.map((station) => {
-              const isSubmitted = submittedStations.has(station.id)
+              const isComplete = isStationComplete(station.id)
+              const userSubmissionCount = getUserSubmissionCount(station.id)
               const data = stationData[station.id]
               const isStationLoading = isLoadingStationData && !data
               const earnings = data?.potentialEarning || 0.00
@@ -213,7 +289,11 @@ export function HomeTab({
               return (
                 <div key={station.id}>
                   <div
-                    className="bg-white cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+                    className={`cursor-pointer transition-all duration-200 ${
+                      isComplete 
+                        ? 'opacity-60 bg-gray-50' 
+                        : 'bg-white hover:scale-[1.01] active:scale-[0.99]'
+                    }`}
                     style={{ borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)', padding: 'var(--spacing-lg)' }}
                     onClick={() => onStationSelect(station)}
                   >
@@ -235,9 +315,17 @@ export function HomeTab({
 
                       {/* Station Info */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-[#1C1C1E] text-base line-clamp-1" style={{ marginBottom: 'var(--spacing-xs)' }}>
-                          {station.name}
-                        </h3>
+                        <div className="flex items-center gap-2" style={{ marginBottom: 'var(--spacing-xs)' }}>
+                          <h3 className="font-semibold text-[#1C1C1E] text-base line-clamp-1">
+                            {station.name}
+                          </h3>
+                          {isComplete && (
+                            <div className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                              <Check className="w-3 h-3" />
+                              <span>Complete</span>
+                            </div>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-600 line-clamp-1" style={{ marginBottom: 'var(--spacing-sm)' }}>
                           {station.address}
                         </p>

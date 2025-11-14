@@ -12,3 +12,4 @@ export async function GET() {
     has_supabase_key: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   })
 }
+

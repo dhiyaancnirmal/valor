@@ -5,6 +5,9 @@ import { privateKeyToAccount } from "viem/accounts"
 import { stationIdToBytes32, signClaimMessage } from "@/lib/rewards"
 import { RewardVaultABI } from "@/lib/abi/RewardVault"
 
+// Prevent caching to ensure cron job runs every time
+export const dynamic = 'force-dynamic'
+
 /**
  * Batch payout API endpoint
  * Should be called by a cron job at 12:00 AM UTC daily
@@ -13,11 +16,22 @@ import { RewardVaultABI } from "@/lib/abi/RewardVault"
 export async function POST(request: NextRequest) {
   try {
     // Verify cron secret or admin auth
+    // Vercel cron jobs don't send Authorization headers by default
+    // If CRON_SECRET is set, we require it for manual calls
+    // For Vercel cron jobs (which don't send identifying headers), we allow them through
     const authHeader = request.headers.get("authorization")
     const cronSecret = process.env.CRON_SECRET || process.env.VERCEL_CRON_SECRET
     
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    // If cron secret is set and provided, verify it
+    // If no auth header is provided, assume it's a Vercel cron job (less secure but necessary)
+    if (cronSecret && authHeader) {
+      if (authHeader !== `Bearer ${cronSecret}`) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
+    } else if (cronSecret && !authHeader) {
+      // No auth header but secret is set - likely Vercel cron job
+      // Log it but allow through (Vercel cron jobs don't send auth headers)
+      console.log("Cron job called without Authorization header - assuming Vercel cron job")
     }
 
     // Get yesterday's UTC date

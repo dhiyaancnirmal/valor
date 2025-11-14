@@ -5,23 +5,17 @@ import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { ArrowLeft, Camera, Check } from "lucide-react"
-import { FuelType } from "@/types"
+import { FuelType, GasStation } from "@/types"
 import { calculateDistance } from "@/lib/utils"
 
 interface PriceEntryPageProps {
-  stationId: string
-  stationName: string
-  stationLat: number
-  stationLng: number
+  station: GasStation
 }
 
 type Step = 1 | 2 | 3 | 4
 
 export function PriceEntryPage({
-  stationId,
-  stationName,
-  stationLat,
-  stationLng,
+  station,
 }: PriceEntryPageProps) {
   const t = useTranslations()
   const router = useRouter()
@@ -33,10 +27,12 @@ export function PriceEntryPage({
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [currency, setCurrency] = useState<"USD" | "ARS" | "EUR" | "GBP">("USD")
   const [userLocation, setUserLocation] = useState<{
     latitude: number
     longitude: number
   } | null>(null)
+  const [submittedFuelTypes, setSubmittedFuelTypes] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const priceInputRef = useRef<HTMLInputElement>(null)
 
@@ -67,6 +63,22 @@ export function PriceEntryPage({
       )
     }
   }, [])
+
+  // Fetch user's submitted fuel types for this station
+  useEffect(() => {
+    if (session?.user?.walletAddress && station.id) {
+      fetch('/api/user-station-submissions')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.stationSubmissions[station.id]) {
+            setSubmittedFuelTypes(data.stationSubmissions[station.id])
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching user submissions:', error)
+        })
+    }
+  }, [session?.user?.walletAddress, station.id])
 
   // Set cursor to end when input is focused or when step changes to 2
   useEffect(() => {
@@ -128,8 +140,8 @@ export function PriceEntryPage({
     const distance = calculateDistance(
       userLocation.latitude,
       userLocation.longitude,
-      stationLat,
-      stationLng
+      station.latitude,
+      station.longitude
     )
 
     if (distance > 500) {
@@ -145,14 +157,28 @@ export function PriceEntryPage({
     try {
       const formData = new FormData()
       formData.append("user_wallet_address", session?.user?.walletAddress || "")
-      formData.append("gas_station_name", stationName)
-      formData.append("gas_station_id", stationId)
+      formData.append("gas_station_name", station.name)
+      formData.append("gas_station_id", station.id)
+      formData.append("gas_station_address", station.address || "")
       formData.append("price", price)
       formData.append("fuel_type", fuelType || "")
+      formData.append("currency", currency)
       formData.append("user_latitude", userLocation.latitude.toString())
       formData.append("user_longitude", userLocation.longitude.toString())
-      formData.append("gas_station_latitude", stationLat.toString())
-      formData.append("gas_station_longitude", stationLng.toString())
+      formData.append("gas_station_latitude", station.latitude.toString())
+      formData.append("gas_station_longitude", station.longitude.toString())
+      // POI fields from Google Places API
+      if (station.placeId) {
+        formData.append("poi_place_id", station.placeId)
+      }
+      if (station.name) {
+        formData.append("poi_name", station.name)
+      }
+      formData.append("poi_lat", station.latitude.toString())
+      formData.append("poi_long", station.longitude.toString())
+      if (station.types && station.types.length > 0) {
+        formData.append("poi_types", JSON.stringify(station.types))
+      }
       if (photo) {
         formData.append("photo", photo)
       }
@@ -190,7 +216,7 @@ export function PriceEntryPage({
           </button>
           <div>
             <h1 className="text-3xl font-bold text-[#1C1C1E]">{t('priceEntry.submitPrice')}</h1>
-            <p className="text-sm text-gray-600">{stationName}</p>
+            <p className="text-sm text-gray-600">{station.name}</p>
           </div>
         </div>
       </header>
@@ -228,15 +254,28 @@ export function PriceEntryPage({
               {t('priceEntry.chooseFuelType')}
             </p>
             <div className="space-y-3">
-              {fuelTypes.map((type) => (
-                <button
-                  key={type}
-                  onClick={() => handleFuelTypeSelect(type)}
-                  className="w-full bg-white border-2 border-gray-200 hover:border-primary hover:bg-primary/5 rounded-xl p-4 text-left transition-all"
-                >
-                  <p className="font-semibold text-gray-900">{type}</p>
-                </button>
-              ))}
+              {fuelTypes.map((type) => {
+                const isSubmitted = submittedFuelTypes.includes(type)
+                return (
+                  <button
+                    key={type}
+                    onClick={() => !isSubmitted && handleFuelTypeSelect(type)}
+                    disabled={isSubmitted}
+                    className={`w-full bg-white border-2 rounded-xl p-4 text-left transition-all ${
+                      isSubmitted
+                        ? 'opacity-50 cursor-not-allowed border-gray-200 bg-gray-100'
+                        : 'border-gray-200 hover:border-primary hover:bg-primary/5'
+                    }`}
+                  >
+                    <p className="font-semibold text-gray-900 flex items-center gap-2">
+                      {type}
+                      {isSubmitted && (
+                        <Check className="w-4 h-4 text-green-600" />
+                      )}
+                    </p>
+                  </button>
+                )
+              })}
             </div>
           </div>
         )}
@@ -250,9 +289,29 @@ export function PriceEntryPage({
             <p className="text-gray-600 mb-6">
               {t('priceEntry.pricePerGallon', { fuelType: fuelType || '' })}
             </p>
+            {/* Currency selector */}
+            <div className="flex justify-center mb-4">
+              <div className="inline-flex bg-gray-50 rounded-lg px-2 py-1 border border-gray-200 gap-3">
+                {(["USD", "ARS", "EUR", "GBP"] as const).map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setCurrency(c)}
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
+                      currency === c ? "bg-gradient-to-r from-[#FF6B35] to-[#F7931E] text-white shadow-sm" : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                    type="button"
+                  >
+                    {c === "USD" ? "$" : c === "EUR" ? "€" : c === "GBP" ? "£" : "$"}
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="bg-white rounded-xl p-6 mb-6">
               <div className="flex items-center space-x-2 mb-4 overflow-hidden">
-                <span className="text-4xl font-bold text-gray-900">$</span>
+                <span className="text-4xl font-bold text-gray-900">
+                  {currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "$"}
+                </span>
                 <input
                   ref={priceInputRef}
                   type="number"
@@ -358,7 +417,9 @@ export function PriceEntryPage({
               </div>
               <div>
                 <p className="text-sm text-gray-600">{t('priceEntry.price')}</p>
-                <p className="text-2xl font-bold text-[#7DD756]">${price}</p>
+                <p className="text-2xl font-bold text-[#7DD756]">
+                  {currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "$"}{price}
+                </p>
               </div>
               {photoPreview && (
                 <div>

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { useTranslations } from "next-intl"
 import { useSession, signOut } from "next-auth/react"
 import { Loader2, Settings } from "lucide-react"
+import { MiniKit } from "@worldcoin/minikit-js"
 
 interface AccruedRewards {
   totalAccrued: string
@@ -20,6 +21,8 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
   const { data: session } = useSession()
   const [accruedRewards, setAccruedRewards] = useState<AccruedRewards | null>(null)
   const [isLoadingRewards, setIsLoadingRewards] = useState(true)
+  const [isClaiming, setIsClaiming] = useState(false)
+  const [claimError, setClaimError] = useState<string | null>(null)
 
   // Helper function to get user initials for fallback
   const getUserInitials = (username?: string) => {
@@ -164,6 +167,40 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
         </div>
       </div>
 
+      {/* Claim Button - Always visible */}
+      {!isLoadingRewards && (
+        <div style={{ padding: 'var(--spacing-xl)' }}>
+          <button
+            onClick={handleClaimRewards}
+            disabled={isClaiming || !MiniKit.isInstalled() || !accruedRewards || accruedRewards.totalUSDC === 0}
+            className={`w-full font-bold py-4 px-6 rounded-2xl shadow-lg transition-all ${
+              accruedRewards && accruedRewards.totalUSDC > 0 && !isClaiming && MiniKit.isInstalled()
+                ? 'bg-gradient-to-r from-[#7DD756] to-[#5FB840] text-white hover:scale-105 active:scale-95'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
+          >
+            {isClaiming ? (
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Claiming...</span>
+              </div>
+            ) : accruedRewards && accruedRewards.totalUSDC > 0 ? (
+              <span>Claim {accruedRewards.totalUSDC.toFixed(2)} USDC</span>
+            ) : (
+              <span>No rewards to claim</span>
+            )}
+          </button>
+          {claimError && (
+            <p className="text-red-500 text-sm text-center mt-2">{claimError}</p>
+          )}
+          {!MiniKit.isInstalled() && (
+            <p className="text-gray-500 text-xs text-center mt-2">
+              Please open in World App to claim rewards
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Additional info if needed */}
       {accruedRewards && accruedRewards.totalUSDC > 0 && (
         <div style={{ padding: '0 var(--spacing-xl)' }}>
@@ -174,4 +211,100 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
       )}
     </div>
   )
+
+  async function handleClaimRewards() {
+    if (!MiniKit.isInstalled()) {
+      setClaimError("Please open this app in World App to claim rewards")
+      return
+    }
+
+    setIsClaiming(true)
+    setClaimError(null)
+
+    try {
+      // Step 1: Get transaction data from backend
+      const prepareResponse = await fetch('/api/prepare-claim')
+      const prepareData = await prepareResponse.json()
+
+      if (!prepareData.success || !prepareData.transactions || prepareData.transactions.length === 0) {
+        setClaimError(prepareData.error || "No rewards available to claim")
+        setIsClaiming(false)
+        return
+      }
+
+      console.log(`Preparing to claim ${prepareData.transactions.length} rewards`)
+
+      // Step 2: Execute transaction using MiniKit
+      // MiniKit supports batching multiple transactions
+      const { finalPayload } = await MiniKit.commandsAsync.sendTransaction({
+        transaction: prepareData.transactions.map((tx: any) => ({
+          address: tx.address,
+          abi: tx.abi,
+          functionName: tx.functionName,
+          args: tx.args,
+        })),
+      })
+
+      if (finalPayload.status === 'error') {
+        // Don't show error for user rejection - this is normal behavior
+        if (finalPayload.error_code === 'user_rejected') {
+          setIsClaiming(false)
+          return
+        }
+        console.error("Transaction error:", finalPayload)
+        setClaimError(finalPayload.error_code || "Transaction failed")
+        setIsClaiming(false)
+        return
+      }
+
+      if (finalPayload.status !== 'success') {
+        console.error("Transaction failed:", finalPayload)
+        setClaimError("Transaction failed. Please try again.")
+        setIsClaiming(false)
+        return
+      }
+
+      console.log("Transaction successful:", finalPayload)
+
+      // Step 3: Confirm transaction on backend and update database
+      const confirmResponse = await fetch('/api/confirm-claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transactionIds: prepareData.transactionIds,
+          txHash: finalPayload.txHash || finalPayload.hash,
+        }),
+      })
+
+      const confirmData = await confirmResponse.json()
+
+      if (!confirmData.success) {
+        console.error("Failed to confirm transaction:", confirmData)
+        setClaimError("Transaction succeeded but failed to update records. Please contact support.")
+        setIsClaiming(false)
+        return
+      }
+
+      // Step 4: Refresh rewards display
+      setIsClaiming(false)
+      setClaimError(null)
+      
+      // Refresh rewards
+      if (session?.user?.walletAddress) {
+        const rewardsResponse = await fetch('/api/wallet/rewards')
+        const rewardsData = await rewardsResponse.json()
+        if (!rewardsData.error) {
+          setAccruedRewards({
+            totalAccrued: rewardsData.totalAccrued || '0',
+            totalUSDC: typeof rewardsData.totalUSDC === 'number' && !isNaN(rewardsData.totalUSDC) ? rewardsData.totalUSDC : 0,
+            submissionCount: typeof rewardsData.submissionCount === 'number' && !isNaN(rewardsData.submissionCount) ? Math.max(0, Math.floor(rewardsData.submissionCount)) : 0,
+          })
+        }
+      }
+    } catch (error: any) {
+      console.error("Claim error:", error)
+      setClaimError(error.message || "Failed to claim rewards. Please try again.")
+      setIsClaiming(false)
+    }
+  }
 }

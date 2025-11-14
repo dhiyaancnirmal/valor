@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
+import { calculateDistance } from "@/lib/utils"
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,8 +19,10 @@ export async function POST(request: NextRequest) {
     const walletAddress = formData.get("user_wallet_address") as string
     const gasStationName = formData.get("gas_station_name") as string
     const gasStationId = formData.get("gas_station_id") as string
+    const gasStationAddress = formData.get("gas_station_address") as string | null
     const price = parseFloat(formData.get("price") as string)
     const fuelType = formData.get("fuel_type") as string
+    const currency = (formData.get("currency") as string) || "USD" // Default to USD for backward compatibility
     const userLatitude = parseFloat(formData.get("user_latitude") as string)
     const userLongitude = parseFloat(formData.get("user_longitude") as string)
     const gasStationLatitude = parseFloat(
@@ -29,17 +32,31 @@ export async function POST(request: NextRequest) {
       formData.get("gas_station_longitude") as string
     )
     const photo = formData.get("photo") as File | null
+    // POI fields from Google Places API
+    const poiPlaceId = formData.get("poi_place_id") as string | null
+    const poiName = formData.get("poi_name") as string | null
+    const poiLat = formData.get("poi_lat") ? parseFloat(formData.get("poi_lat") as string) : null
+    const poiLong = formData.get("poi_long") ? parseFloat(formData.get("poi_long") as string) : null
+    const poiTypesStr = formData.get("poi_types") as string | null
+    const poiTypes = poiTypesStr ? JSON.parse(poiTypesStr) as string[] : null
 
     console.log("Parsed form data:", {
       walletAddress,
       gasStationName,
       gasStationId,
+      gasStationAddress,
       price,
       fuelType,
+      currency,
       userLatitude,
       userLongitude,
       gasStationLatitude,
       gasStationLongitude,
+      poiPlaceId,
+      poiName,
+      poiLat,
+      poiLong,
+      poiTypes,
       hasPhoto: !!photo
     })
 
@@ -67,6 +84,46 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Verify user is within 500 meters of the gas station
+    const distance = calculateDistance(
+      userLatitude,
+      userLongitude,
+      gasStationLatitude,
+      gasStationLongitude
+    )
+
+    if (distance > 500) {
+      return NextResponse.json(
+        { error: "priceSubmission:errors.tooFarFromStation", message: `Too far from station. Distance: ${Math.round(distance)}m` },
+        { status: 400 }
+      )
+    }
+
+    // Check for duplicate submission (same user, station, fuel type, and day)
+    const currentUTCDate = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+    const startOfDay = new Date(currentUTCDate + 'T00:00:00.000Z')
+    const endOfDay = new Date(currentUTCDate + 'T23:59:59.999Z')
+
+    const { count: duplicateCount, error: duplicateError } = await supabaseAdmin
+      .from("price_submissions")
+      .select("*", { count: "exact", head: true })
+      .eq("user_wallet_address", walletAddress)
+      .eq("gas_station_id", gasStationId)
+      .eq("fuel_type", fuelType)
+      .gte("created_at", startOfDay.toISOString())
+      .lte("created_at", endOfDay.toISOString())
+
+    if (duplicateError) {
+      console.error("Error checking for duplicates:", duplicateError)
+    }
+
+    if (duplicateCount && duplicateCount > 0) {
+      return NextResponse.json(
+        { error: "priceSubmission:errors.duplicateSubmission", message: `You have already submitted ${fuelType} for this station today` },
+        { status: 400 }
+      )
+    }
+
     // Create database record (without photo URL initially)
     const { data: submission, error: dbError } = await supabaseAdmin
       .from("price_submissions")
@@ -74,12 +131,19 @@ export async function POST(request: NextRequest) {
         user_wallet_address: walletAddress,
         gas_station_name: gasStationName,
         gas_station_id: gasStationId,
+        gas_station_address: gasStationAddress || null,
         price,
         fuel_type: fuelType,
+        currency: currency || "USD",
         user_latitude: userLatitude,
         user_longitude: userLongitude,
         gas_station_latitude: gasStationLatitude,
         gas_station_longitude: gasStationLongitude,
+        poi_place_id: poiPlaceId || null,
+        poi_name: poiName || null,
+        poi_lat: poiLat || null,
+        poi_long: poiLong || null,
+        poi_types: poiTypes ? JSON.stringify(poiTypes) : null,
       })
       .select()
       .single()

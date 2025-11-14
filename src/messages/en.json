@@ -38,7 +38,13 @@
     "earn": "Earn",
     "submit": "Submit",
     "stationsCount": "{count} stations",
-    "earnAmount": "Earn ${amount}"
+    "earnAmount": "Earn ${amount}",
+    "sort": {
+      "proximity": "Proximity",
+      "priority": "Priority",
+      "priceLow": "Price: Low",
+      "priceHigh": "Price: High"
+    }
   },
   "walletTab": {
     "walletAddress": "Wallet Address",

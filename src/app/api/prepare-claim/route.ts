@@ -100,6 +100,7 @@ export async function GET(request: NextRequest) {
 
         // Prepare transaction for MiniKit
         // Use the full ABI - MiniKit will extract the needed function
+        // Convert BigInt values to strings for JSON serialization
         transactions.push({
           address: rewardContract,
           abi: RewardVaultABI,
@@ -107,9 +108,9 @@ export async function GET(request: NextRequest) {
           args: [
             walletAddress,
             stationIdBytes32,
-            submissionId,
-            amount,
-            deadline,
+            submissionId.toString(), // Convert BigInt to string
+            amount.toString(), // Convert BigInt to string
+            deadline.toString(), // Convert BigInt to string
             signature
           ],
           // Store transaction ID for database update after successful claim

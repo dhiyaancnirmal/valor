@@ -84,9 +84,9 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
   }, [isLoadingRewards, accruedRewards?.submissionCount])
 
   return (
-    <div className="h-full bg-[#F4F4F8] overflow-y-auto pb-24">
+    <div className="h-full bg-[#F4F4F8] overflow-hidden flex flex-col">
       {/* Header with settings button */}
-      <div style={{ padding: 'var(--spacing-xl)', paddingLeft: 'calc(env(safe-area-inset-left, 0px) + var(--spacing-xl))', paddingRight: 'calc(env(safe-area-inset-right, 0px) + var(--spacing-xl))' }}>
+      <div style={{ padding: 'var(--spacing-md)', paddingLeft: 'calc(env(safe-area-inset-left, 0px) + var(--spacing-md))', paddingRight: 'calc(env(safe-area-inset-right, 0px) + var(--spacing-md))', flexShrink: 0 }}>
         <div className="flex items-center justify-end">
           {/* Settings Icon */}
           <button
@@ -100,9 +100,9 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
       </div>
 
       {/* Profile Section */}
-      <div className="h-80 relative flex flex-col items-center justify-center px-6">
+      <div className="flex-shrink-0 relative flex flex-col items-center justify-center px-6 py-2">
         {/* Profile Picture */}
-        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#7DD756] to-[#5FB840] shadow-lg flex items-center justify-center overflow-hidden mb-4">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#7DD756] to-[#5FB840] shadow-lg flex items-center justify-center overflow-hidden mb-2">
           {session?.user?.profilePictureUrl ? (
             <img 
               src={session.user.profilePictureUrl} 
@@ -116,51 +116,51 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
               }}
             />
           ) : null}
-          <div className={`${session?.user?.profilePictureUrl ? 'hidden' : ''} text-white text-4xl font-bold`}>
+          <div className={`${session?.user?.profilePictureUrl ? 'hidden' : ''} text-white text-2xl font-bold`}>
             {getUserInitials(session?.user?.username)}
           </div>
         </div>
 
         {/* Username */}
-        <h2 className="text-2xl font-bold text-[#1C1C1E] mb-2">
+        <h2 className="text-lg font-bold text-[#1C1C1E] mb-1">
           {session?.user?.username || "Anonymous User"}
         </h2>
 
         {/* Wallet Address */}
-        <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-full px-4 py-2">
-          <p className="text-sm text-[#1C1C1E] font-mono">
+        <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-full px-3 py-1">
+          <p className="text-xs text-[#1C1C1E] font-mono">
             {formatWalletAddress(session?.user?.walletAddress)}
           </p>
         </div>
       </div>
 
       {/* Token Balance - Large centered display */}
-      <div style={{ padding: 'var(--spacing-sm) 10px' }} className="bg-white/10 backdrop-blur-sm">
+      <div style={{ padding: 'var(--spacing-sm) 10px' }} className="bg-white/10 backdrop-blur-sm flex-shrink-0">
         <div className="text-center">
           {isLoadingRewards ? (
-            <div className="flex justify-center items-center py-8">
-              <Loader2 className="w-12 h-12 text-[#1C1C1E] animate-spin" />
+            <div className="flex justify-center items-center py-4">
+              <Loader2 className="w-8 h-8 text-[#1C1C1E] animate-spin" />
             </div>
           ) : (
-            <div className="text-[4rem] sm:text-[5rem] md:text-[6rem] font-bold text-[#1C1C1E] tracking-tight leading-none whitespace-nowrap overflow-hidden">
-              {accruedRewards?.totalUSDC.toFixed(2) || '0.00'} <span className="text-[2.5rem] sm:text-[3rem] md:text-[3.5rem] text-[#1C1C1E]/70">USDC</span>
+            <div className="text-[3rem] sm:text-[3.5rem] font-bold text-[#1C1C1E] tracking-tight leading-none whitespace-nowrap overflow-hidden">
+              {accruedRewards?.totalUSDC.toFixed(2) || '0.00'} <span className="text-[1.5rem] sm:text-[2rem] text-[#1C1C1E]/70">USDC</span>
             </div>
           )}
         </div>
       </div>
 
       {/* Submission Streak Counter */}
-      <div style={{ padding: 'var(--spacing-xl)' }}>
-        <div className="bg-white/20 backdrop-blur-md border border-white/30" style={{ borderRadius: 'var(--radius-lg)', padding: 'var(--spacing-lg)' }}>
+      <div style={{ padding: 'var(--spacing-md)' }} className="flex-shrink-0">
+        <div className="bg-white/20 backdrop-blur-md border border-white/30" style={{ borderRadius: 'var(--radius-lg)', padding: 'var(--spacing-md)' }}>
           <div className="text-center">
-            <div className="text-2xl font-bold text-[#1C1C1E] tabular-nums">
+            <div className="text-xl font-bold text-[#1C1C1E] tabular-nums">
               {isLoadingRewards ? (
                 <span className="opacity-50">0</span>
               ) : (
                 <span>{formattedSubmissionCount}</span>
               )}
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-xs text-gray-600">
               {t('walletTab.submissions')}
             </div>
           </div>
@@ -168,47 +168,45 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
       </div>
 
       {/* Claim Button - Always visible */}
-      {!isLoadingRewards && (
-        <div style={{ padding: 'var(--spacing-xl)' }}>
-          <button
-            onClick={handleClaimRewards}
-            disabled={isClaiming || !MiniKit.isInstalled() || !accruedRewards || accruedRewards.totalUSDC === 0}
-            className={`w-full font-bold py-4 px-6 rounded-2xl shadow-lg transition-all ${
-              accruedRewards && accruedRewards.totalUSDC > 0 && !isClaiming && MiniKit.isInstalled()
-                ? 'bg-gradient-to-r from-[#7DD756] to-[#5FB840] text-white hover:scale-105 active:scale-95'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
-          >
-            {isClaiming ? (
-              <div className="flex items-center justify-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Claiming...</span>
-              </div>
-            ) : accruedRewards && accruedRewards.totalUSDC > 0 ? (
-              <span>Claim {accruedRewards.totalUSDC.toFixed(2)} USDC</span>
-            ) : (
-              <span>No rewards to claim</span>
+      <div className="flex-1 flex flex-col justify-end" style={{ padding: 'var(--spacing-md)', paddingBottom: 'var(--spacing-lg)' }}>
+        {!isLoadingRewards && (
+          <>
+            <button
+              onClick={handleClaimRewards}
+              disabled={isClaiming || !MiniKit.isInstalled() || !accruedRewards || accruedRewards.totalUSDC === 0}
+              className={`w-full font-bold py-3 px-6 rounded-2xl shadow-lg transition-all ${
+                accruedRewards && accruedRewards.totalUSDC > 0 && !isClaiming && MiniKit.isInstalled()
+                  ? 'bg-gradient-to-r from-[#7DD756] to-[#5FB840] text-white hover:scale-105 active:scale-95'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
+            >
+              {isClaiming ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Claiming...</span>
+                </div>
+              ) : accruedRewards && accruedRewards.totalUSDC > 0 ? (
+                <span>Claim {accruedRewards.totalUSDC.toFixed(2)} USDC</span>
+              ) : (
+                <span>No rewards to claim</span>
+              )}
+            </button>
+            {claimError && (
+              <p className="text-red-500 text-xs text-center mt-1">{claimError}</p>
             )}
-          </button>
-          {claimError && (
-            <p className="text-red-500 text-sm text-center mt-2">{claimError}</p>
-          )}
-          {!MiniKit.isInstalled() && (
-            <p className="text-gray-500 text-xs text-center mt-2">
-              Please open in World App to claim rewards
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Additional info if needed */}
-      {accruedRewards && accruedRewards.totalUSDC > 0 && (
-        <div style={{ padding: '0 var(--spacing-xl)' }}>
-          <p className="text-center text-sm text-gray-600">
-            {t('time.payoutSchedule')}
-          </p>
-        </div>
-      )}
+            {!MiniKit.isInstalled() && (
+              <p className="text-gray-500 text-xs text-center mt-1">
+                Please open in World App to claim rewards
+              </p>
+            )}
+            {accruedRewards && accruedRewards.totalUSDC > 0 && (
+              <p className="text-center text-xs text-gray-600 mt-1">
+                {t('time.payoutSchedule')}
+              </p>
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 
@@ -236,12 +234,20 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
 
       // Step 2: Execute transaction using MiniKit
       // MiniKit supports batching multiple transactions
+      // Convert string BigInt values back to BigInt for MiniKit
       const { finalPayload } = await MiniKit.commandsAsync.sendTransaction({
         transaction: prepareData.transactions.map((tx: any) => ({
           address: tx.address,
           abi: tx.abi,
           functionName: tx.functionName,
-          args: tx.args,
+          args: tx.args.map((arg: any, index: number) => {
+            // Convert string BigInt values back to BigInt for MiniKit
+            // args[2] = submissionId, args[3] = amount, args[4] = deadline
+            if (index === 2 || index === 3 || index === 4) {
+              return typeof arg === 'string' ? BigInt(arg) : arg
+            }
+            return arg
+          }),
         })),
       })
 

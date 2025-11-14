@@ -234,20 +234,14 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
 
       // Step 2: Execute transaction using MiniKit
       // MiniKit supports batching multiple transactions
-      // Convert string BigInt values back to BigInt for MiniKit
+      // According to Worldcoin docs, all args must be strings
+      // MiniKit will auto-format them, so we keep them as strings
       const { finalPayload } = await MiniKit.commandsAsync.sendTransaction({
         transaction: prepareData.transactions.map((tx: any) => ({
           address: tx.address,
           abi: tx.abi,
           functionName: tx.functionName,
-          args: tx.args.map((arg: any, index: number) => {
-            // Convert string BigInt values back to BigInt for MiniKit
-            // args[2] = submissionId, args[3] = amount, args[4] = deadline
-            if (index === 2 || index === 3 || index === 4) {
-              return typeof arg === 'string' ? BigInt(arg) : arg
-            }
-            return arg
-          }),
+          args: tx.args, // Keep args as strings - MiniKit will handle formatting
         })),
       })
 
@@ -258,7 +252,13 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
           return
         }
         console.error("Transaction error:", finalPayload)
-        setClaimError(finalPayload.error_code || "Transaction failed")
+        
+        // Provide helpful error message for invalid_contract
+        if (finalPayload.error_code === 'invalid_contract') {
+          setClaimError("Contract not whitelisted. Please whitelist the RewardVault contract in the Worldcoin Developer Portal.")
+        } else {
+          setClaimError(finalPayload.error_code || "Transaction failed")
+        }
         setIsClaiming(false)
         return
       }

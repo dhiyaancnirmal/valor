@@ -334,7 +334,7 @@ export function MainUI() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="relative bg-white border-t border-gray-100 z-50" style={{ paddingTop: 'var(--spacing-md)', paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + var(--spacing-md))`, boxShadow: '0 -1px 3px rgba(0, 0, 0, 0.04)' }}>
+      <nav className="relative bg-white border-t border-gray-100 z-50" style={{ paddingTop: 'var(--spacing-xs)', paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + var(--spacing-md))`, boxShadow: '0 -1px 3px rgba(0, 0, 0, 0.04)', touchAction: 'manipulation', overscrollBehavior: 'none', overflow: 'hidden' }}>
         <div className="flex justify-around items-center">
           {tabs.map((tab) => {
             const Icon = tab.icon

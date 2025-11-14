@@ -115,7 +115,7 @@
     "pricePerGallon": "What's the price per gallon for {fuelType}?",
     "pricePerGallonLabel": "Price per gallon",
     "takePhoto": "Take a Photo",
-    "photoDescription": "Snap a photo of the price sign for verification",
+    "photoDescription": "Take a photo of the gas price only",
     "openCamera": "Open Camera",
     "photoOptional": "Photo is optional but helps verify accuracy",
     "skipPhoto": "Skip Photo",

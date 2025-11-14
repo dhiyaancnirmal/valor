@@ -102,6 +102,20 @@ export function PriceEntryForm({
   const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      // Validate that the photo was just taken (not from gallery)
+      // Photos taken from camera should have been modified very recently (within last 5 seconds)
+      const now = Date.now()
+      const fileTime = file.lastModified
+      const timeDiff = now - fileTime
+      
+      // If file is older than 5 seconds, it was likely selected from gallery
+      if (timeDiff > 5000) {
+        alert("Please take a new photo using the camera. Gallery photos are not allowed.")
+        // Reset the input
+        e.target.value = ''
+        return
+      }
+      
       setPhoto(file)
       const reader = new FileReader()
       reader.onloadend = () => {

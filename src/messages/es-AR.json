@@ -115,7 +115,7 @@
     "pricePerGallon": "¿Cuál es el precio por galón de {fuelType}?",
     "pricePerGallonLabel": "Precio por galón",
     "takePhoto": "Tomar una Foto",
-    "photoDescription": "Toma una foto del cartel de precios para verificación",
+    "photoDescription": "Toma una foto solo del precio de la gasolina",
     "openCamera": "Abrir Cámara",
     "photoOptional": "La foto es opcional pero ayuda a verificar la precisión",
     "skipPhoto": "Omitir Foto",

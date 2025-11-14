@@ -207,6 +207,19 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
     const handleFileInput = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file && file.type.startsWith('image/')) {
+            // Validate that the photo was just taken (not from gallery)
+            // Photos taken from camera should have been modified very recently (within last 5 seconds)
+            const now = Date.now();
+            const fileTime = file.lastModified;
+            const timeDiff = now - fileTime;
+            
+            // If file is older than 5 seconds, it was likely selected from gallery
+            if (timeDiff > 5000) {
+                alert("Please take a new photo using the camera. Gallery photos are not allowed.");
+                event.target.value = '';
+                return;
+            }
+            
             const reader = new FileReader();
             reader.onload = (e) => {
                 const result = e.target?.result as string;

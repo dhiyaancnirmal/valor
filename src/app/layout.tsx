@@ -3,6 +3,7 @@ import { DM_Sans } from 'next/font/google'
 import "./[locale]/globals.css"
 import { SessionProvider } from "@/components/providers/SessionProvider"
 import { MiniKitProvider } from "@worldcoin/minikit-js/minikit-provider"
+import Script from "next/script"
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -21,14 +22,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={dmSans.variable}>
-      <head>
-        <script
-          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
-          async
-          defer
-        ></script>
-      </head>
       <body className="antialiased font-sans">
+        <Script
+          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+          strategy="afterInteractive"
+        />
         <SessionProvider>
           <MiniKitProvider>
             {children}

@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useTranslations } from "next-intl"
-import { useSession, signOut } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import { Loader2, Settings } from "lucide-react"
 import { MiniKit } from "@worldcoin/minikit-js"
+import type { Abi } from "viem"
 
 interface AccruedRewards {
   totalAccrued: string
@@ -14,6 +15,33 @@ interface AccruedRewards {
 
 interface WalletTabProps {
   onOpenSettings: () => void
+}
+
+interface PreparedClaimTx {
+  address: `0x${string}`
+  abi: Abi
+  functionName: string
+  args: string[]
+}
+
+interface PrepareClaimResponse {
+  success?: boolean
+  error?: string
+  transactions?: PreparedClaimTx[]
+  transactionIds?: string[]
+}
+
+interface ConfirmClaimResponse {
+  success?: boolean
+  error?: string
+}
+
+interface MiniKitPayload {
+  status?: string
+  error_code?: string
+  txHash?: string
+  hash?: string
+  transactionHash?: string
 }
 
 export function WalletTab({ onOpenSettings }: WalletTabProps) {
@@ -222,7 +250,7 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
     try {
       // Step 1: Get transaction data from backend
       const prepareResponse = await fetch('/api/prepare-claim')
-      const prepareData = await prepareResponse.json()
+      const prepareData = (await prepareResponse.json()) as PrepareClaimResponse
 
       if (!prepareData.success || !prepareData.transactions || prepareData.transactions.length === 0) {
         setClaimError(prepareData.error || "No rewards available to claim")
@@ -237,7 +265,7 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
       // According to Worldcoin docs, all args must be strings
       // MiniKit will auto-format them, so we keep them as strings
       const { finalPayload } = await MiniKit.commandsAsync.sendTransaction({
-        transaction: prepareData.transactions.map((tx: any) => ({
+        transaction: prepareData.transactions.map((tx: PreparedClaimTx) => ({
           address: tx.address,
           abi: tx.abi,
           functionName: tx.functionName,
@@ -274,7 +302,8 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
 
       // Step 3: Confirm transaction on backend and update database
       // Extract transaction hash from finalPayload (MiniKit response structure)
-      const txHash = (finalPayload as any).txHash || (finalPayload as any).hash || (finalPayload as any).transactionHash || ''
+      const payload = finalPayload as MiniKitPayload
+      const txHash = payload.txHash || payload.hash || payload.transactionHash || ''
       
       if (!txHash) {
         console.error("No transaction hash in response:", finalPayload)
@@ -292,7 +321,7 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
         }),
       })
 
-      const confirmData = await confirmResponse.json()
+      const confirmData = (await confirmResponse.json()) as ConfirmClaimResponse
 
       if (!confirmData.success) {
         console.error("Failed to confirm transaction:", confirmData)
@@ -317,9 +346,9 @@ export function WalletTab({ onOpenSettings }: WalletTabProps) {
           })
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Claim error:", error)
-      setClaimError(error.message || "Failed to claim rewards. Please try again.")
+      setClaimError(error instanceof Error ? error.message : "Failed to claim rewards. Please try again.")
       setIsClaiming(false)
     }
   }

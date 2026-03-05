@@ -1,55 +1,55 @@
 import crypto from "crypto"
+import { verifySiweMessage, type MiniAppWalletAuthSuccessPayload } from "@worldcoin/minikit-js"
 
 export async function verifySignature(
   message: string,
   signature: string,
-  walletAddress: string
+  walletAddress: string,
+  nonce: string,
+  statement?: string,
+  requestId?: string,
+  version?: string | number
 ): Promise<boolean> {
   try {
-    console.log("Verifying signature for wallet:", walletAddress)
-    console.log("Message:", message)
-    console.log("Signature:", signature?.substring(0, 20) + "...")
+    if (!message || !signature || !walletAddress || !nonce) return false
 
-    // In dev mode or when using our HMAC, verify using HMAC
-    const hmacSecret = process.env.HMAC_SECRET_KEY
-    if (!hmacSecret) {
-      console.error("HMAC_SECRET_KEY not found")
-      // Still continue - might be World App signature
-    }
+    // Explicit development-only fallback.
+    // This is intentionally opt-in and disabled in production.
+    const allowDevAuth =
+      process.env.NODE_ENV !== "production" &&
+      process.env.ENABLE_DEV_AUTH === "true"
 
-    // Check if it's our HMAC signature
-    if (hmacSecret) {
-      const hmac = crypto.createHmac("sha256", hmacSecret)
-      hmac.update(message)
-      const expectedSignature = hmac.digest("hex")
-
-      if (signature === expectedSignature) {
-        console.log("HMAC signature verified")
+    if (allowDevAuth) {
+      const expected = createSignature(message)
+      if (signature === expected) {
         return true
       }
     }
 
-    // World App signatures: Accept if signature exists and matches wallet address pattern
-    // or is a valid hex string
-    if (signature && signature.length > 0) {
-      // Check if it's a valid hex string or wallet address
-      const isHexOrAddress = /^(0x)?[0-9a-f]+$/i.test(signature)
-
-      if (isHexOrAddress) {
-        console.log("Accepting World App signature (hex format)")
-        return true
-      }
-
-      // Also accept any non-empty signature for World App
-      // In production, you would verify the actual ECDSA signature
-      console.log("Accepting World App signature (trusted)")
-      return true
+    const payload: MiniAppWalletAuthSuccessPayload = {
+      status: "success",
+      message,
+      signature,
+      address: walletAddress,
+      version: typeof version === "string" ? Number(version) || 1 : version || 1,
     }
 
-    console.error("Signature verification failed: no valid signature found")
-    return false
+    const { isValid, siweMessageData } = await verifySiweMessage(
+      payload,
+      nonce,
+      statement,
+      requestId
+    )
+
+    if (!isValid) return false
+
+    // Additional explicit address check for defense in depth.
+    if (siweMessageData.address) {
+      return siweMessageData.address.toLowerCase() === walletAddress.toLowerCase()
+    }
+
+    return true
   } catch (error) {
-    console.error("Signature verification error:", error)
     return false
   }
 }

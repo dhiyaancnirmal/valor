@@ -1,13 +1,13 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import { useTranslations } from "next-intl"
 import { GasStation, UserLocation } from "@/types"
 
 // Extend window interface for Google Maps
 declare global {
   interface Window {
-    google: any
+    google?: typeof google
   }
 }
 
@@ -46,28 +46,6 @@ export function GoogleMapView({ userLocation, gasStations, onStationSelect, onBo
 
       // Add event listeners for dynamic loading
       if (onBoundsChanged) {
-        let boundsTimeout: NodeJS.Timeout
-        let lastBoundsCheck = Date.now()
-
-        const handleBoundsChanged = () => {
-          const now = Date.now()
-          // Only check bounds if it's been at least 1 second since last check
-          // This prevents excessive API calls during rapid map movements
-          if (now - lastBoundsCheck < 1000) return
-
-          lastBoundsCheck = now
-
-          const bounds = map.getBounds()
-          if (bounds) {
-            const center = bounds.getCenter()
-            const newCenter = {
-              latitude: center.lat(),
-              longitude: center.lng()
-            }
-            onBoundsChanged(newCenter, bounds)
-          }
-        }
-
         // Listen for map idle event (fires when map stops moving)
         // Debounced in parent component, so this is fine
         map.addListener('idle', () => {
@@ -98,7 +76,7 @@ export function GoogleMapView({ userLocation, gasStations, onStationSelect, onBo
       }
       checkGoogleMaps()
     }
-  }, [onBoundsChanged]) // Only depend on onBoundsChanged, not userLocation
+  }, [onBoundsChanged, t]) // Only depend on onBoundsChanged, not userLocation
 
   // Center map on user location only for initial load
   useEffect(() => {
@@ -124,7 +102,7 @@ export function GoogleMapView({ userLocation, gasStations, onStationSelect, onBo
     userMarkerRef.current = userMarker
 
     isInitialLoadRef.current = false
-  }, [userLocation])
+  }, [t, userLocation])
 
   // Update gas station markers when gasStations array changes
   useEffect(() => {

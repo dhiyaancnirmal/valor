@@ -13,13 +13,15 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isMiniKitReady, setIsMiniKitReady] = useState(false)
+  const isDevAuthEnabled =
+    process.env.NODE_ENV !== "production" &&
+    process.env.NEXT_PUBLIC_ENABLE_DEV_AUTH === "true"
 
   useEffect(() => {
     // Check if MiniKit is available after component mounts
     const checkMiniKit = () => {
       if (typeof window !== "undefined") {
         const isInstalled = MiniKit.isInstalled()
-        console.log("MiniKit installed check:", isInstalled)
         setIsMiniKitReady(isInstalled)
 
         if (!isInstalled) {
@@ -37,8 +39,6 @@ export function LoginPage() {
       setIsLoading(true)
       setError(null)
 
-      console.log("Starting World App login...")
-
       // Check if MiniKit is available
       if (!MiniKit.isInstalled()) {
         setError(t('login.errors.openInWorldApp'))
@@ -46,18 +46,22 @@ export function LoginPage() {
         return
       }
 
-      console.log("MiniKit installed, requesting wallet auth...")
-
       // Use async walletAuth command as per documentation
-      console.log("Calling MiniKit.commandsAsync.walletAuth...")
-      const { commandPayload, finalPayload } = await MiniKit.commandsAsync.walletAuth({
-        nonce: Date.now().toString(),
+      const nonceRes = await fetch("/api/nonce")
+      if (!nonceRes.ok) {
+        throw new Error("Failed to initialize sign-in nonce")
+      }
+      const { nonce } = await nonceRes.json()
+      const requestId = "wallet-auth-v1"
+      const statement = t("login.signInStatement")
+
+      const { finalPayload } = await MiniKit.commandsAsync.walletAuth({
+        nonce,
+        requestId,
         expirationTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         notBefore: new Date(Date.now()),
-        statement: t('login.signInStatement'),
+        statement,
       })
-
-      console.log("WalletAuth response:", { commandPayload, finalPayload })
 
       if (finalPayload.status === 'error') {
         // Don't show error for user rejection - this is normal behavior
@@ -65,14 +69,12 @@ export function LoginPage() {
           setIsLoading(false)
           return
         }
-        console.error("WalletAuth error:", finalPayload)
         setError(finalPayload.error_code || t('login.errors.authFailed'))
         setIsLoading(false)
         return
       }
 
       if (finalPayload.status !== 'success') {
-        console.error("WalletAuth failed:", finalPayload)
         setError(t('login.errors.invalidResponse'))
         setIsLoading(false)
         return
@@ -83,48 +85,40 @@ export function LoginPage() {
       const signature = finalPayload.signature
 
       if (!walletAddress) {
-        console.error("No wallet address in response:", finalPayload)
         setError(t('login.errors.noWalletAddress'))
         setIsLoading(false)
         return
       }
 
-      console.log("Got wallet address:", walletAddress)
-      console.log("Got signature:", signature)
-
       // Get user profile data from MiniKit after successful auth
       const userProfile = MiniKit.user
-      console.log("User profile from MiniKit:", userProfile)
 
       // Use the message from the finalPayload (SIWE message)
       const message = finalPayload.message
-
-      console.log("Signing in with NextAuth...")
 
       // Sign in with NextAuth
       const result = await signIn("worldcoin", {
         walletAddress,
         signature,
         message,
+        nonce,
+        requestId,
+        statement,
+        version: finalPayload.version,
         username: userProfile?.username,
         profilePictureUrl: userProfile?.profilePictureUrl,
         redirect: false,
       })
 
-      console.log("NextAuth result:", result)
-
       if (result?.error) {
-        console.error("NextAuth error:", result.error)
         setError(`${t('login.errors.authFailed')}: ${result.error}`)
         setIsLoading(false)
         return
       }
 
       // Success - redirect to home
-      console.log("Login successful, redirecting...")
       window.location.href = "/"
     } catch (err) {
-      console.error("Login error:", err)
       setError(err instanceof Error ? err.message : t('login.errors.generic'))
       setIsLoading(false)
     }
@@ -132,6 +126,10 @@ export function LoginPage() {
 
   const handleDevLogin = async () => {
     try {
+      if (!isDevAuthEnabled) {
+        setError("Dev login is disabled")
+        return
+      }
       setIsLoading(true)
       setError(null)
 
@@ -163,7 +161,6 @@ export function LoginPage() {
 
       window.location.href = "/"
     } catch (err) {
-      console.error("Dev login error:", err)
       setError(t('login.errors.devLoginFailed'))
       setIsLoading(false)
     }
@@ -239,7 +236,7 @@ export function LoginPage() {
               </>
             )}
           </Button>
-        ) : (
+        ) : isDevAuthEnabled ? (
           <>
             <Button
               onClick={handleDevLogin}
@@ -283,6 +280,10 @@ export function LoginPage() {
               {t('login.openInWorldApp')}
             </p>
           </>
+        ) : (
+          <p className="mt-4 text-center text-gray-500 text-xs leading-relaxed">
+            {t('login.openInWorldApp')}
+          </p>
         )}
       </div>
     </div>

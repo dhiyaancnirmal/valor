@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
-import { stationIdToBytes32, signClaimMessage } from "@/lib/rewards"
+import { stationIdToBytes32, signClaimMessage, submissionIdToUint256 } from "@/lib/rewards"
 import { RewardVaultABI } from "@/lib/abi/RewardVault"
+
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Failed to prepare claim"
+
+type RewardTransaction = {
+  id: string
+  submission_id: string
+  gas_station_id: string
+  accrued_amount: string | number | null
+  reward_period_date: string
+}
 
 /**
  * Prepare claim transaction data for MiniKit
@@ -32,7 +43,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    if (!unpaidRewards || unpaidRewards.length === 0) {
+    const rewards = (unpaidRewards ?? []) as RewardTransaction[]
+
+    if (rewards.length === 0) {
       return NextResponse.json(
         { error: "No rewards available to claim" },
         { status: 400 }
@@ -45,7 +58,7 @@ export async function GET(request: NextRequest) {
     const nowUTC = new Date()
     const currentUTCDate = nowUTC.toISOString().split('T')[0] // YYYY-MM-DD
     
-    const claimableRewards = unpaidRewards.filter(tx => {
+    const claimableRewards = rewards.filter(tx => {
       // In dev mode, allow all unpaid rewards
       if (isDevMode) return true
       
@@ -81,7 +94,7 @@ export async function GET(request: NextRequest) {
 
     for (const tx of claimableRewards) {
       try {
-        const submissionId = BigInt(tx.submission_id)
+        const submissionId = submissionIdToUint256(tx.submission_id)
         const stationIdBytes32 = stationIdToBytes32(tx.gas_station_id)
         const amount = BigInt(tx.accrued_amount || 0)
         
@@ -140,12 +153,11 @@ export async function GET(request: NextRequest) {
       rewardCount: transactions.length,
       transactionIds: transactions.map(tx => tx.transactionId),
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Prepare claim error:", error)
     return NextResponse.json(
-      { error: error.message || "Failed to prepare claim" },
+      { error: getErrorMessage(error) },
       { status: 500 }
     )
   }
 }
-

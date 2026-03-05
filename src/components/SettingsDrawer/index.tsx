@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react"
 import { useTranslations } from "next-intl"
-import { X, Globe, Check, Ruler } from "lucide-react"
+import { Globe, Check, Ruler } from "lucide-react"
 import { useLanguage } from "@/components/providers/LanguageProvider"
 
 interface SettingsDrawerProps {
@@ -12,12 +12,9 @@ interface SettingsDrawerProps {
   setUnits?: (units: 'metric' | 'imperial') => void
 }
 
-type DrawerState = "closed" | "open"
-
 export function SettingsDrawer({ isOpen, onClose, units = 'metric', setUnits }: SettingsDrawerProps) {
   const t = useTranslations()
   const { locale, setLocale, localeNames, localeFlags } = useLanguage()
-  const [drawerState, setDrawerState] = useState<DrawerState>("closed")
   const [startY, setStartY] = useState(0)
   const [currentY, setCurrentY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
@@ -35,7 +32,7 @@ export function SettingsDrawer({ isOpen, onClose, units = 'metric', setUnits }: 
 
   const changeLanguage = (langCode: 'en' | 'es-AR') => {
     setLocale(langCode)
-    handleClose()
+    onClose()
   }
 
   const changeUnits = (unitCode: 'metric' | 'imperial') => {
@@ -44,10 +41,8 @@ export function SettingsDrawer({ isOpen, onClose, units = 'metric', setUnits }: 
 
   useEffect(() => {
     if (isOpen) {
-      setDrawerState("open")
       document.body.style.overflow = "hidden"
     } else {
-      setDrawerState("closed")
       document.body.style.overflow = "unset"
     }
 
@@ -55,11 +50,6 @@ export function SettingsDrawer({ isOpen, onClose, units = 'metric', setUnits }: 
       document.body.style.overflow = "unset"
     }
   }, [isOpen])
-
-  const handleClose = () => {
-    setDrawerState("closed")
-    setTimeout(onClose, 150)
-  }
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setStartY(e.touches[0].clientY)
@@ -77,23 +67,10 @@ export function SettingsDrawer({ isOpen, onClose, units = 'metric', setUnits }: 
   const handleTouchEnd = () => {
     setIsDragging(false)
     if (currentY > 100) {
-      handleClose()
+      onClose()
     }
     setCurrentY(0)
     setStartY(0)
-  }
-
-
-  const getDrawerHeight = () => {
-    if (drawerState === "closed") return "0%"
-    return "50%"
-  }
-
-  const getTransform = () => {
-    if (isDragging && currentY > 0) {
-      return `translateY(${currentY}px)`
-    }
-    return "translateY(0)"
   }
 
   return (
@@ -102,10 +79,10 @@ export function SettingsDrawer({ isOpen, onClose, units = 'metric', setUnits }: 
       <div
         className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 transition-opacity duration-250 ease-out"
         style={{
-          opacity: drawerState !== "closed" ? 1 : 0,
-          pointerEvents: drawerState !== "closed" ? 'auto' : 'none'
+          opacity: isOpen ? 1 : 0,
+          pointerEvents: isOpen ? 'auto' : 'none'
         }}
-        onClick={handleClose}
+        onClick={onClose}
       />
 
       {/* Drawer */}
@@ -114,8 +91,8 @@ export function SettingsDrawer({ isOpen, onClose, units = 'metric', setUnits }: 
         className="fixed bottom-0 left-0 right-0 z-50 transform transition-all duration-250 ease-out"
         style={{
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          transform: drawerState !== "closed" ? 'translateY(0)' : 'translateY(100%)',
-          opacity: drawerState !== "closed" ? 1 : 0
+          transform: isOpen ? 'translateY(0)' : 'translateY(100%)',
+          opacity: isOpen ? 1 : 0
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -126,7 +103,7 @@ export function SettingsDrawer({ isOpen, onClose, units = 'metric', setUnits }: 
           style={{
             borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
             boxShadow: 'var(--shadow-lg)',
-            transform: drawerState !== "closed" ? 'scale(1)' : 'scale(0.95)'
+            transform: isOpen ? `translateY(${isDragging ? currentY : 0}px)` : 'scale(0.95)'
           }}
         >
           {/* Handle bar */}
@@ -136,7 +113,7 @@ export function SettingsDrawer({ isOpen, onClose, units = 'metric', setUnits }: 
 
           {/* Close button */}
           <button
-            onClick={handleClose}
+            onClick={onClose}
             className="absolute top-4 right-4 w-8 h-8 bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
             style={{ borderRadius: 'var(--radius-sm)' }}
           >
@@ -245,4 +222,3 @@ export function SettingsDrawer({ isOpen, onClose, units = 'metric', setUnits }: 
     </>
   )
 }
-

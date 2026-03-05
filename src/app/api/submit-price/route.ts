@@ -3,6 +3,10 @@ import { auth } from "@/auth"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 import { calculateDistance } from "@/lib/utils"
 
+type SubmissionRecord = {
+  id: string
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
@@ -148,6 +152,8 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
+    const createdSubmission = submission as SubmissionRecord | null
+
     if (dbError) {
       console.error("Database error:", dbError)
       console.error("Full error details:", JSON.stringify(dbError, null, 2))
@@ -158,8 +164,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload photo asynchronously (non-blocking)
-    if (photo && submission) {
-      const fileName = `${submission.id}-${Date.now()}.${photo.name.split(".").pop()}`
+    if (photo && createdSubmission) {
+      const fileName = `${createdSubmission.id}-${Date.now()}.${photo.name.split(".").pop()}`
       const filePath = `${fileName}`
 
       // Upload to Supabase Storage
@@ -177,7 +183,7 @@ export async function POST(request: NextRequest) {
         await supabaseAdmin
           .from("price_submissions")
           .update({ photo_url: publicUrl })
-          .eq("id", submission.id)
+          .eq("id", createdSubmission.id)
       } else {
         console.error("Photo upload error:", uploadError)
       }
@@ -216,7 +222,7 @@ export async function POST(request: NextRequest) {
       const { error: rewardError } = await supabaseAdmin
         .from("reward_transactions")
         .insert({
-          submission_id: submission.id,
+          submission_id: createdSubmission?.id ?? "",
           user_wallet_address: walletAddress,
           gas_station_id: gasStationId,
           accrued_amount: accruedAmount.toString(),

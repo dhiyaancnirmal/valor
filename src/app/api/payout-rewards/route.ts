@@ -2,8 +2,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 import { createWalletClient, http } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
-import { stationIdToBytes32, signClaimMessage } from "@/lib/rewards"
+import { stationIdToBytes32, signClaimMessage, submissionIdToUint256 } from "@/lib/rewards"
 import { RewardVaultABI } from "@/lib/abi/RewardVault"
+
+type RewardTransaction = {
+  id: string
+  submission_id: string
+  gas_station_id: string
+  accrued_amount: string | number | null
+  user_wallet_address: string
+}
 
 // Prevent caching to ensure cron job runs every time
 export const dynamic = 'force-dynamic'
@@ -15,23 +23,24 @@ export const dynamic = 'force-dynamic'
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify cron secret or admin auth
-    // Vercel cron jobs don't send Authorization headers by default
-    // If CRON_SECRET is set, we require it for manual calls
-    // For Vercel cron jobs (which don't send identifying headers), we allow them through
-    const authHeader = request.headers.get("authorization")
     const cronSecret = process.env.CRON_SECRET || process.env.VERCEL_CRON_SECRET
-    
-    // If cron secret is set and provided, verify it
-    // If no auth header is provided, assume it's a Vercel cron job (less secure but necessary)
-    if (cronSecret && authHeader) {
-      if (authHeader !== `Bearer ${cronSecret}`) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-      }
-    } else if (cronSecret && !authHeader) {
-      // No auth header but secret is set - likely Vercel cron job
-      // Log it but allow through (Vercel cron jobs don't send auth headers)
-      console.log("Cron job called without Authorization header - assuming Vercel cron job")
+    if (!cronSecret) {
+      return NextResponse.json(
+        { error: "Missing cron secret configuration" },
+        { status: 500 }
+      )
+    }
+
+    const authHeader = request.headers.get("authorization")
+    const bearerToken =
+      authHeader && authHeader.startsWith("Bearer ")
+        ? authHeader.slice("Bearer ".length)
+        : null
+    const vercelCronToken = request.headers.get("x-vercel-cron")
+
+    const providedToken = bearerToken || vercelCronToken
+    if (!providedToken || providedToken !== cronSecret) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     // Get yesterday's UTC date
@@ -41,8 +50,6 @@ export async function POST(request: NextRequest) {
     yesterday.setUTCDate(yesterday.getUTCDate() - 1)
     yesterday.setUTCHours(0, 0, 0, 0)
     const yesterdayDate = yesterday.toISOString().split('T')[0]
-
-    console.log(`Processing payouts for date: ${yesterdayDate} (UTC)`)
 
     // Get all unpaid transactions from yesterday
     const { data: unpaidTransactions, error } = await supabaseAdmin
@@ -54,11 +61,12 @@ export async function POST(request: NextRequest) {
       .gt("accrued_amount", 0)
 
     if (error) {
-      console.error("Error fetching unpaid transactions:", error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    if (!unpaidTransactions || unpaidTransactions.length === 0) {
+    const transactions = (unpaidTransactions ?? []) as RewardTransaction[]
+
+    if (transactions.length === 0) {
       return NextResponse.json({
         success: true,
         message: "No unpaid transactions found",
@@ -68,8 +76,6 @@ export async function POST(request: NextRequest) {
         results: [],
       })
     }
-
-    console.log(`Found ${unpaidTransactions.length} unpaid transactions`)
 
     // Setup contract interaction
     const rewardContract = process.env.REWARD_CONTRACT_ADDRESS as `0x${string}` | undefined
@@ -97,10 +103,10 @@ export async function POST(request: NextRequest) {
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 24 * 60 * 60)
 
     // Sign and prepare each transaction
-    for (const tx of unpaidTransactions) {
+    for (const tx of transactions) {
       try {
         // Get submission ID from the transaction (it's stored in submission_id)
-        const submissionId = BigInt(tx.submission_id)
+        const submissionId = submissionIdToUint256(tx.submission_id)
         const stationIdBytes32 = stationIdToBytes32(tx.gas_station_id)
         const amount = BigInt(tx.accrued_amount || 0)
 
@@ -140,8 +146,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log(`Prepared ${recipients.length} transactions for batch payout`)
-
     // Execute batch payout
     let txHash: string | null = null
     try {
@@ -166,8 +170,6 @@ export async function POST(request: NextRequest) {
         functionName: "batchPayout",
         args: [recipients, stationIds, submissionIds, amounts, deadlines, signatures],
       })
-
-      console.log(`Batch payout successful! Transaction hash: ${txHash}`)
 
       // Update all transactions as paid
       await supabaseAdmin
@@ -211,4 +213,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

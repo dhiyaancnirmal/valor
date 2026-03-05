@@ -1,27 +1,33 @@
-'use client'
-
-import { useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { useSession } from "next-auth/react"
+import type { Metadata } from "next"
+import { redirect } from "next/navigation"
+import { auth } from "@/auth"
 import PriceEntryPage from "@/components/PriceSubmissionDrawer/PriceEntryPageDrawer"
 import type { GasStation } from "@/types"
 
-export default function SubmitPricePage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { data: session } = useSession()
+export const metadata: Metadata = {
+  title: "Submit Price",
+  description: "Submit a new gas price entry in Valor.",
+}
 
-  useEffect(() => {
-    if (!session?.user?.walletAddress) {
-      router.push("/")
-    }
-  }, [session, router])
+type SubmitPricePageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
 
-  const stationId = searchParams.get('stationId')
-  const stationName = searchParams.get('stationName')
-  const lat = searchParams.get('lat')
-  const lng = searchParams.get('lng')
-  const address = searchParams.get('address')
+const first = (value: string | string[] | undefined) =>
+  Array.isArray(value) ? value[0] : value
+
+export default async function SubmitPricePage({ searchParams }: SubmitPricePageProps) {
+  const session = await auth()
+  if (!session?.user?.walletAddress) {
+    redirect("/")
+  }
+
+  const params = await searchParams
+  const stationId = first(params.stationId)
+  const stationName = first(params.stationName)
+  const lat = first(params.lat)
+  const lng = first(params.lng)
+  const address = first(params.address)
 
   if (!stationId || !stationName || !lat || !lng) {
     return null

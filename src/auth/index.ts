@@ -1,6 +1,7 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { verifySignature } from "./wallet/verify"
+import { cookies } from "next/headers"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -11,37 +12,42 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         walletAddress: { label: "Wallet Address", type: "text" },
         signature: { label: "Signature", type: "text" },
         message: { label: "Message", type: "text" },
+        nonce: { label: "Nonce", type: "text" },
+        requestId: { label: "Request ID", type: "text" },
+        version: { label: "Version", type: "text" },
+        statement: { label: "Statement", type: "text" },
         username: { label: "Username", type: "text" },
         profilePictureUrl: { label: "Profile Picture URL", type: "text" },
       },
       async authorize(credentials) {
-        console.log("NextAuth authorize called with:", {
-          walletAddress: credentials?.walletAddress,
-          hasSignature: !!credentials?.signature,
-          hasMessage: !!credentials?.message,
-        })
+        if (
+          !credentials?.walletAddress ||
+          !credentials?.signature ||
+          !credentials?.message ||
+          !credentials?.nonce
+        ) {
+          return null
+        }
 
-        if (!credentials?.walletAddress || !credentials?.signature || !credentials?.message) {
-          console.error("Missing credentials:", {
-            walletAddress: !!credentials?.walletAddress,
-            signature: !!credentials?.signature,
-            message: !!credentials?.message,
-          })
+        const cookieStore = await cookies()
+        const storedNonce = cookieStore.get("siwe")?.value
+        if (!storedNonce || storedNonce !== credentials.nonce) {
           return null
         }
 
         const isValid = await verifySignature(
           credentials.message as string,
           credentials.signature as string,
-          credentials.walletAddress as string
+          credentials.walletAddress as string,
+          credentials.nonce as string,
+          credentials.statement as string | undefined,
+          credentials.requestId as string | undefined,
+          credentials.version as string | undefined
         )
 
         if (!isValid) {
-          console.error("Signature verification failed")
           return null
         }
-
-        console.log("Authorization successful for wallet:", credentials.walletAddress)
 
         return {
           id: credentials.walletAddress as string,

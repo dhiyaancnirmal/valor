@@ -2,6 +2,11 @@ import { auth } from "@/auth"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 import { NextResponse } from "next/server"
 
+type RewardSummaryRow = {
+  accrued_amount: string | number | null
+  reward_period_date: string
+}
+
 export async function GET() {
   try {
     const session = await auth()
@@ -27,11 +32,13 @@ export async function GET() {
     const nowUTC = new Date()
     const currentUTCDate = nowUTC.toISOString().split('T')[0] // YYYY-MM-DD
     
-    const claimableRewards = data?.filter(tx => {
+    const rewardRows = (data ?? []) as RewardSummaryRow[]
+
+    const claimableRewards = rewardRows.filter(tx => {
       const rewardDate = tx.reward_period_date // YYYY-MM-DD format
       // Only include rewards from days that have ended (before today)
       return rewardDate < currentUTCDate
-    }) || []
+    })
 
     const totalAccrued = claimableRewards.reduce((sum, row) => {
       return sum + BigInt(row.accrued_amount || 0)
@@ -53,4 +60,3 @@ export async function GET() {
     )
   }
 }
-

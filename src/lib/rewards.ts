@@ -16,6 +16,25 @@ export type ClaimMessage = {
   deadline: bigint
 }
 
+/**
+ * Convert app-level submission IDs into a deterministic uint256-compatible bigint.
+ * - Numeric IDs are preserved
+ * - Non-numeric IDs (e.g. UUID) are converted via keccak256 hash
+ */
+export function submissionIdToUint256(
+  submissionId: string | number | bigint
+): bigint {
+  if (typeof submissionId === "bigint") return submissionId
+  if (typeof submissionId === "number") return BigInt(Math.trunc(submissionId))
+
+  const value = String(submissionId)
+  if (/^\d+$/.test(value)) {
+    return BigInt(value)
+  }
+
+  return BigInt(keccak256(toHex(value)))
+}
+
 // Mirrors solidity: keccak256(abi.encodePacked(address(this), recipient, stationId, submissionId, rewardAmount, deadline))
 export function encodeClaimPacked(msg: ClaimMessage): `0x${string}` {
   const packed = new Uint8Array([
@@ -67,5 +86,4 @@ function bigintToBytes32(value: bigint): Uint8Array {
   const hex = value.toString(16).padStart(64, "0")
   return hexToBytes(`0x${hex}`)
 }
-
 

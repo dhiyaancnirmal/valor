@@ -1,8 +1,8 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react"
+import { createContext, useContext, ReactNode } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { Locale, locales, defaultLocale, localeNames, localeFlags } from "@/i18n/config"
+import { Locale, localeNames, localeFlags } from "@/i18n/config"
 
 interface LanguageContextType {
   locale: Locale
@@ -16,13 +16,9 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 const STORAGE_KEY = "valor-language"
 
 export function LanguageProvider({ children, locale }: { children: ReactNode; locale: string }) {
-  const [currentLocale, setCurrentLocale] = useState<Locale>(locale as Locale)
+  const currentLocale = locale as Locale
   const router = useRouter()
   const pathname = usePathname()
-
-  useEffect(() => {
-    setCurrentLocale(locale as Locale)
-  }, [locale])
 
   const setLocale = (newLocale: Locale) => {
     if (typeof window !== "undefined") {

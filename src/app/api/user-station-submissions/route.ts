@@ -2,11 +2,19 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Failed to fetch user submissions"
+
+type StationSubmissionRow = {
+  gas_station_id: string
+  fuel_type: string
+}
+
 /**
  * Get user's station submissions for today
  * Returns object mapping stationId to array of submitted fuel_types
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await auth()
     if (!session?.user?.walletAddress) {
@@ -36,8 +44,9 @@ export async function GET(request: NextRequest) {
     // Group by station ID
     const stationSubmissions: Record<string, string[]> = {}
     
-    if (submissions) {
-      for (const submission of submissions) {
+    const submissionRows = (submissions ?? []) as StationSubmissionRow[]
+
+    for (const submission of submissionRows) {
         const stationId = submission.gas_station_id
         const fuelType = submission.fuel_type
         
@@ -48,19 +57,17 @@ export async function GET(request: NextRequest) {
         if (!stationSubmissions[stationId].includes(fuelType)) {
           stationSubmissions[stationId].push(fuelType)
         }
-      }
     }
 
     return NextResponse.json({
       success: true,
       stationSubmissions,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("User station submissions error:", error)
     return NextResponse.json(
-      { error: error.message || "Failed to fetch user submissions" },
+      { error: getErrorMessage(error) },
       { status: 500 }
     )
   }
 }
-

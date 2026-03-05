@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useTranslations } from "next-intl"
-import { useSession } from "next-auth/react"
-import { Map, Home, Wallet, MapPin } from "lucide-react"
+import { Map, Home, Wallet } from "lucide-react"
 import { GoogleMapView } from "@/components/GoogleMap"
 import { HomeTab } from "./HomeTab"
 import { WalletTab } from "./WalletTab"
@@ -12,14 +11,12 @@ import { SettingsDrawer } from "@/components/SettingsDrawer"
 import PriceEntryPage from "@/components/PriceSubmissionDrawer/PriceEntryPageDrawer"
 import { UserLocation, GasStation } from "@/types"
 import { calculateDistance } from "@/lib/utils"
-import Logo from "@/components/Logo"
 import { MiniKit } from "@worldcoin/minikit-js"
 
 type Tab = "map" | "home" | "wallet"
 
 export function MainUI() {
   const t = useTranslations()
-  const { data: session } = useSession()
   const [activeTab, setActiveTab] = useState<Tab>("home")
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null)
   const [gasStations, setGasStations] = useState<GasStation[]>([])
@@ -47,69 +44,7 @@ export function MainUI() {
   const boundsChangeTimeout = useRef<NodeJS.Timeout | null>(null)
 
   // Check MiniKit readiness
-  useEffect(() => {
-    let cancelled = false
-    let tries = 0
-    const MAX_TRIES = 50
-    const pollMiniKit = () => {
-      if (typeof window === "undefined") return
-      try {
-        const installed = MiniKit.isInstalled()
-        if (installed) {
-          if (!cancelled) setIsMiniKitReady(true)
-          return
-        }
-      } catch (e) {
-        // Swallow errors during early boot; keep polling
-      }
-      if (tries < MAX_TRIES) {
-        tries += 1
-        setTimeout(pollMiniKit, 150)
-      } else {
-        // Fallback: some World App builds may delay bridge init; if UA indicates World App, allow non-MiniKit features to proceed
-        try {
-          const ua = navigator.userAgent || ""
-          const looksLikeWorldApp = /WorldApp|WorldAppMiniKit|WorldCoin/i.test(ua)
-          if (looksLikeWorldApp && !cancelled) {
-            console.warn("MiniKit bridge not ready, but World App UA detected. Proceeding with limited features.")
-            setIsMiniKitReady(true)
-            return
-          }
-        } catch {}
-        console.error("MiniKit is not installed. Make sure you're running the application inside of World App")
-      }
-    }
-    pollMiniKit()
-    return () => { cancelled = true }
-  }, [])
-
-  useEffect(() => {
-    // Only start loading location after MiniKit is ready
-    if (!isMiniKitReady) return
-
-    // Get user location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          }
-          setUserLocation(location)
-          fetchNearbyGasStations(location)
-        },
-        (error) => {
-          console.error('Error getting location', error)
-          setLoading(false)
-        }
-      )
-    } else {
-      console.error('Geolocation not supported')
-      setLoading(false)
-    }
-  }, [isMiniKitReady])
-
-  const fetchNearbyGasStations = async (location: UserLocation) => {
+  async function fetchNearbyGasStations(location: UserLocation) {
     try {
       if (!window.google) {
         console.error('Google Maps not loaded')
@@ -159,6 +94,68 @@ export function MainUI() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    let cancelled = false
+    let tries = 0
+    const MAX_TRIES = 50
+    const pollMiniKit = () => {
+      if (typeof window === "undefined") return
+      try {
+        const installed = MiniKit.isInstalled()
+        if (installed) {
+          if (!cancelled) setIsMiniKitReady(true)
+          return
+        }
+      } catch {
+        // Swallow errors during early boot; keep polling
+      }
+      if (tries < MAX_TRIES) {
+        tries += 1
+        setTimeout(pollMiniKit, 150)
+      } else {
+        // Fallback: some World App builds may delay bridge init; if UA indicates World App, allow non-MiniKit features to proceed
+        try {
+          const ua = navigator.userAgent || ""
+          const looksLikeWorldApp = /WorldApp|WorldAppMiniKit|WorldCoin/i.test(ua)
+          if (looksLikeWorldApp && !cancelled) {
+            console.warn("MiniKit bridge not ready, but World App UA detected. Proceeding with limited features.")
+            setIsMiniKitReady(true)
+            return
+          }
+        } catch {}
+        console.error("MiniKit is not installed. Make sure you're running the application inside of World App")
+      }
+    }
+    pollMiniKit()
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    // Only start loading location after MiniKit is ready
+    if (!isMiniKitReady) return
+
+    // Get user location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          }
+          setUserLocation(location)
+          fetchNearbyGasStations(location)
+        },
+        (error) => {
+          console.error('Error getting location', error)
+          setLoading(false)
+        }
+      )
+    } else {
+      console.error('Geolocation not supported')
+      setTimeout(() => setLoading(false), 0)
+    }
+  }, [isMiniKitReady])
 
   // Handle map bounds changes for dynamic loading (debounced)
   const handleBoundsChanged = async (center: UserLocation, bounds: google.maps.LatLngBounds) => {

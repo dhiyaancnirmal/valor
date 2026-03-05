@@ -11,7 +11,7 @@ This folder is the source of truth for rebuilding Valor into a production-grade 
 ## Working Rules
 1. Execute milestones in order unless a dependency is explicitly marked optional.
 2. Each milestone should land as a series of small commits (single responsibility per commit).
-3. A milestone is complete only when its acceptance criteria and test gates pass.
+3. A milestone is complete only when its acceptance criteria and validation gates pass.
 4. Any architecture change outside this spec requires an ADR update in this folder.
 
 ## Commit Conventions
@@ -25,5 +25,5 @@ This folder is the source of truth for rebuilding Valor into a production-grade 
 ## Delivery Rhythm
 - End each milestone with:
   - updated docs in this folder,
-  - green test gates for that milestone,
+  - green local validation gates for that milestone,
   - deployable preview build.

@@ -29,6 +29,11 @@ Set these in `.env.local`:
 Optional development-only auth:
 - `ENABLE_DEV_AUTH=true`
 - `NEXT_PUBLIC_ENABLE_DEV_AUTH=true`
+- `NEXT_PUBLIC_WORLD_DEV_BYPASS=true`
+
+Dev browser testing outside World App:
+- `NEXT_PUBLIC_WORLD_DEV_BYPASS=true` bypasses MiniKit-only app gating for local browser runs.
+- Keep this off in production.
 
 ## Database
 Apply:
@@ -39,6 +44,17 @@ Apply:
 npm install
 npm run dev
 ```
+
+Browser testing shortcut:
+```bash
+npm run dev:browser
+```
+
+## Local testing with agent-browser (outside World App)
+1. Set `NEXT_PUBLIC_WORLD_DEV_BYPASS=true` in `.env.local`.
+2. Start dev server on `http://localhost:3000` (or use `npm run dev:browser`).
+3. Use `agent-browser` to open the app and run flows.
+4. Login via the dev login button when MiniKit is unavailable.
 
 ## World App auth flow
 - Backend issues nonce at `/api/nonce` and stores it in secure cookie.

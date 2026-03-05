@@ -105,17 +105,14 @@ Required outcome:
 - include realistic POI density distributions.
 - version fixtures and never mutate historical snapshots in place.
 
-## 6) CI Requirements
-- required checks for merge:
+## 6) Local Validation Requirements (Current Phase)
+- M0 runs local checks only (no CI/CD requirement yet).
+- required local checks before merge:
   - typecheck
   - lint
-  - unit
-  - integration
-  - selected e2e smoke
-- nightly checks:
-  - full e2e suite
-  - performance benchmark suite
-  - abuse/security suite
+  - `npm run dev:browser` smoke boot
+  - agent-browser flow smoke (login, tab navigation, submit entry flow)
+- CI can be introduced in a later milestone once core domains stabilize.
 
 ## 7) Manual QA Checklist (Pre-Release)
 - world mini-app auth and verify in supported client.

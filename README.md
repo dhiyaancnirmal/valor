@@ -46,6 +46,12 @@ npm run dev
 ```
 5. For World App testing, use an HTTPS tunnel and set `AUTH_URL` to the tunnel URL.
 
+## Browser testing workaround (outside World App)
+- Set `NEXT_PUBLIC_WORLD_DEV_BYPASS=true` in `.env.local`.
+- Keep `ENABLE_DEV_AUTH=true` + `NEXT_PUBLIC_ENABLE_DEV_AUTH=true` for dev login.
+- Run flows with the `agent-browser` CLI against `http://localhost:3000`.
+- Shortcut: `npm run dev:browser`
+
 ## Useful scripts
 - `npm run dev`
 - `npm run build`
@@ -56,6 +62,7 @@ npm run dev
 
 ## Docs
 - Setup: `docs/guides/setup.md`
+- Agent-browser testing: `docs/guides/agent-browser-testing.md`
 - Deployment: `docs/guides/deploy.md`
 - Architecture: `docs/reference/architecture.md`
 - Planning Vault: `docs/plans/README.md`

@@ -96,9 +96,21 @@ input,
 select,
 textarea,
 label,
-li,
-div {
+li {
   font-weight: 400;
+}
+
+:where(.font-bold, .font-semibold, .font-extrabold, .font-medium) {
+  font-weight: 400 !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 200 !important;
 }
 
 .safe-area-b-4 {

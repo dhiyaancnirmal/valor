@@ -1,20 +1,36 @@
 # Valor
 
-World Mini App for crowdsourced gas prices with rewards.
+World Mini App for crowdsourced essential-goods pricing intelligence.
 
 ## What this repo contains
 - Next.js 16 mini app with World MiniKit wallet auth.
-- Gas station discovery + price submission flow.
-- Reward accrual and claim APIs.
+- Grocery + gas discovery + price submission flow.
+- Trust and consensus rebuild planning (rewards deprecated).
 - RewardVault Solidity contract + Foundry scripts/tests.
 - Public showcase route: `/[locale]/showcase`.
 
 ## Project status
 This repository was cleaned and hardened from a hackathon prototype. The focus is now:
 - secure wallet authentication,
-- stable reward operations,
+- robust crowdsourced data quality,
 - cleaner architecture and docs,
 - better public-facing presentation.
+
+## Product screenshots
+- Capture guide: `docs/guides/screenshot-runbook.md`
+- Screenshot directory: `public/showcase/`
+
+Expected files:
+- `01-login-en.png`
+- `02-home-en.png`
+- `03-submit-review-en.png`
+- `04-wallet-en.png`
+- `05-showcase-en.png`
+- `06-home-es-ar.png`
+
+Once added, they are rendered in:
+- `/en/showcase`
+- `/es-AR/showcase`
 
 ## Quick start
 1. Install dependencies:
@@ -39,9 +55,13 @@ npm run dev
 - `npm run test:contracts`
 
 ## Docs
-- Setup: `docs/setup.md`
-- Deployment: `docs/deploy.md`
-- Architecture: `docs/architecture.md`
+- Setup: `docs/guides/setup.md`
+- Deployment: `docs/guides/deploy.md`
+- Architecture: `docs/reference/architecture.md`
+- Planning Vault: `docs/plans/README.md`
+- Master Spec: `docs/plans/valor-master-spec.md`
+- Milestones: `docs/plans/milestones.md`
+- Testing Strategy: `docs/plans/testing-strategy.md`
 
 ## World references
 - Wallet auth: https://docs.world.org/mini-apps/commands/wallet-auth

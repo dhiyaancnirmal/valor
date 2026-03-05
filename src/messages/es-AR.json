@@ -15,7 +15,7 @@
   },
   "app": {
     "title": "Valor - Crowdsourcing de Precios de Combustible",
-    "description": "Comparte precios de estaciones de servicio y gana recompensas"
+    "description": "Comparte precios de estaciones de servicio y mejora la transparencia local"
   },
   "mainUI": {
     "appName": "Valor",
@@ -28,17 +28,17 @@
     }
   },
   "homeTab": {
-    "potentialToday": "Tu Potencial Hoy",
-    "todaysRewards": "Recompensas de Hoy",
+    "potentialToday": "Señal de Hoy",
+    "todaysRewards": "Cobertura de Hoy",
     "stationsNearby": "Cercanas",
     "searchPlaceholder": "Buscar estaciones de servicio...",
     "noStationsFound": "No se encontraron estaciones",
     "adjustSearch": "Intenta ajustar tu búsqueda o ubicación",
     "highDemand": "ALTA DEMANDA",
-    "earn": "Ganar",
+    "earn": "Contribuir",
     "submit": "Enviar",
     "stationsCount": "{count} estaciones",
-    "earnAmount": "Ganar ${amount}",
+    "earnAmount": "Señal ${amount}",
     "sort": {
       "proximity": "Proximidad",
       "priority": "Prioridad",
@@ -51,8 +51,8 @@
     "notConnected": "No conectado",
     "totalBalance": "Balance Total",
     "submissions": "Envíos",
-    "rewardsEarned": "Recompensas Ganadas",
-    "usdcEarned": "USDC Ganado",
+    "rewardsEarned": "Contribuciones Registradas",
+    "usdcEarned": "USDC Liquidado",
     "rank": "Rango",
     "account": "Cuenta",
     "signOut": "Cerrar Sesión",
@@ -62,7 +62,7 @@
     "howItWorks": "Cómo funciona",
     "howItWorksItems": {
       "submit": "Envía precios de combustible en estaciones cercanas",
-      "earn": "Gana recompensas por envíos precisos",
+      "earn": "Construye confianza con envíos precisos",
       "help": "Ayuda a otros a encontrar los mejores precios"
     },
     "anonymousUser": "Usuario Anónimo",
@@ -75,7 +75,7 @@
     "notSet": "No Configurado",
     "preferences": "Preferencias",
     "notifications": "Notificaciones",
-    "notificationsDesc": "Recibir notificaciones sobre recompensas",
+    "notificationsDesc": "Recibir notificaciones sobre actualizaciones importantes",
     "notificationsWorldAppOnly": "Las notificaciones solo están disponibles en World App",
     "locationServices": "Servicios de Ubicación",
     "locationServicesDesc": "Encontrar estaciones de servicio cercanas",
@@ -85,9 +85,9 @@
     "findStations": "Encontrar Estaciones",
     "findStationsDesc": "Usa el mapa para descubrir estaciones de servicio cercanas. Ve precios y ubicaciones en tiempo real para tomar decisiones informadas.",
     "submitPrices": "Enviar Precios",
-    "submitPricesDesc": "Comparte los precios actuales de combustible para ayudar a otros conductores. Cada envío verificado te gana recompensas en USDC.",
-    "earnRewards": "Ganar Recompensas",
-    "earnRewardsDesc": "Recibe USDC por cada envío de precio válido. Construye tu racha y gana recompensas adicionales por contribuciones consistentes.",
+    "submitPricesDesc": "Comparte los precios actuales de combustible para ayudar a otros conductores. Cada envío verificado fortalece la cobertura local de precios.",
+    "earnRewards": "Calidad de Contribución",
+    "earnRewardsDesc": "Los envíos consistentes y precisos mejoran la confianza y la visibilidad.",
     "version": "Versión",
     "gotIt": "Entendido"
   },
@@ -142,7 +142,7 @@
     "gettingLocation": "Obteniendo ubicación...",
     "next": "SIGUIENTE",
     "submissionSuccess": "¡Precio enviado exitosamente!",
-    "submissionPending": "Tu envío está pendiente de validación. Recibirás tu recompensa una vez aprobado.",
+    "submissionPending": "Tu envío está pendiente de validación. Se mostrará una vez aprobado.",
     "submissionFailed": "Error al enviar: {error}",
     "errors": {
       "enableLocation": "Por favor habilita los servicios de ubicación para enviar precios",
@@ -150,7 +150,7 @@
       "locationNotAvailable": "Ubicación no disponible. Por favor habilita los servicios de ubicación.",
       "distanceError": "Debes estar dentro de 500m de la estación de servicio. Distancia actual: {distance}m",
       "submitFailed": "Error al enviar el precio",
-      "insufficientFunds": "La bóveda de recompensas tiene fondos insuficientes. Por favor intenta más tarde.",
+      "insufficientFunds": "El servicio de liquidación no está disponible temporalmente. Por favor intenta más tarde.",
       "simulationFailed": "La simulación de transacción falló. Por favor intenta de nuevo."
     },
     "fuelTypes": {
@@ -164,7 +164,7 @@
   },
   "login": {
     "welcome": "Bienvenido a Valor",
-    "tagline": "Rastrea precios y gana recompensas",
+    "tagline": "Rastrea precios y comparte señales de mercado local",
     "loginWithWorldID": "Iniciar sesión con World ID",
     "loggingIn": "Iniciando sesión...",
     "loginDevMode": "Iniciar sesión (Modo Dev)",
@@ -231,7 +231,7 @@
     "moreSettingsComing": "Más configuraciones próximamente..."
   },
   "time": {
-    "payoutSchedule": "Pago a las 12:00 AM UTC"
+    "payoutSchedule": "Liquidación diaria a las 12:00 AM UTC"
   },
   "ui": {
     "pricePerGallon": "Precio por galón",

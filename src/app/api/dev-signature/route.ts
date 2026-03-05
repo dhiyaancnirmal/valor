@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createSignature } from "@/auth/wallet/verify"
+import { isDevAuthEnabled } from "@/lib/world-dev"
 
 export async function POST(request: NextRequest) {
   try {
-    // Only allow in development
-    if (process.env.NODE_ENV === "production") {
+    if (!isDevAuthEnabled) {
       return NextResponse.json(
-        { error: "Dev mode not available in production" },
+        { error: "Dev mode auth is disabled" },
         { status: 403 }
       )
     }
@@ -24,7 +24,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ signature })
   } catch (error) {
-    console.error("Dev signature error:", error)
     return NextResponse.json(
       { error: "Failed to create signature" },
       { status: 500 }

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Internal server error"
+
 /**
  * Get the last known price for a gas station
  */
@@ -38,17 +41,16 @@ export async function GET(
     }
 
     return NextResponse.json({
-      price: parseFloat(data.price),
+      price: Number(data.price),
       fuelType: data.fuel_type,
       createdAt: data.created_at,
       submittedBy: data.user_wallet_address,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("API error:", error)
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: getErrorMessage(error) },
       { status: 500 }
     )
   }
 }
-

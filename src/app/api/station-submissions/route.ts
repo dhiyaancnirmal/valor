@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       stationData[stationId] = {
         submissionCount,
         potentialEarning: parseFloat(potentialEarning.toFixed(3)),
-        latestPrice: latestSubmission?.price ? parseFloat(latestSubmission.price) : undefined,
+        latestPrice: latestSubmission?.price ? Number(latestSubmission.price) : undefined,
         latestFuelType: latestSubmission?.fuel_type || undefined,
         priceUpdatedAt: latestSubmission?.created_at || undefined,
       }

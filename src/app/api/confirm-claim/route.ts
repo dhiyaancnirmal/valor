@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Failed to confirm claim"
+
 /**
  * Confirm claim transaction and update database
  * Called after MiniKit transaction succeeds
@@ -57,12 +60,11 @@ export async function POST(request: NextRequest) {
       txHash,
       transactionCount: transactionIds.length,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Confirm claim error:", error)
     return NextResponse.json(
-      { error: error.message || "Failed to confirm claim" },
+      { error: getErrorMessage(error) },
       { status: 500 }
     )
   }
 }
-

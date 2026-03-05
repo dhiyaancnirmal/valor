@@ -2,10 +2,7 @@
 
 import { useEffect, useState, useRef } from "react"
 import { useTranslations } from "next-intl"
-import { X, Navigation } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { GasStation } from "@/types"
-import { formatDistance } from "@/lib/utils"
 
 interface PriceSubmissionDrawerProps {
   isOpen: boolean
@@ -28,9 +25,7 @@ interface LastPrice {
 export function PriceSubmissionDrawer({
   isOpen,
   station,
-  userLocation,
   onClose,
-  onSuccess,
   onOpenSubmitPage,
 }: PriceSubmissionDrawerProps) {
   const t = useTranslations()
@@ -121,25 +116,11 @@ export function PriceSubmissionDrawer({
 
   if (!station) return null
 
-  const getDrawerHeight = () => {
-    if (drawerState === "closed") return "0%"
-    if (drawerState === "preview") return "40%"
-    return "95%"
-  }
-
-  const getTransform = () => {
-    if (isDragging && currentY > 0) {
-      return `translateY(${currentY}px)`
-    }
-    return "translateY(0)"
-  }
-
-
   return (
     <>
       {/* Backdrop/Scrim */}
       <div
-        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 transition-opacity duration-250 ease-out"
+        className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 transition-opacity duration-250 ease-out"
         style={{
           opacity: drawerState !== "closed" ? 1 : 0,
           pointerEvents: drawerState !== "closed" ? 'auto' : 'none'
@@ -161,7 +142,7 @@ export function PriceSubmissionDrawer({
         onTouchEnd={handleTouchEnd}
       >
         <div
-          className="bg-white shadow-lg transition-transform duration-250 ease-out overflow-hidden"
+          className="bg-white shadow-lg transition-transform duration-250 ease-out overflow-hidden border border-black/5"
           style={{
             borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
             boxShadow: 'var(--shadow-lg)',
@@ -189,7 +170,7 @@ export function PriceSubmissionDrawer({
           <div style={{ padding: `var(--spacing-md) var(--spacing-xl) var(--spacing-xl)` }}>
             {/* Title with icon */}
             <div className="flex items-center" style={{ gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)' }}>
-              <div className="w-12 h-12 bg-gray-100 flex items-center justify-center flex-shrink-0" style={{ borderRadius: 'var(--radius-md)' }}>
+              <div className="w-12 h-12 bg-[var(--valor-bg-soft)] flex items-center justify-center flex-shrink-0" style={{ borderRadius: 'var(--radius-md)' }}>
                 <span className="text-2xl">⛽</span>
               </div>
               <div className="flex-1 min-w-0">
@@ -203,7 +184,7 @@ export function PriceSubmissionDrawer({
             </div>
 
             {/* Last Known Price */}
-            <div className="bg-gray-50 border border-gray-200" style={{ marginBottom: 'var(--spacing-lg)', padding: 'var(--spacing-lg)', borderRadius: 'var(--radius-md)' }}>
+            <div className="bg-[var(--valor-bg)] border border-black/5" style={{ marginBottom: 'var(--spacing-lg)', padding: 'var(--spacing-lg)', borderRadius: 'var(--radius-md)' }}>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-700 font-medium">{t('drawer.lastPrice')}</span>
                 {isLoadingPrice ? (
@@ -239,7 +220,7 @@ export function PriceSubmissionDrawer({
               </a>
               <button
                 onClick={handleExpand}
-                className="flex-1 bg-[var(--valor-green)] text-white font-semibold text-base hover:opacity-90 active:scale-[0.98] transition-all duration-200"
+                className="flex-1 bg-gradient-to-r from-[var(--valor-green)] to-[var(--valor-green-dark)] text-white font-semibold text-base hover:opacity-95 active:scale-[0.98] transition-all duration-200"
                 style={{ padding: 'var(--spacing-md) var(--spacing-xl)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)' }}
               >
                 {t('drawer.submitPrice')}

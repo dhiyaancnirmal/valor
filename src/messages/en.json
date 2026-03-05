@@ -15,7 +15,7 @@
   },
   "app": {
     "title": "Valor - Gas Price Crowdsourcing",
-    "description": "Crowdsource gas station prices and earn rewards"
+    "description": "Crowdsource gas station prices and improve local transparency"
   },
   "mainUI": {
     "appName": "Valor",
@@ -28,17 +28,17 @@
     }
   },
   "homeTab": {
-    "potentialToday": "Your Potential Today",
-    "todaysRewards": "Today's Rewards",
+    "potentialToday": "Today's Signal",
+    "todaysRewards": "Today's Coverage",
     "stationsNearby": "Nearby",
     "searchPlaceholder": "Search gas stations...",
     "noStationsFound": "No gas stations found",
     "adjustSearch": "Try adjusting your search or location",
     "highDemand": "HIGH DEMAND",
-    "earn": "Earn",
+    "earn": "Contribute",
     "submit": "Submit",
     "stationsCount": "{count} stations",
-    "earnAmount": "Earn ${amount}",
+    "earnAmount": "Signal ${amount}",
     "sort": {
       "proximity": "Proximity",
       "priority": "Priority",
@@ -51,8 +51,8 @@
     "notConnected": "Not connected",
     "totalBalance": "Total Balance",
     "submissions": "Submissions",
-    "rewardsEarned": "Rewards Earned",
-    "usdcEarned": "USDC Earned",
+    "rewardsEarned": "Contributions Recorded",
+    "usdcEarned": "USDC Settled",
     "rank": "Rank",
     "account": "Account",
     "signOut": "Sign Out",
@@ -62,7 +62,7 @@
     "howItWorks": "How it works",
     "howItWorksItems": {
       "submit": "Submit gas prices at nearby stations",
-      "earn": "Earn rewards for accurate submissions",
+      "earn": "Build trust with accurate submissions",
       "help": "Help others find the best prices"
     },
     "anonymousUser": "Anonymous User",
@@ -75,7 +75,7 @@
     "notSet": "Not Set",
     "preferences": "Preferences",
     "notifications": "Notifications",
-    "notificationsDesc": "Get notified about rewards",
+    "notificationsDesc": "Get notified about important updates",
     "notificationsWorldAppOnly": "Notifications are only available in World App",
     "locationServices": "Location Services",
     "locationServicesDesc": "Find nearby gas stations",
@@ -85,9 +85,9 @@
     "findStations": "Find Gas Stations",
     "findStationsDesc": "Use map to discover nearby gas stations. View real-time prices and locations to make informed decisions.",
     "submitPrices": "Submit Prices",
-    "submitPricesDesc": "Share current gas prices to help other drivers. Each verified submission earns you USDC rewards.",
-    "earnRewards": "Earn Rewards",
-    "earnRewardsDesc": "Get paid in USDC for every valid price submission. Build your streak and earn bonus rewards for consistent contributions.",
+    "submitPricesDesc": "Share current gas prices to help other drivers. Each verified submission strengthens local price coverage.",
+    "earnRewards": "Contribution Quality",
+    "earnRewardsDesc": "Consistent, accurate submissions improve trust signals and visibility.",
     "version": "Version",
     "gotIt": "Got it"
   },
@@ -142,7 +142,7 @@
     "gettingLocation": "Getting location...",
     "next": "NEXT",
     "submissionSuccess": "Price submitted successfully!",
-    "submissionPending": "Your submission is pending validation. You'll receive your reward once approved.",
+    "submissionPending": "Your submission is pending validation. It will appear once approved.",
     "submissionFailed": "Submission failed: {error}",
     "errors": {
       "enableLocation": "Please enable location services to submit prices",
@@ -150,7 +150,7 @@
       "locationNotAvailable": "Location not available. Please enable location services.",
       "distanceError": "You must be within 500m of the gas station. Current distance: {distance}m",
       "submitFailed": "Failed to submit price",
-      "insufficientFunds": "Reward vault has insufficient funds. Please try again later.",
+      "insufficientFunds": "Settlement service is temporarily unavailable. Please try again later.",
       "simulationFailed": "Transaction simulation failed. Please try again."
     },
     "fuelTypes": {
@@ -164,7 +164,7 @@
   },
   "login": {
     "welcome": "Welcome to Valor",
-    "tagline": "Track prices & earn rewards",
+    "tagline": "Track prices and share local market signals",
     "loginWithWorldID": "Login with World ID",
     "loggingIn": "Logging in",
     "loginDevMode": "Login (Dev Mode)",
@@ -231,7 +231,7 @@
     "moreSettingsComing": "More settings coming soon..."
   },
   "time": {
-    "payoutSchedule": "Payout at 12:00 AM UTC"
+    "payoutSchedule": "Daily settlement at 12:00 AM UTC"
   },
   "ui": {
     "pricePerGallon": "Price per gallon",

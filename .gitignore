@@ -39,6 +39,8 @@ next-env.d.ts
 cache/
 broadcast/
 out/
+/contracts/out/
+/forge-cache/
 forge_snapshot.json
 forge-cache/
 

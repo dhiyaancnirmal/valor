@@ -3,7 +3,13 @@ import Credentials from "next-auth/providers/credentials"
 import { verifySignature } from "./wallet/verify"
 import { cookies } from "next/headers"
 
+const authSecret =
+  process.env.NEXTAUTH_SECRET ||
+  process.env.AUTH_SECRET ||
+  (process.env.NODE_ENV !== "production" ? "valor-dev-auth-secret" : undefined)
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  secret: authSecret,
   providers: [
     Credentials({
       id: "worldcoin",

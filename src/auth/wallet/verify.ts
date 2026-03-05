@@ -1,5 +1,6 @@
 import crypto from "crypto"
 import { verifySiweMessage, type MiniAppWalletAuthSuccessPayload } from "@worldcoin/minikit-js"
+import { isDevAuthEnabled } from "@/lib/world-dev"
 
 export async function verifySignature(
   message: string,
@@ -15,11 +16,7 @@ export async function verifySignature(
 
     // Explicit development-only fallback.
     // This is intentionally opt-in and disabled in production.
-    const allowDevAuth =
-      process.env.NODE_ENV !== "production" &&
-      process.env.ENABLE_DEV_AUTH === "true"
-
-    if (allowDevAuth) {
+    if (isDevAuthEnabled) {
       const expected = createSignature(message)
       if (signature === expected) {
         return true
@@ -60,7 +57,11 @@ export function generateSignatureMessage(walletAddress: string): string {
 }
 
 export function createSignature(message: string): string {
-  const hmacSecret = process.env.HMAC_SECRET_KEY || process.env.NEXT_PUBLIC_HMAC_SECRET_KEY
+  const hmacSecret =
+    process.env.HMAC_SECRET_KEY ||
+    process.env.NEXT_PUBLIC_HMAC_SECRET_KEY ||
+    (process.env.NODE_ENV !== "production" ? "valor-dev-hmac-secret" : undefined)
+
   if (!hmacSecret) {
     throw new Error("HMAC_SECRET_KEY not found")
   }

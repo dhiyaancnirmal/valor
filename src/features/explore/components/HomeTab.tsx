@@ -46,7 +46,7 @@ export function HomeTab({
   const [searchQuery, setSearchQuery] = useState("")
   const [sortOption, setSortOption] = useState<SortOption>('proximity')
   const [userStationSubmissions, setUserStationSubmissions] = useState<Record<string, string[]>>({})
-  const [todaysRewards, setTodaysRewards] = useState(0)
+  const [todaysCoverage, setTodaysCoverage] = useState(0)
 
   // Remove duplicates by id
   const uniqueStations = gasStations.filter((station, index, self) =>
@@ -114,15 +114,12 @@ export function HomeTab({
     }
   })
 
-  // Calculate potential earnings
-  const calculateEarnings = (distance: number | undefined) => {
-    if (!distance) return 2.50
-    // Base reward: $2.50
-    // Bonus for closer stations (within 200m): +$1.00
-    // Bonus for stations within 500m: +$0.50
-    const baseReward = 2.50
+  // Calculate a simple contribution signal score
+  const calculateSignal = (distance: number | undefined) => {
+    if (!distance) return 2.5
+    const baseSignal = 2.5
     const proximityBonus = distance < 200 ? 1.00 : distance < 500 ? 0.50 : 0
-    return baseReward + proximityBonus
+    return baseSignal + proximityBonus
   }
 
   // Fetch user's station submissions
@@ -141,22 +138,21 @@ export function HomeTab({
     }
   }, [session?.user?.walletAddress])
 
-  // Fetch today's rewards on mount only (no polling)
+  // Fetch today's coverage budget on mount only
   useEffect(() => {
-    const fetchRewards = async () => {
+    const fetchCoverage = async () => {
       try {
         const response = await fetch('/api/todays-rewards')
         if (response.ok) {
           const data = await response.json()
-          setTodaysRewards(data.remaining)
+          setTodaysCoverage(data.remaining)
         }
       } catch (error) {
-        console.error('Error fetching today\'s rewards:', error)
+        console.error('Error fetching today\'s coverage:', error)
       }
     }
 
-    fetchRewards()
-    // Removed polling - fetch only on mount
+    fetchCoverage()
   }, [])
 
   // Fetch station data when stations load (with caching)
@@ -228,8 +224,8 @@ export function HomeTab({
             <p className="text-xl font-bold mt-1">{t('homeTab.stationsCount', { count: filteredStations.length })}</p>
           </div>
           <div className="text-right">
-            <p className="text-[11px] opacity-90">Reward Pool</p>
-            <p className="text-lg font-bold">${todaysRewards.toFixed(2)}</p>
+            <p className="text-[11px] opacity-90">Coverage Pool</p>
+            <p className="text-lg">${todaysCoverage.toFixed(2)}</p>
             <p className="text-[11px] opacity-75">{userLocation ? "Location active" : "Location pending"}</p>
           </div>
         </div>
@@ -276,7 +272,7 @@ export function HomeTab({
               const isComplete = isStationComplete(station.id)
               const data = stationData[station.id]
               const isStationLoading = isLoadingStationData && !data
-              const earnings = data?.potentialEarning || calculateEarnings(station.distance)
+              const signal = data?.potentialEarning || calculateSignal(station.distance)
               const submissionCount = data?.submissionCount || 0
               const latestPrice = data?.latestPrice
               const latestFuelType = data?.latestFuelType
@@ -333,10 +329,9 @@ export function HomeTab({
                             </span>
                           )}
 
-                          {/* Earnings Badge */}
-                          <span className="inline-flex items-center bg-[#7DD756] text-white py-1 text-xs font-semibold" style={{ borderRadius: 'var(--spacing-xs)', gap: 'var(--spacing-xs)', paddingLeft: 'var(--spacing-sm)', paddingRight: 'var(--spacing-sm)' }}>
+                          <span className="inline-flex items-center bg-[#7DD756] text-white py-1 text-xs" style={{ borderRadius: 'var(--spacing-xs)', gap: 'var(--spacing-xs)', paddingLeft: 'var(--spacing-sm)', paddingRight: 'var(--spacing-sm)' }}>
                             <Coins className="w-3 h-3" />
-                            ${earnings.toFixed(2)}
+                            Signal {signal.toFixed(2)}
                           </span>
                         </div>
                       </div>

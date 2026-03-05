@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createSignature } from "@/auth/wallet/verify"
+import { isDevAuthEnabled } from "@/lib/world-dev"
 
 export async function POST(request: NextRequest) {
   try {
-    const enabled =
-      process.env.NODE_ENV !== "production" &&
-      process.env.ENABLE_DEV_AUTH === "true"
-
-    if (!enabled) {
+    if (!isDevAuthEnabled) {
       return NextResponse.json(
         { error: "Dev mode auth is disabled" },
         { status: 403 }

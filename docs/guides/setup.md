@@ -22,7 +22,7 @@ Set these in `.env.local`:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `REWARD_CONTRACT_ADDRESS`
 - `REWARD_SIGNER_PRIVATE_KEY`
-- `PRIVATE_KEY` (only needed for admin payout scripts/endpoint)
+- `PRIVATE_KEY` (only needed for legacy settlement scripts/endpoint)
 - `WORLD_CHAIN_RPC_URL`
 - `CRON_SECRET`
 
@@ -37,7 +37,7 @@ Dev browser testing outside World App:
 
 ## Database
 Apply:
-- `db/migrations/001_rewards.sql`
+- `db/migrations/001_rewards.sql` (legacy table naming retained)
 
 ## Local run
 ```bash

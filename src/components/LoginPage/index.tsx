@@ -7,15 +7,13 @@ import { MiniKit } from "@worldcoin/minikit-js"
 import { Button } from "@/components/ui/button"
 import Logo from "@/components/Logo"
 import WorldIDLogo from "@/components/WorldIDLogo"
+import { isDevAuthEnabled } from "@/lib/world-dev"
 
 export function LoginPage() {
   const t = useTranslations()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isMiniKitReady, setIsMiniKitReady] = useState(false)
-  const isDevAuthEnabled =
-    process.env.NODE_ENV !== "production" &&
-    process.env.NEXT_PUBLIC_ENABLE_DEV_AUTH === "true"
 
   useEffect(() => {
     // Check if MiniKit is available after component mounts
@@ -133,6 +131,12 @@ export function LoginPage() {
       setIsLoading(true)
       setError(null)
 
+      const nonceRes = await fetch("/api/nonce")
+      if (!nonceRes.ok) {
+        throw new Error("Failed to initialize dev sign-in nonce")
+      }
+      const { nonce } = await nonceRes.json()
+
       // Dev mode: create a mock wallet address
       const mockWalletAddress = "0xdev" + Math.random().toString(16).substr(2, 36)
       const message = `Sign in to Valor\nWallet: ${mockWalletAddress}\nTimestamp: ${Date.now()}`
@@ -150,6 +154,7 @@ export function LoginPage() {
         walletAddress: mockWalletAddress,
         signature,
         message,
+        nonce,
         redirect: false,
       })
 
@@ -167,29 +172,25 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F4F8] flex flex-col items-center justify-center px-5 py-8 safe-area-inset">
-      {/* Top Section */}
-      <div className="flex flex-col items-center justify-center">
-        {/* Logo */}
-        <div className="mb-8">
-          <Logo size={72} />
+    <div className="min-h-screen flex flex-col items-center justify-center px-5 py-8">
+      <div className="w-full max-w-sm rounded-3xl border border-white/70 bg-white/80 shadow-[0_18px_44px_rgba(15,23,42,0.12)] backdrop-blur-sm px-6 py-9">
+        <div className="flex flex-col items-center justify-center">
+          <div className="mb-7">
+            <Logo size={64} />
+          </div>
+
+          <div className="text-center max-w-xs mb-8">
+            <h1 className="text-2xl font-extrabold text-[#1C1C1E] mb-2.5 leading-tight">
+              {t('login.welcome')}
+            </h1>
+            <p className="text-sm text-gray-600 font-normal leading-relaxed">
+              {t('login.tagline')}
+            </p>
+          </div>
         </div>
 
-        {/* Welcome Text */}
-        <div className="text-center max-w-xs mb-10">
-          <h1 className="text-2xl font-bold text-[#1C1C1E] mb-3 leading-tight">
-            {t('login.welcome')}
-          </h1>
-          <p className="text-sm text-gray-600 font-normal leading-relaxed">
-            {t('login.tagline')}
-          </p>
-        </div>
-      </div>
-
-      {/* Bottom Section with Login Button */}
-      <div className="w-full max-w-sm">
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs text-center">
+          <div className="mb-4 p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs text-center">
             {error}
           </div>
         )}
@@ -199,9 +200,9 @@ export function LoginPage() {
             onClick={handleWorldcoinLogin}
             disabled={isLoading}
             variant="default"
-            className="w-full py-3 px-5 bg-white hover:bg-gray-50 text-black rounded-lg text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+            className="w-full py-3.5 px-5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
             style={{
-              border: '2px solid black',
+              border: '1px solid rgba(15, 23, 42, 0.18)',
               boxSizing: 'border-box'
             }}
           >
@@ -242,9 +243,9 @@ export function LoginPage() {
               onClick={handleDevLogin}
               disabled={isLoading}
               variant="default"
-              className="w-full py-3 px-5 bg-white hover:bg-gray-50 text-black rounded-lg text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+              className="w-full py-3.5 px-5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
               style={{
-                border: '2px solid black',
+                border: '1px solid rgba(15, 23, 42, 0.18)',
                 boxSizing: 'border-box'
               }}
             >
@@ -285,6 +286,10 @@ export function LoginPage() {
             {t('login.openInWorldApp')}
           </p>
         )}
+
+        <p className="mt-5 text-center text-[11px] text-gray-500 leading-relaxed">
+          Built for World App mini-app flows with secure wallet sign-in.
+        </p>
       </div>
     </div>
   )

@@ -22,15 +22,15 @@
   - duplicate submission guard.
 - Submission persisted to `price_submissions`.
 
-### 3) Rewards
-- Reward accrual stored in `reward_transactions`.
-- Wallet tab fetches accrued claimable rewards from `/api/wallet/rewards`.
-- Claim preparation via `/api/prepare-claim` (contract call payloads).
+### 3) Legacy Settlement Module
+- Legacy accrual data is stored in `reward_transactions` (table name retained).
+- Wallet tab fetches accrued settlement balance from `/api/wallet/rewards`.
+- Settlement preparation via `/api/prepare-claim` (contract call payloads).
 - Post-transaction confirmation via `/api/confirm-claim` marks rows paid.
-- Optional admin batch payout via `/api/payout-rewards`.
+- Optional admin batch settlement via `/api/payout-rewards`.
 
 ## Contracts
-- `contracts/RewardVault.sol`
+- `contracts/RewardVault.sol` (legacy payout contract)
 - Scripts in `script/`
 - Tests in `contracts/test/`
 - Generated artifacts are intentionally excluded from git.

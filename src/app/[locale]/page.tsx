@@ -5,7 +5,7 @@ import { MainUI } from "@/components/NewUI"
 
 export const metadata: Metadata = {
   title: "Valor App",
-  description: "Submit gas prices and claim rewards in the World mini app.",
+  description: "Submit gas prices and improve local price visibility in the World mini app.",
 }
 
 export default async function Home() {

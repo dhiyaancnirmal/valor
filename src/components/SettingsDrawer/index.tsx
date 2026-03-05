@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react"
 import { useTranslations } from "next-intl"
-import { Globe, Check, Ruler } from "lucide-react"
+import { Globe, Check, Ruler, Camera } from "lucide-react"
 import { useLanguage } from "@/components/providers/LanguageProvider"
 
 interface SettingsDrawerProps {
@@ -10,9 +10,18 @@ interface SettingsDrawerProps {
   onClose: () => void
   units?: 'metric' | 'imperial'
   setUnits?: (units: 'metric' | 'imperial') => void
+  captureMode?: boolean
+  setCaptureMode?: (enabled: boolean) => void
 }
 
-export function SettingsDrawer({ isOpen, onClose, units = 'metric', setUnits }: SettingsDrawerProps) {
+export function SettingsDrawer({
+  isOpen,
+  onClose,
+  units = "metric",
+  setUnits,
+  captureMode = false,
+  setCaptureMode,
+}: SettingsDrawerProps) {
   const t = useTranslations()
   const { locale, setLocale, localeNames, localeFlags } = useLanguage()
   const [startY, setStartY] = useState(0)
@@ -214,6 +223,41 @@ export function SettingsDrawer({ isOpen, onClose, units = 'metric', setUnits }: 
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Capture Mode */}
+            <div style={{ marginTop: "var(--spacing-lg)" }}>
+              <div className="flex items-center" style={{ gap: "var(--spacing-md)", marginBottom: "var(--spacing-md)" }}>
+                <div className="w-12 h-12 bg-gray-100 flex items-center justify-center flex-shrink-0" style={{ borderRadius: "var(--radius-md)" }}>
+                  <Camera className="w-6 h-6 text-[#1C1C1E]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-bold text-[#1C1C1E]">
+                    Capture mode
+                  </h3>
+                  <p className="text-sm text-gray-600" style={{ marginTop: "var(--spacing-xs)" }}>
+                    Mask profile details for screenshots
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCaptureMode?.(!captureMode)}
+                className="w-full flex items-center justify-between border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-all duration-200 p-4"
+                style={{ borderRadius: "var(--radius-md)" }}
+              >
+                <span className="font-medium text-[#1C1C1E]">Enable anonymized screenshots</span>
+                <span
+                  className={`h-6 w-11 rounded-full transition-colors ${captureMode ? "bg-[var(--valor-green)]" : "bg-gray-300"}`}
+                >
+                  <span
+                    className={`block h-5 w-5 rounded-full bg-white mt-0.5 transition-transform ${
+                      captureMode ? "translate-x-5" : "translate-x-0.5"
+                    }`}
+                  />
+                </span>
+              </button>
             </div>
 
           </div>

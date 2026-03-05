@@ -5,7 +5,7 @@
 2. Set all required environment variables.
 3. Deploy.
 
-## Scheduled payout endpoint
+## Scheduled settlement endpoint
 - Endpoint: `POST /api/payout-rewards`
 - Requires secret token via either:
   - `Authorization: Bearer <CRON_SECRET>`
@@ -16,4 +16,4 @@
 - `GET /` renders and login works.
 - `GET /en/showcase` (or `/es-AR/showcase`) renders.
 - Wallet auth succeeds in World App.
-- Reward claim flow works (`prepare-claim` + `confirm-claim`).
+- Legacy settlement flow works (`prepare-claim` + `confirm-claim`).

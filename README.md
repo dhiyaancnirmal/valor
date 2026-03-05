@@ -5,8 +5,8 @@ World Mini App for crowdsourced essential-goods pricing intelligence.
 ## What this repo contains
 - Next.js 16 mini app with World MiniKit wallet auth.
 - Grocery + gas discovery + price submission flow.
-- Trust and consensus rebuild planning (rewards deprecated).
-- RewardVault Solidity contract + Foundry scripts/tests.
+- Trust and consensus rebuild planning for data quality.
+- Legacy payout contract module + Foundry scripts/tests.
 - Public showcase route: `/[locale]/showcase`.
 
 ## Project status
@@ -39,7 +39,7 @@ npm install
 ```
 2. Create `.env.local` from `.env.example` and fill required values.
 3. Apply DB schema in Supabase using:
-- `db/migrations/001_rewards.sql`
+- `db/migrations/001_rewards.sql` (legacy table name retained)
 4. Run dev server:
 ```bash
 npm run dev

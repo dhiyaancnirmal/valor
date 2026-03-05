@@ -1,7 +1,7 @@
 # Target File Structure
 
 ## Current Direction
-The repo has a solid base but still carries legacy reward-era organization and mixed concerns.
+The repo has a solid base but still carries legacy incentive-era organization and mixed concerns.
 
 ## Target Structure
 

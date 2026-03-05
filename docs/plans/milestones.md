@@ -5,7 +5,7 @@ Goal: prepare a stable, polished baseline for iterative delivery.
 
 Deliverables:
 - Final docs structure (`docs/guides`, `docs/reference`, `docs/plans`).
-- Remove reward-first language across repo copy/docs/comments where safe.
+- Remove incentive-first language across repo copy/docs/comments where safe.
 - Introduce global design tokens for light-mode-only, Manrope-only typography.
 - Enforce typography rules in shared components.
 - Immediate UX polish for login/home/map/wallet/settings flows.
@@ -14,7 +14,7 @@ Commit slices:
 1. `docs(m0): reorganize docs and planning vault`
 2. `refactor(m0): baseline structure cleanup (non-breaking)`
 3. `refactor(m0): centralize typography and light-mode tokens`
-4. `refactor(m0): remove reward-centric language + polish core screens`
+4. `refactor(m0): remove incentive-centric language + polish core screens`
 
 Acceptance:
 - App builds and runs.

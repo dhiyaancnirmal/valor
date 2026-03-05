@@ -12,6 +12,8 @@ import PriceEntryPage from "@/components/PriceSubmissionDrawer/PriceEntryPageDra
 import { UserLocation, GasStation } from "@/types"
 import { calculateDistance } from "@/lib/utils"
 import { MiniKit } from "@worldcoin/minikit-js"
+import { useCaptureMode } from "@/lib/capture-mode"
+import { isWorldDevBypassEnabled, looksLikeWorldAppUserAgent } from "@/lib/world-dev"
 
 type Tab = "map" | "home" | "wallet"
 
@@ -21,13 +23,14 @@ export function MainUI() {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null)
   const [gasStations, setGasStations] = useState<GasStation[]>([])
   const [loading, setLoading] = useState(true)
-  const [isMiniKitReady, setIsMiniKitReady] = useState(false)
+  const [isMiniKitReady, setIsMiniKitReady] = useState(isWorldDevBypassEnabled)
   const [selectedStation, setSelectedStation] = useState<GasStation | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isSubmitPageOpen, setIsSubmitPageOpen] = useState(false)
   const [isLoadingStations, setIsLoadingStations] = useState(false)
   const [units, setUnits] = useState<'metric' | 'imperial'>('metric')
+  const { captureMode, setCaptureMode } = useCaptureMode()
 
   // Shared station data state (persists across tab switches)
   const [stationData, setStationData] = useState<Record<string, {
@@ -96,6 +99,10 @@ export function MainUI() {
   }
 
   useEffect(() => {
+    if (isWorldDevBypassEnabled) {
+      return
+    }
+
     let cancelled = false
     let tries = 0
     const MAX_TRIES = 50
@@ -117,7 +124,7 @@ export function MainUI() {
         // Fallback: some World App builds may delay bridge init; if UA indicates World App, allow non-MiniKit features to proceed
         try {
           const ua = navigator.userAgent || ""
-          const looksLikeWorldApp = /WorldApp|WorldAppMiniKit|WorldCoin/i.test(ua)
+          const looksLikeWorldApp = looksLikeWorldAppUserAgent(ua)
           if (looksLikeWorldApp && !cancelled) {
             console.warn("MiniKit bridge not ready, but World App UA detected. Proceeding with limited features.")
             setIsMiniKitReady(true)
@@ -267,7 +274,7 @@ export function MainUI() {
     // This prevents excessive API calls
   }
 
-  const handleOpenSubmitPage = (station: GasStation) => {
+  const handleOpenSubmitPage = () => {
     // Open overlay immediately without closing drawer
     setIsSubmitPageOpen(true)
     // Keep selectedStation set so drawer stays in background
@@ -304,7 +311,7 @@ export function MainUI() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[#F4F4F8]">
+    <div className="h-screen flex flex-col bg-[var(--valor-bg)]">
       {/* Main Content */}
       <main className="flex-1 overflow-hidden">
         {activeTab === "map" && (
@@ -327,7 +334,12 @@ export function MainUI() {
             setIsLoadingStationData={setIsLoadingStationData}
           />
         )}
-        {activeTab === "wallet" && <WalletTab onOpenSettings={() => setIsSettingsOpen(true)} />}
+        {activeTab === "wallet" && (
+          <WalletTab
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            captureMode={captureMode}
+          />
+        )}
       </main>
 
       {/* Bottom Navigation */}
@@ -396,6 +408,8 @@ export function MainUI() {
         onClose={() => setIsSettingsOpen(false)}
         units={units}
         setUnits={setUnits}
+        captureMode={captureMode}
+        setCaptureMode={setCaptureMode}
       />
     </div>
   )

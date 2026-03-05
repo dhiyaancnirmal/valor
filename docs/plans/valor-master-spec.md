@@ -22,7 +22,7 @@ Primary outcomes for v1:
 5. Strong mobile UX following World Mini App design/app guidelines.
 
 Out of scope for v1:
-- reward payouts/token incentives.
+- direct payouts/token incentives.
 - complex social feed mechanics.
 - full global launch operations.
 

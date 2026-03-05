@@ -191,8 +191,8 @@ export function PriceEntryForm({
         submissionCount?: number
         }
 
-      // Rewards now accrue and are paid out at 12:00 AM UTC daily
-      // No immediate claim needed
+      // Settlement entries are processed daily at 12:00 AM UTC.
+      // No immediate wallet action is required here.
 
       onSuccess()
     } catch (err) {

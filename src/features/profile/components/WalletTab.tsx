@@ -234,21 +234,21 @@ export function WalletTab({ onOpenSettings, captureMode = false }: WalletTabProp
               {isClaiming ? (
                 <div className="flex items-center justify-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Claiming...</span>
-                </div>
-              ) : accruedRewards && accruedRewards.totalUSDC > 0 ? (
-                <span>Claim {accruedRewards.totalUSDC.toFixed(2)} USDC</span>
+                <span>Settling...</span>
+              </div>
+            ) : accruedRewards && accruedRewards.totalUSDC > 0 ? (
+                <span>Settle {accruedRewards.totalUSDC.toFixed(2)} USDC</span>
               ) : (
-                <span>No rewards to claim</span>
+                <span>No balance to settle</span>
               )}
             </button>
             {claimError && (
               <p className="text-red-500 text-xs text-center mt-1">{claimError}</p>
             )}
             {!miniKitInstalled && !isWorldDevBypassEnabled && (
-              <p className="text-gray-500 text-xs text-center mt-1">
-                Please open in World App to claim rewards
-              </p>
+                <p className="text-gray-500 text-xs text-center mt-1">
+                Please open in World App to settle balance
+                </p>
             )}
             {accruedRewards && accruedRewards.totalUSDC > 0 && (
               <p className="text-center text-xs text-gray-600 mt-1">
@@ -264,13 +264,13 @@ export function WalletTab({ onOpenSettings, captureMode = false }: WalletTabProp
   async function handleClaimRewards() {
     if (!miniKitInstalled) {
       if (!isWorldDevBypassEnabled) {
-        setClaimError("Please open this app in World App to claim rewards")
+        setClaimError("Please open this app in World App to settle balance")
         return
       }
 
       const availableRewards = accruedRewards?.totalUSDC ?? 0
       if (availableRewards <= 0) {
-        setClaimError("No rewards available to claim")
+        setClaimError("No balance available to settle")
         return
       }
 
@@ -299,12 +299,12 @@ export function WalletTab({ onOpenSettings, captureMode = false }: WalletTabProp
       const prepareData = (await prepareResponse.json()) as PrepareClaimResponse
 
       if (!prepareData.success || !prepareData.transactions || prepareData.transactions.length === 0) {
-        setClaimError(prepareData.error || "No rewards available to claim")
+        setClaimError(prepareData.error || "No balance available to settle")
         setIsClaiming(false)
         return
       }
 
-      console.log(`Preparing to claim ${prepareData.transactions.length} rewards`)
+      console.log(`Preparing to settle ${prepareData.transactions.length} balance items`)
 
       // Step 2: Execute transaction using MiniKit
       // MiniKit supports batching multiple transactions
@@ -329,7 +329,7 @@ export function WalletTab({ onOpenSettings, captureMode = false }: WalletTabProp
         
         // Provide helpful error message for invalid_contract
         if (finalPayload.error_code === 'invalid_contract') {
-          setClaimError("Contract not whitelisted. Please whitelist the RewardVault contract in the Worldcoin Developer Portal.")
+          setClaimError("Contract not whitelisted. Please whitelist the payout contract in the Worldcoin Developer Portal.")
         } else {
           setClaimError(finalPayload.error_code || "Transaction failed")
         }
@@ -376,11 +376,11 @@ export function WalletTab({ onOpenSettings, captureMode = false }: WalletTabProp
         return
       }
 
-      // Step 4: Refresh rewards display
+      // Step 4: Refresh balance display
       setIsClaiming(false)
       setClaimError(null)
       
-      // Refresh rewards
+      // Refresh balance
       if (session?.user?.walletAddress) {
         const rewardsResponse = await fetch('/api/wallet/rewards')
         const rewardsData = await rewardsResponse.json()
@@ -394,7 +394,7 @@ export function WalletTab({ onOpenSettings, captureMode = false }: WalletTabProp
       }
     } catch (error: unknown) {
       console.error("Claim error:", error)
-      setClaimError(error instanceof Error ? error.message : "Failed to claim rewards. Please try again.")
+      setClaimError(error instanceof Error ? error.message : "Failed to settle balance. Please try again.")
       setIsClaiming(false)
     }
   }

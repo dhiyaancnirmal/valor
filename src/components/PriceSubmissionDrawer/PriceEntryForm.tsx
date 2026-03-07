@@ -5,7 +5,6 @@ import { useTranslations } from "next-intl"
 import { useSession } from "next-auth/react"
 import { Camera, Check, Loader2 } from "lucide-react"
 import { FuelType, GasStation } from "@/types"
-import { calculateDistance } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 interface PriceEntryFormProps {
@@ -53,7 +52,7 @@ export function PriceEntryForm({
         }
       )
     }
-  }, [userLocation])
+  }, [t, userLocation])
 
   // Fetch user's submitted fuel types for this station
   useEffect(() => {
@@ -110,7 +109,7 @@ export function PriceEntryForm({
       
       // If file is older than 5 seconds, it was likely selected from gallery
       if (timeDiff > 5000) {
-        alert("Please take a new photo using the camera. Gallery photos are not allowed.")
+        setError(t("priceEntry.photoFreshRequired"))
         // Reset the input
         e.target.value = ''
         return
@@ -151,7 +150,7 @@ export function PriceEntryForm({
       formData.append("user_longitude", userLocation.longitude.toString())
       formData.append("gas_station_latitude", station.latitude.toString())
       formData.append("gas_station_longitude", station.longitude.toString())
-      // POI fields from Google Places API
+      // POI fields from map provider
       if (station.placeId) {
         formData.append("poi_place_id", station.placeId)
       }
@@ -183,7 +182,7 @@ export function PriceEntryForm({
         }
       }
 
-      const data = await response.json() as {
+      await response.json() as {
         success: boolean
         submission: { id: number }
         accruedRewardAmount?: string | null

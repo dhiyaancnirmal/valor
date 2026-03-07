@@ -41,17 +41,16 @@ export default async function SubmitPricePage({ searchParams }: SubmitPricePageP
     address: address ? decodeURIComponent(address) : '',
     placeId: stationId, // Use stationId as placeId if not provided separately
     types: [], // Types not available from URL params
-  }
-
-  const handleSuccess = () => {
-    // Success is handled by the component (router.back())
+    categories: ["gas_station"],
+    primaryCategory: "gas_station",
+    submissionMode: "fuel_submit",
+    sourcePlaceIds: [stationId],
   }
 
   return (
     <PriceEntryPage
       station={station}
       userLocation={null}
-      onSuccess={handleSuccess}
     />
   )
 }

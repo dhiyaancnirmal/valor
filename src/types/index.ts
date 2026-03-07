@@ -1,4 +1,4 @@
-export interface GasStation {
+export interface MapVenue {
   id: string
   name: string
   address: string
@@ -6,8 +6,65 @@ export interface GasStation {
   longitude: number
   distance?: number
   photo?: string
-  placeId?: string // Google Places place_id
-  types?: string[] // Google Places types array
+  placeId?: string
+  types?: string[]
+  categories: ("gas_station" | "grocery_store")[]
+  primaryCategory: "gas_station" | "grocery_store"
+  submissionMode: "fuel_submit" | "read_only"
+  source?: "provider" | "community"
+  sourcePlaceIds?: string[]
+}
+
+export type GasStation = MapVenue
+
+export interface StationMapItem {
+  id: string
+  name: string
+  address: string
+  latitude: number
+  longitude: number
+  distance?: number
+  placeId: string
+  types: string[]
+  categories: ("gas_station" | "grocery_store")[]
+  primaryCategory: "gas_station" | "grocery_store"
+  submissionMode: "fuel_submit" | "read_only"
+  source?: "provider" | "community"
+  sourcePlaceIds?: string[]
+}
+
+export type PoiProposalStatus = "pending" | "published" | "rejected"
+
+export interface CommunityPoi {
+  id: string
+  name: string
+  address: string | null
+  latitude: number
+  longitude: number
+  categories: ("gas_station" | "grocery_store")[]
+  primaryCategory: "gas_station" | "grocery_store"
+  createdByWallet: string
+  proposalId?: string | null
+  createdAt: string
+}
+
+export interface PoiProposal {
+  id: string
+  name: string
+  normalizedName: string
+  address: string | null
+  latitude: number
+  longitude: number
+  categories: ("gas_station" | "grocery_store")[]
+  primaryCategory: "gas_station" | "grocery_store"
+  notes?: string | null
+  createdByWallet: string
+  status: PoiProposalStatus
+  resolutionReason?: string | null
+  publishedPoiId?: string | null
+  createdAt: string
+  publishedAt?: string | null
+  rejectedAt?: string | null
 }
 
 export interface PriceSubmission {

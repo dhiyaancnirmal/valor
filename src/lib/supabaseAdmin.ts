@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js"
 
-type SupabaseScalar = string | number | boolean | null
+type SupabaseValue = string | number | boolean | null | string[] | Record<string, unknown>
 
 type PriceSubmissionRow = {
   id: string
@@ -22,7 +22,7 @@ type PriceSubmissionRow = {
   created_at: string
   updated_at: string
   poi_types: string | null
-  [key: string]: SupabaseScalar
+  [key: string]: SupabaseValue
 }
 
 type RewardTransactionRow = {
@@ -37,10 +37,49 @@ type RewardTransactionRow = {
   payout_tx_hash: string | null
   created_at: string
   updated_at: string
-  [key: string]: SupabaseScalar
+  [key: string]: SupabaseValue
 }
 
-type TableSchema<RowType extends Record<string, SupabaseScalar>> = {
+type PoiRow = {
+  id: string
+  name: string
+  normalized_name: string
+  address: string | null
+  latitude: number | string
+  longitude: number | string
+  categories: string[] | null
+  primary_category: string
+  status: string
+  source: string
+  created_by_wallet: string
+  proposal_id: string | null
+  created_at: string
+  updated_at: string
+  [key: string]: SupabaseValue
+}
+
+type PoiProposalRow = {
+  id: string
+  name: string
+  normalized_name: string
+  address: string | null
+  latitude: number | string
+  longitude: number | string
+  categories: string[] | null
+  primary_category: string
+  notes: string | null
+  created_by_wallet: string
+  status: string
+  resolution_reason: string | null
+  published_poi_id: string | null
+  created_at: string
+  published_at: string | null
+  rejected_at: string | null
+  updated_at: string
+  [key: string]: SupabaseValue
+}
+
+type TableSchema<RowType extends Record<string, SupabaseValue>> = {
   Row: RowType
   Insert: Partial<RowType>
   Update: Partial<RowType>
@@ -52,6 +91,8 @@ type SupabaseDatabase = {
     Tables: {
       price_submissions: TableSchema<PriceSubmissionRow>
       reward_transactions: TableSchema<RewardTransactionRow>
+      pois: TableSchema<PoiRow>
+      poi_proposals: TableSchema<PoiProposalRow>
     }
     Views: Record<string, never>
     Functions: Record<string, never>

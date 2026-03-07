@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useTranslations } from "next-intl"
+import { useEffect, useState } from "react"
 import { signIn } from "next-auth/react"
+import { useTranslations } from "next-intl"
 import { MiniKit } from "@worldcoin/minikit-js"
-import { Button } from "@/components/ui/button"
+import { MobileScreen, StickyActionBar } from "@/components/mobile"
 import Logo from "@/components/Logo"
 import WorldIDLogo from "@/components/WorldIDLogo"
+import { Button } from "@/components/ui/button"
 import { isDevAuthEnabled } from "@/lib/world-dev"
 
 export function LoginPage() {
@@ -16,20 +17,27 @@ export function LoginPage() {
   const [isMiniKitReady, setIsMiniKitReady] = useState(false)
 
   useEffect(() => {
-    // Check if MiniKit is available after component mounts
-    const checkMiniKit = () => {
-      if (typeof window !== "undefined") {
-        const isInstalled = MiniKit.isInstalled()
-        setIsMiniKitReady(isInstalled)
+    let cancelled = false
+    let timeoutId: number | undefined
 
-        if (!isInstalled) {
-          // Keep checking for MiniKit to load
-          setTimeout(checkMiniKit, 1000)
-        }
+    const checkMiniKit = () => {
+      if (cancelled || typeof window === "undefined") return
+      const installed = MiniKit.isInstalled()
+      setIsMiniKitReady(installed)
+
+      if (!installed) {
+        timeoutId = window.setTimeout(checkMiniKit, 1000)
       }
     }
 
     checkMiniKit()
+
+    return () => {
+      cancelled = true
+      if (timeoutId) {
+        window.clearTimeout(timeoutId)
+      }
+    }
   }, [])
 
   const handleWorldcoinLogin = async () => {
@@ -37,17 +45,15 @@ export function LoginPage() {
       setIsLoading(true)
       setError(null)
 
-      // Check if MiniKit is available
       if (!MiniKit.isInstalled()) {
-        setError(t('login.errors.openInWorldApp'))
+        setError(t("login.errors.openInWorldApp"))
         setIsLoading(false)
         return
       }
 
-      // Use async walletAuth command as per documentation
       const nonceRes = await fetch("/api/nonce")
       if (!nonceRes.ok) {
-        throw new Error("Failed to initialize sign-in nonce")
+        throw new Error(t("login.errors.initNonceFailed"))
       }
       const { nonce } = await nonceRes.json()
       const requestId = "wallet-auth-v1"
@@ -61,44 +67,35 @@ export function LoginPage() {
         statement,
       })
 
-      if (finalPayload.status === 'error') {
-        // Don't show error for user rejection - this is normal behavior
-        if (finalPayload.error_code === 'user_rejected') {
+      if (finalPayload.status === "error") {
+        if (finalPayload.error_code === "user_rejected") {
           setIsLoading(false)
           return
         }
-        setError(finalPayload.error_code || t('login.errors.authFailed'))
+        setError(finalPayload.error_code || t("login.errors.authFailed"))
         setIsLoading(false)
         return
       }
 
-      if (finalPayload.status !== 'success') {
-        setError(t('login.errors.invalidResponse'))
+      if (finalPayload.status !== "success") {
+        setError(t("login.errors.invalidResponse"))
         setIsLoading(false)
         return
       }
 
-      // Extract wallet address and signature from finalPayload
       const walletAddress = finalPayload.address
       const signature = finalPayload.signature
-
       if (!walletAddress) {
-        setError(t('login.errors.noWalletAddress'))
+        setError(t("login.errors.noWalletAddress"))
         setIsLoading(false)
         return
       }
 
-      // Get user profile data from MiniKit after successful auth
       const userProfile = MiniKit.user
-
-      // Use the message from the finalPayload (SIWE message)
-      const message = finalPayload.message
-
-      // Sign in with NextAuth
       const result = await signIn("worldcoin", {
         walletAddress,
         signature,
-        message,
+        message: finalPayload.message,
         nonce,
         requestId,
         statement,
@@ -109,15 +106,14 @@ export function LoginPage() {
       })
 
       if (result?.error) {
-        setError(`${t('login.errors.authFailed')}: ${result.error}`)
+        setError(`${t("login.errors.authFailed")}: ${result.error}`)
         setIsLoading(false)
         return
       }
 
-      // Success - redirect to home
       window.location.href = "/"
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('login.errors.generic'))
+      setError(err instanceof Error ? err.message : t("login.errors.generic"))
       setIsLoading(false)
     }
   }
@@ -125,29 +121,27 @@ export function LoginPage() {
   const handleDevLogin = async () => {
     try {
       if (!isDevAuthEnabled) {
-        setError("Dev login is disabled")
+        setError(t("login.errors.devDisabled"))
         return
       }
+
       setIsLoading(true)
       setError(null)
 
       const nonceRes = await fetch("/api/nonce")
       if (!nonceRes.ok) {
-        throw new Error("Failed to initialize dev sign-in nonce")
+        throw new Error(t("login.errors.initNonceFailed"))
       }
       const { nonce } = await nonceRes.json()
 
-      // Dev mode: create a mock wallet address
-      const mockWalletAddress = "0xdev" + Math.random().toString(16).substr(2, 36)
+      const mockWalletAddress = `0xdev${Math.random().toString(16).substr(2, 36)}`
       const message = `Sign in to Valor\nWallet: ${mockWalletAddress}\nTimestamp: ${Date.now()}`
 
-      // Call our API to create a signature server-side
       const response = await fetch("/api/dev-signature", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message }),
       })
-
       const { signature } = await response.json()
 
       const result = await signIn("worldcoin", {
@@ -159,138 +153,92 @@ export function LoginPage() {
       })
 
       if (result?.error) {
-        setError(t('login.errors.devLoginFailed'))
+        setError(t("login.errors.devLoginFailed"))
         setIsLoading(false)
         return
       }
 
       window.location.href = "/"
-    } catch (err) {
-      setError(t('login.errors.devLoginFailed'))
+    } catch {
+      setError(t("login.errors.devLoginFailed"))
       setIsLoading(false)
     }
   }
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-5 py-8">
-      <div className="w-full max-w-sm rounded-3xl border border-white/70 bg-white/80 shadow-[0_18px_44px_rgba(15,23,42,0.12)] backdrop-blur-sm px-6 py-9">
-        <div className="flex flex-col items-center justify-center">
-          <div className="mb-7">
-            <Logo size={64} />
-          </div>
+  const primaryAction = isMiniKitReady ? handleWorldcoinLogin : isDevAuthEnabled ? handleDevLogin : undefined
+  const primaryLabel = isMiniKitReady ? t("login.loginWithWorldID") : t("login.loginDevMode")
 
-          <div className="text-center max-w-xs mb-8">
-            <h1 className="text-2xl font-extrabold text-[#1C1C1E] mb-2.5 leading-tight">
-              {t('login.welcome')}
-            </h1>
-            <p className="text-sm text-gray-600 font-normal leading-relaxed">
-              {t('login.tagline')}
-            </p>
+  return (
+    <MobileScreen
+      className="bg-[radial-gradient(circle_at_top,_#ffffff_0%,_#eef7e9_32%,_#eef0f6_100%)]"
+      contentClassName="overflow-hidden"
+      footer={
+        <StickyActionBar className="border-t-0 bg-transparent" innerClassName="px-4 pb-0 pt-0">
+          <div className="rounded-[28px] border border-white/80 bg-white/92 p-4 shadow-[0_18px_44px_rgba(15,23,42,0.12)] backdrop-blur-sm">
+            {error ? (
+              <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-3 py-3 text-left text-xs text-red-700">
+                {error}
+              </div>
+            ) : null}
+
+            {primaryAction ? (
+              <Button
+                onClick={primaryAction}
+                disabled={isLoading}
+                variant="default"
+                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-black/10 px-5 py-3 text-sm text-black shadow-sm active:scale-[0.99]"
+              >
+                {isLoading ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4zm2 5.29A7.96 7.96 0 014 12H0c0 3.04 1.13 5.82 3 7.94l3-2.65z" />
+                    </svg>
+                    {t("login.loggingIn")}
+                  </>
+                ) : isMiniKitReady ? (
+                  <>
+                    <WorldIDLogo size={18} />
+                    {primaryLabel}
+                  </>
+                ) : (
+                  <span>{primaryLabel}</span>
+                )}
+              </Button>
+            ) : (
+              <div className="rounded-2xl border border-black/5 bg-[var(--valor-bg-soft)] px-4 py-3 text-center text-sm text-gray-600">
+                {t("login.openInWorldApp")}
+              </div>
+            )}
+
+            {!isMiniKitReady ? (
+              <p className="mt-3 text-center text-xs text-gray-500">{t("login.openInWorldApp")}</p>
+            ) : null}
+          </div>
+        </StickyActionBar>
+      }
+    >
+      <div className="flex h-full flex-col justify-between px-5 pb-4 pt-[calc(env(safe-area-inset-top,0px)+1.75rem)]">
+        <div className="flex justify-end">
+          <div className="rounded-full border border-white/70 bg-white/70 px-3 py-1 text-[11px] uppercase tracking-[0.12em] text-gray-500 shadow-sm">
+            {t("login.badge")}
           </div>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs text-center">
-            {error}
+        <div className="flex flex-1 flex-col justify-center pb-8 pt-6">
+          <div className="mx-auto flex max-w-xs flex-col items-center text-center">
+            <div className="mb-7 flex h-20 w-20 items-center justify-center rounded-[28px] border border-white/70 bg-white/80 shadow-[0_18px_44px_rgba(15,23,42,0.1)]">
+              <Logo size={64} />
+            </div>
+            <h1 className="text-[2rem] leading-[1.05] text-[#1C1C1E]">{t("login.welcome")}</h1>
+            <p className="mt-3 text-sm leading-6 text-gray-600">{t("login.tagline")}</p>
           </div>
-        )}
+        </div>
 
-        {isMiniKitReady ? (
-          <Button
-            onClick={handleWorldcoinLogin}
-            disabled={isLoading}
-            variant="default"
-            className="w-full py-3.5 px-5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
-            style={{
-              border: '1px solid rgba(15, 23, 42, 0.18)',
-              boxSizing: 'border-box'
-            }}
-          >
-            {isLoading ? (
-              <>
-                <svg
-                  className="animate-spin h-4 w-4 text-black"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                {t('login.loggingIn')}
-              </>
-            ) : (
-              <>
-                <WorldIDLogo size={18} />
-                {t('login.loginWithWorldID')}
-              </>
-            )}
-          </Button>
-        ) : isDevAuthEnabled ? (
-          <>
-            <Button
-              onClick={handleDevLogin}
-              disabled={isLoading}
-              variant="default"
-              className="w-full py-3.5 px-5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
-              style={{
-                border: '1px solid rgba(15, 23, 42, 0.18)',
-                boxSizing: 'border-box'
-              }}
-            >
-              {isLoading ? (
-                <>
-                  <svg
-                    className="animate-spin h-4 w-4 text-black"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  {t('login.loggingIn')}
-                </>
-              ) : (
-                <span>{t('login.loginDevMode')}</span>
-              )}
-            </Button>
-            <p className="mt-4 text-center text-gray-500 text-xs leading-relaxed">
-              {t('login.openInWorldApp')}
-            </p>
-          </>
-        ) : (
-          <p className="mt-4 text-center text-gray-500 text-xs leading-relaxed">
-            {t('login.openInWorldApp')}
-          </p>
-        )}
-
-        <p className="mt-5 text-center text-[11px] text-gray-500 leading-relaxed">
-          Built for World App mini-app flows with secure wallet sign-in.
-        </p>
+        <div className="pb-2 text-center text-[11px] leading-relaxed text-gray-500">
+          {t("login.footer")}
+        </div>
       </div>
-    </div>
+    </MobileScreen>
   )
 }

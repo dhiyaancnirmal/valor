@@ -30,15 +30,21 @@
   "homeTab": {
     "potentialToday": "Today's Signal",
     "todaysRewards": "Today's Coverage",
-    "stationsNearby": "Nearby",
-    "searchPlaceholder": "Search gas stations...",
-    "noStationsFound": "No gas stations found",
+    "stationsNearby": "Nearby Places",
+    "coveragePool": "Coverage Pool",
+    "locationActive": "Location active",
+    "locationPending": "Location pending",
+    "searchPlaceholder": "Search grocery stores and gas stations...",
+    "noStationsFound": "No places found",
     "adjustSearch": "Try adjusting your search or location",
+    "complete": "Complete",
+    "signalLabel": "Signal {amount}",
     "highDemand": "HIGH DEMAND",
     "earn": "Contribute",
     "submit": "Submit",
-    "stationsCount": "{count} stations",
+    "stationsCount": "{count} places",
     "earnAmount": "Signal ${amount}",
+    "sortLabel": "Sort places",
     "sort": {
       "proximity": "Proximity",
       "priority": "Priority",
@@ -65,8 +71,27 @@
       "earn": "Build trust with accurate submissions",
       "help": "Help others find the best prices"
     },
+    "myProposals": "My Proposals",
+    "noProposals": "No store proposals yet",
     "anonymousUser": "Anonymous User",
-    "copyWalletAddress": "Copy wallet address"
+    "copyWalletAddress": "Copy wallet address",
+    "settling": "Settling...",
+    "settleBalance": "Settle {amount} USDC",
+    "noBalanceToSettle": "No balance to settle",
+    "openInWorldAppToSettle": "Please open in World App to settle balance",
+    "proposalStatuses": {
+      "pending": "Pending",
+      "published": "Published",
+      "rejected": "Rejected"
+    },
+    "claimErrors": {
+      "invalidContract": "Contract not whitelisted. Please whitelist the payout contract in the Worldcoin Developer Portal.",
+      "transactionFailed": "Transaction failed",
+      "transactionRetry": "Transaction failed. Please try again.",
+      "missingHash": "Transaction succeeded but no hash was returned. Please contact support.",
+      "confirmFailed": "Transaction succeeded but the app failed to update records. Please contact support.",
+      "settleFailed": "Failed to settle balance. Please try again."
+    }
   },
   "settingsDrawer": {
     "settings": "Settings",
@@ -96,15 +121,27 @@
     "language": "Language",
     "selectLanguage": "Select Language",
     "english": "English",
-    "spanish": "Español"
+    "spanish": "Español",
+    "unitsTitle": "Units",
+    "unitsDescription": "Choose your measurement system",
+    "units": {
+      "metricName": "Metric",
+      "metricDescription": "Kilometers, liters",
+      "imperialName": "Imperial",
+      "imperialDescription": "Miles, gallons"
+    },
+    "captureModeTitle": "Capture mode",
+    "captureModeDescription": "Mask profile details for screenshots",
+    "captureModeToggle": "Enable anonymized screenshots"
   },
   "drawer": {
     "submitPrice": "Submit Price",
+    "submissionComingSoon": "Grocery submissions are coming soon",
     "away": "away",
     "lastPrice": "Last Price",
     "noRecentData": "No recent data available",
     "perGallon": "/gal",
-    "openInGoogleMaps": "Open in Google Maps"
+    "openInMaps": "Open in Maps"
   },
   "priceEntry": {
     "step": "Step",
@@ -130,6 +167,7 @@
     "photoTip1": "Ensure prices and fuel types are clearly visible",
     "photoTip2": "Avoid glare and blurry images",
     "photoTip3": "Include the fuel type labels",
+    "photoFreshRequired": "Take a fresh camera photo instead of selecting an older gallery image.",
     "photoCaptured": "Photo captured successfully",
     "capturePriceDisplay": "Capture the price display clearly",
     "gasStation": "Gas Station",
@@ -170,21 +208,74 @@
     "loginDevMode": "Login (Dev Mode)",
     "openInWorldApp": "Please open this app in World App to authenticate",
     "signInStatement": "Sign in to Valor to submit gas prices",
+    "badge": "World Mini App",
+    "footer": "Built for World App mini-app flows with secure wallet sign-in.",
     "errors": {
       "openInWorldApp": "Please open this app in World App",
       "authFailed": "Authentication failed",
       "invalidResponse": "Authentication failed: invalid response status",
       "noWalletAddress": "Could not get wallet address from World App",
       "devLoginFailed": "Dev login failed",
+      "devDisabled": "Dev login is disabled",
+      "initNonceFailed": "Failed to initialize sign-in nonce",
       "generic": "An error occurred. Please try again."
     }
   },
   "map": {
     "loadingMap": "Loading map...",
-    "findingStations": "Finding gas stations...",
+    "providerUnavailable": "Map provider is unavailable right now.",
+    "findingStations": "Updating nearby places...",
     "yourLocation": "Your Location",
     "loading": "Loading",
-    "loadingStations": "Loading stations"
+    "loadingStations": "Loading stations",
+    "addStore": "Add Store",
+    "selectLocationTitle": "Select Store Location",
+    "selectLocationSubtitle": "Move the map until the pin is exactly where the store is.",
+    "selectLocationHint": "Start from your current location, then drag the map until the pin is on the storefront.",
+    "confirmLocation": "Use this location",
+    "findingAddress": "Finding address...",
+    "positionPin": "Place pin here",
+    "moveMapToPlacePin": "Move the map under the pin",
+    "addStoreTitle": "Add Missing Store",
+    "addStoreSubtitle": "Confirm the store details before publishing it nearby.",
+    "storeNamePlaceholder": "Store name",
+    "storeAddressPlaceholder": "Address",
+    "storeNotesPlaceholder": "Notes (optional)",
+    "categoryGrocery": "Grocery store",
+    "categoryGas": "Gas station",
+    "submitStore": "Submit store",
+    "legend": {
+      "grocery": "Grocery",
+      "gas": "Gas",
+      "mixed": "Mixed"
+    },
+    "addStoreErrors": {
+      "locationUnavailable": "Map location is unavailable right now",
+      "invalidName": "Please enter a valid store name",
+      "invalidAddress": "Please enter a valid address",
+      "submitFailed": "Could not submit store proposal"
+    }
+  },
+  "worldId": {
+    "walletTitle": "Human verification",
+    "walletDescription": "Verify with World ID before submitting prices or adding new stores.",
+    "verifyTitle": "Verify with World ID",
+    "verifyDescription": "Confirm you are a unique person before continuing.",
+    "verifyToSubmitTitle": "Verify before submitting",
+    "verifyToSubmitDescription": "World ID verification is required before submitting a new price.",
+    "verifyToAddStoreTitle": "Verify before adding a store",
+    "verifyToAddStoreDescription": "World ID verification is required before publishing a new store proposal.",
+    "verificationRequired": "Verification required",
+    "verified": "Verified with World ID",
+    "verifiedDetail": "You can now contribute without repeating this step on this device.",
+    "cta": "Verify now",
+    "preparing": "Preparing verification...",
+    "privacy": "World ID verifies uniqueness without revealing your identity to Valor. The app only stores a signed local verification state for your current wallet on this device.",
+    "errors": {
+      "prepareFailed": "Could not start World ID verification.",
+      "verifyFailed": "World ID verification failed.",
+      "flowFailed": "World ID flow failed: {code}"
+    }
   },
   "units": {
     "meter": "m",

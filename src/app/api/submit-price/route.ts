@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 import { calculateDistance } from "@/lib/utils"
+import { getWorldIdRequirementStatus, WORLD_ID_COOKIE_NAME } from "@/lib/world-id"
 
 type SubmissionRecord = {
   id: string
@@ -16,6 +17,17 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.walletAddress) {
       console.log("Unauthorized: no wallet address in session")
       return NextResponse.json({ error: "priceSubmission:errors.missingRequiredFields", message: "Unauthorized" }, { status: 401 })
+    }
+
+    const worldIdStatus = getWorldIdRequirementStatus(
+      request.cookies.get(WORLD_ID_COOKIE_NAME)?.value,
+      session.user.walletAddress
+    )
+    if (worldIdStatus.enabled && !worldIdStatus.verified) {
+      return NextResponse.json(
+        { error: "worldIdVerificationRequired", message: "World ID verification is required before submitting prices." },
+        { status: 403 }
+      )
     }
 
     // Parse form data
@@ -36,7 +48,7 @@ export async function POST(request: NextRequest) {
       formData.get("gas_station_longitude") as string
     )
     const photo = formData.get("photo") as File | null
-    // POI fields from Google Places API
+    // POI fields from map provider
     const poiPlaceId = formData.get("poi_place_id") as string | null
     const poiName = formData.get("poi_name") as string | null
     const poiLat = formData.get("poi_lat") ? parseFloat(formData.get("poi_lat") as string) : null

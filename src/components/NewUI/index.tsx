@@ -2,35 +2,63 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useTranslations } from "next-intl"
-import { Map, Home, Wallet } from "lucide-react"
-import { GoogleMapView } from "@/components/GoogleMap"
+import { Map as MapIcon, Home, Wallet, Plus } from "lucide-react"
+import { AppleMapView, MapBounds, reverseGeocodeCoordinate } from "@/components/AppleMap"
+import { BottomSheet, MobileScreen, StickyActionBar } from "@/components/mobile"
 import { HomeTab } from "./HomeTab"
 import { WalletTab } from "./WalletTab"
 import { PriceSubmissionDrawer } from "@/components/PriceSubmissionDrawer"
 import { SettingsDrawer } from "@/components/SettingsDrawer"
 import PriceEntryPage from "@/components/PriceSubmissionDrawer/PriceEntryPageDrawer"
-import { UserLocation, GasStation } from "@/types"
+import { WorldIdVerificationSheet } from "@/components/WorldIdVerificationSheet"
+import { UserLocation, MapVenue, StationMapItem } from "@/types"
 import { calculateDistance } from "@/lib/utils"
+import { useWorldIdStatus } from "@/hooks/useWorldIdStatus"
 import { MiniKit } from "@worldcoin/minikit-js"
 import { useCaptureMode } from "@/lib/capture-mode"
 import { isWorldDevBypassEnabled, looksLikeWorldAppUserAgent } from "@/lib/world-dev"
 
 type Tab = "map" | "home" | "wallet"
+type AddStoreStep = "location" | "details"
+type VerificationReason = "submit_price" | "add_store" | "general"
+
+const DEFAULT_RADIUS_METERS = 5000
+const MIN_BOUNDS_RESULTS = 18
+const MAX_BOUNDS_RESULTS = 42
+const MAP_CATEGORIES = ["grocery_store", "gas_station"] as const
+const QUERY_CACHE_TTL_MS = 120_000
+const MAX_QUERY_CACHE_ENTRIES = 120
+const BOUNDS_DEBOUNCE_MS = 350
+const FETCHED_BOUNDS_TTL_MS = 10 * 60_000
 
 export function MainUI() {
   const t = useTranslations()
   const [activeTab, setActiveTab] = useState<Tab>("home")
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null)
-  const [gasStations, setGasStations] = useState<GasStation[]>([])
+  const [mapVenues, setMapVenues] = useState<MapVenue[]>([])
   const [loading, setLoading] = useState(true)
   const [isMiniKitReady, setIsMiniKitReady] = useState(isWorldDevBypassEnabled)
-  const [selectedStation, setSelectedStation] = useState<GasStation | null>(null)
+  const [selectedStation, setSelectedStation] = useState<MapVenue | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isSubmitPageOpen, setIsSubmitPageOpen] = useState(false)
   const [isLoadingStations, setIsLoadingStations] = useState(false)
+  const [isAddStoreOpen, setIsAddStoreOpen] = useState(false)
+  const [isWorldIdSheetOpen, setIsWorldIdSheetOpen] = useState(false)
+  const [worldIdReason, setWorldIdReason] = useState<VerificationReason>("general")
+  const [addStoreStep, setAddStoreStep] = useState<AddStoreStep>("location")
+  const [isSubmittingStore, setIsSubmittingStore] = useState(false)
+  const [isResolvingStoreLocation, setIsResolvingStoreLocation] = useState(false)
+  const [storeName, setStoreName] = useState("")
+  const [storeAddress, setStoreAddress] = useState("")
+  const [storeNotes, setStoreNotes] = useState("")
+  const [storeCategory, setStoreCategory] = useState<"grocery_store" | "gas_station">("grocery_store")
+  const [storeError, setStoreError] = useState<string | null>(null)
+  const [selectedStoreLocation, setSelectedStoreLocation] = useState<UserLocation | null>(null)
   const [units, setUnits] = useState<'metric' | 'imperial'>('metric')
   const { captureMode, setCaptureMode } = useCaptureMode()
+  const { enabled: isWorldIdEnabled, verified: isWorldIdVerified, refresh: refreshWorldIdStatus } = useWorldIdStatus(isMiniKitReady)
+  const [, forceMapStatsRender] = useState(0)
 
   // Shared station data state (persists across tab switches)
   const [stationData, setStationData] = useState<Record<string, {
@@ -42,59 +70,185 @@ export function MainUI() {
   }>>({})
   const [isLoadingStationData, setIsLoadingStationData] = useState(false)
 
-  // Track searched areas to avoid duplicate API calls
-  const searchedBounds = useRef<Set<string>>(new Set())
   const boundsChangeTimeout = useRef<NodeJS.Timeout | null>(null)
+  const queryCacheRef = useRef<Map<string, { expiresAt: number; data: StationMapItem[] }>>(new Map())
+  const inFlightRef = useRef<Map<string, Promise<StationMapItem[]>>>(new Map())
+  const activeBoundsControllerRef = useRef<AbortController | null>(null)
+  const fetchedBoundsRef = useRef<Array<{ bounds: MapBounds; fetchedAt: number }>>([])
+  const lastViewportRef = useRef<{ center: UserLocation; latSpan: number; lngSpan: number } | null>(null)
+  const mapCallStatsRef = useRef({
+    lookups: 0,
+    networkCalls: 0,
+    cacheHits: 0,
+    inflightJoins: 0,
+    skippedStableViewport: 0,
+    skippedCoveredViewport: 0,
+    aborted: 0,
+  })
+  const mapCenterRef = useRef<UserLocation | null>(null)
+  const isSelectingStoreLocation = isAddStoreOpen && addStoreStep === "location"
 
-  // Check MiniKit readiness
-  async function fetchNearbyGasStations(location: UserLocation) {
-    try {
-      if (!window.google) {
-        console.error('Google Maps not loaded')
-        setLoading(false)
-        return
+  const mapToVenue = (item: StationMapItem, location: UserLocation): MapVenue => ({
+    id: item.id,
+    name: item.name,
+    address: item.address || "",
+    latitude: item.latitude,
+    longitude: item.longitude,
+    distance:
+      typeof item.distance === "number"
+        ? item.distance
+        : calculateDistance(location.latitude, location.longitude, item.latitude, item.longitude),
+    placeId: item.placeId,
+    types: item.types ?? [],
+    categories: item.categories ?? ["gas_station"],
+    primaryCategory: item.primaryCategory ?? "gas_station",
+    submissionMode: item.submissionMode ?? "fuel_submit",
+    source: item.source ?? "provider",
+    sourcePlaceIds: item.sourcePlaceIds ?? [item.placeId],
+  })
+
+  function pruneQueryCache() {
+    const now = Date.now()
+    for (const [key, value] of queryCacheRef.current) {
+      if (value.expiresAt <= now) {
+        queryCacheRef.current.delete(key)
+      }
+    }
+    while (queryCacheRef.current.size > MAX_QUERY_CACHE_ENTRIES) {
+      const oldestKey = queryCacheRef.current.keys().next().value as string | undefined
+      if (!oldestKey) break
+      queryCacheRef.current.delete(oldestKey)
+    }
+  }
+
+  function getCachedQuery(key: string) {
+    pruneQueryCache()
+    const cached = queryCacheRef.current.get(key)
+    if (!cached) return null
+    if (cached.expiresAt <= Date.now()) {
+      queryCacheRef.current.delete(key)
+      return null
+    }
+    return cached.data
+  }
+
+  function setCachedQuery(key: string, data: StationMapItem[]) {
+    pruneQueryCache()
+    queryCacheRef.current.set(key, {
+      data,
+      expiresAt: Date.now() + QUERY_CACHE_TTL_MS,
+    })
+  }
+
+  function trackMapStat(key: keyof typeof mapCallStatsRef.current, amount = 1) {
+    mapCallStatsRef.current[key] += amount
+    if (process.env.NODE_ENV !== "production") {
+      forceMapStatsRender((value) => (value + 1) % 1_000_000)
+    }
+    const totalLookups = mapCallStatsRef.current.lookups
+    if (process.env.NODE_ENV !== "production" && totalLookups > 0 && totalLookups % 10 === 0) {
+      console.debug("[maps] call stats", mapCallStatsRef.current)
+    }
+  }
+
+  function pruneFetchedBounds() {
+    const cutoff = Date.now() - FETCHED_BOUNDS_TTL_MS
+    fetchedBoundsRef.current = fetchedBoundsRef.current.filter((entry) => entry.fetchedAt >= cutoff)
+  }
+
+  function recordFetchedBounds(bounds: MapBounds) {
+    pruneFetchedBounds()
+    fetchedBoundsRef.current.push({ bounds, fetchedAt: Date.now() })
+    if (fetchedBoundsRef.current.length > 120) {
+      fetchedBoundsRef.current = fetchedBoundsRef.current.slice(-120)
+    }
+  }
+
+  function isBoundsCovered(bounds: MapBounds) {
+    pruneFetchedBounds()
+    return fetchedBoundsRef.current.some((entry) => boundsContains(entry.bounds, bounds))
+  }
+
+  function mergeUniqueVenues(existing: MapVenue[], incoming: MapVenue[]) {
+    const map = new Map<string, MapVenue>()
+    for (const venue of [...existing, ...incoming]) {
+      const current = map.get(venue.id)
+      if (!current) {
+        map.set(venue.id, venue)
+        continue
       }
 
-      const service = new google.maps.places.PlacesService(
-        document.createElement("div")
-      )
-
-      const request = {
-        location: new google.maps.LatLng(location.latitude, location.longitude),
-        radius: 5000, // 5km radius
-        type: "gas_station",
-      }
-
-      service.nearbySearch(request, (results, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          const stations: GasStation[] = results.map((place) => ({
-            id: place.place_id || "",
-            name: place.name || "",
-            address: place.vicinity || "",
-            latitude: place.geometry?.location?.lat() || 0,
-            longitude: place.geometry?.location?.lng() || 0,
-            distance: place.geometry?.location
-              ? calculateDistance(
-                  location.latitude,
-                  location.longitude,
-                  place.geometry.location.lat(),
-                  place.geometry.location.lng()
-                )
-              : undefined,
-            photo: place.photos?.[0]?.getUrl({ maxWidth: 400 }),
-            placeId: place.place_id || "",
-            types: place.types || [],
-          }))
-
-          // Sort by distance
-          stations.sort((a, b) => (a.distance || 0) - (b.distance || 0))
-          setGasStations(stations)
-        }
-        setLoading(false)
+      map.set(venue.id, {
+        ...current,
+        ...venue,
+        categories: Array.from(new Set([...(current.categories ?? []), ...(venue.categories ?? [])])),
+        sourcePlaceIds: Array.from(new Set([...(current.sourcePlaceIds ?? []), ...(venue.sourcePlaceIds ?? [])])),
+        types: Array.from(new Set([...(current.types ?? []), ...(venue.types ?? [])])),
+        submissionMode:
+          (current.categories ?? []).includes("gas_station") || (venue.categories ?? []).includes("gas_station")
+            ? "fuel_submit"
+            : "read_only",
+        primaryCategory:
+          (current.categories ?? []).includes("grocery_store") || (venue.categories ?? []).includes("grocery_store")
+            ? "grocery_store"
+            : "gas_station",
       })
-    } catch (error) {
-      console.error('Error fetching gas stations', error)
-      setLoading(false)
+    }
+
+    return Array.from(map.values()).sort((a, b) => (a.distance || 0) - (b.distance || 0))
+  }
+
+  async function fetchMapSearch(
+    endpoint: "/api/maps/search-nearby" | "/api/maps/search-bounds",
+    payload: Record<string, unknown>,
+    cacheKey: string,
+    signal?: AbortSignal
+  ) {
+    trackMapStat("lookups")
+    const cached = getCachedQuery(cacheKey)
+    if (cached) {
+      trackMapStat("cacheHits")
+      return { stations: cached, source: "cache" as const }
+    }
+
+    const inFlight = inFlightRef.current.get(cacheKey)
+    if (inFlight) {
+      trackMapStat("inflightJoins")
+      return {
+        stations: await inFlight,
+        source: "inflight" as const,
+      }
+    }
+
+    const task = (async () => {
+      trackMapStat("networkCalls")
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal,
+      })
+
+      if (!response.ok) {
+        const errorBody = await response.text()
+        console.warn(`Map search failed (${endpoint})`, response.status, errorBody)
+        return [] as StationMapItem[]
+      }
+
+      const data = (await response.json()) as { stations?: StationMapItem[] }
+      const stations = data.stations ?? []
+      setCachedQuery(cacheKey, stations)
+      return stations
+    })()
+
+    inFlightRef.current.set(cacheKey, task)
+    try {
+      return {
+        stations: await task,
+        source: "network" as const,
+      }
+    } finally {
+      inFlightRef.current.delete(cacheKey)
     }
   }
 
@@ -131,7 +285,11 @@ export function MainUI() {
             return
           }
         } catch {}
-        console.error("MiniKit is not installed. Make sure you're running the application inside of World App")
+        if (isWorldDevBypassEnabled) {
+          console.warn("MiniKit is unavailable in browser bypass mode.")
+        } else {
+          console.error("MiniKit is not installed. Make sure you're running the application inside of World App")
+        }
       }
     }
     pollMiniKit()
@@ -142,6 +300,36 @@ export function MainUI() {
     // Only start loading location after MiniKit is ready
     if (!isMiniKitReady) return
 
+    const fetchNearbyVenues = async (location: UserLocation) => {
+      try {
+        const cacheKey = [
+          "nearby",
+          location.latitude.toFixed(4),
+          location.longitude.toFixed(4),
+          DEFAULT_RADIUS_METERS,
+          MAP_CATEGORIES.join(","),
+        ].join(":")
+
+        const result = await fetchMapSearch(
+          "/api/maps/search-nearby",
+          {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            radiusMeters: DEFAULT_RADIUS_METERS,
+            categories: MAP_CATEGORIES,
+          },
+          cacheKey
+        )
+
+        const venues = result.stations.map((item) => mapToVenue(item, location))
+        setMapVenues(venues)
+        setLoading(false)
+      } catch (error) {
+        console.error("Error fetching nearby places", error)
+        setLoading(false)
+      }
+    }
+
     // Get user location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -151,115 +339,186 @@ export function MainUI() {
             longitude: position.coords.longitude,
           }
           setUserLocation(location)
-          fetchNearbyGasStations(location)
+          mapCenterRef.current = location
+          fetchNearbyVenues(location)
         },
         (error) => {
-          console.error('Error getting location', error)
+          if (isWorldDevBypassEnabled) {
+            console.warn("Geolocation unavailable in browser bypass mode", error)
+          } else {
+            console.error('Error getting location', error)
+          }
           setLoading(false)
         }
       )
     } else {
-      console.error('Geolocation not supported')
+      if (isWorldDevBypassEnabled) {
+        console.warn("Geolocation not supported in this browser.")
+      } else {
+        console.error('Geolocation not supported')
+      }
       setTimeout(() => setLoading(false), 0)
     }
-  }, [isMiniKitReady])
+  }, [isMiniKitReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle map bounds changes for dynamic loading (debounced)
-  const handleBoundsChanged = async (center: UserLocation, bounds: google.maps.LatLngBounds) => {
+  const handleBoundsChanged = async (center: UserLocation, bounds: MapBounds) => {
     if (!userLocation) return
+    mapCenterRef.current = center
+
+    if (isSelectingStoreLocation) {
+      return
+    }
 
     // Clear any pending timeout
     if (boundsChangeTimeout.current) {
       clearTimeout(boundsChangeTimeout.current)
     }
 
-    // Debounce: wait 500ms after last bounds change before fetching
+    // Debounce: wait shortly after last bounds change before fetching
     boundsChangeTimeout.current = setTimeout(async () => {
-      // Check if we already have enough stations in this area
-      const existingStationsInBounds = gasStations.filter(station => {
-        const stationLatLng = new google.maps.LatLng(station.latitude, station.longitude)
-        return bounds.contains(stationLatLng)
-      })
+      const viewport = getViewportSnapshot(bounds)
+      const previousViewport = lastViewportRef.current
+      lastViewportRef.current = viewport
 
-      // Only fetch if we have fewer than 5 stations in this visible area
-      if (existingStationsInBounds.length < 5) {
-        await fetchGasStationsInBounds(bounds)
+      if (previousViewport) {
+        const movedMeters = calculateDistance(
+          previousViewport.center.latitude,
+          previousViewport.center.longitude,
+          viewport.center.latitude,
+          viewport.center.longitude
+        )
+        const zoomRatio = viewport.latSpan / Math.max(previousViewport.latSpan, 0.00001)
+        const isMinorViewportChange = movedMeters < 180 && zoomRatio > 0.9 && zoomRatio < 1.1
+        if (isMinorViewportChange) {
+          trackMapStat("skippedStableViewport")
+          return
+        }
+
+        const isZoomingIn = zoomRatio < 0.9
+        if (isZoomingIn && isBoundsCovered(bounds)) {
+          trackMapStat("skippedCoveredViewport")
+          return
+        }
       }
-    }, 500) // 500ms debounce
+
+      const existingStationsInBounds = mapVenues.filter((station) => isStationInBounds(station, bounds))
+      const targetResults = getBoundsResultTarget(bounds)
+
+      // Fetch if visible area is sparse.
+      if (existingStationsInBounds.length < targetResults) {
+        if (isBoundsCovered(bounds)) {
+          trackMapStat("skippedCoveredViewport")
+          return
+        }
+        await fetchVenuesInBounds(bounds)
+      }
+    }, BOUNDS_DEBOUNCE_MS)
   }
 
-  // Fetch gas stations within map bounds
-  const fetchGasStationsInBounds = async (bounds: google.maps.LatLngBounds) => {
+  const fetchVenuesInBounds = async (bounds: MapBounds) => {
     try {
-      if (!window.google || !userLocation) return
+      if (!userLocation) return
 
-      setIsLoadingStations(true)
+      const { northEast, southWest } = bounds
+      const boundsKey = [
+        "bounds",
+        northEast.lat.toFixed(4),
+        northEast.lng.toFixed(4),
+        southWest.lat.toFixed(4),
+        southWest.lng.toFixed(4),
+        MAP_CATEGORIES.join(","),
+      ].join(":")
 
-      const service = new google.maps.places.PlacesService(
-        document.createElement("div")
+      if (activeBoundsControllerRef.current) {
+        activeBoundsControllerRef.current.abort()
+        trackMapStat("aborted")
+      }
+
+      const controller = new AbortController()
+      activeBoundsControllerRef.current = controller
+
+      const cached = getCachedQuery(boundsKey)
+      const hasInFlight = inFlightRef.current.has(boundsKey)
+      if (!cached && !hasInFlight) {
+        setIsLoadingStations(true)
+      }
+
+      const result = await fetchMapSearch(
+        "/api/maps/search-bounds",
+        {
+          northEast,
+          southWest,
+          categories: MAP_CATEGORIES,
+        },
+        boundsKey,
+        controller.signal
       )
 
-      // Create bounds key to prevent duplicate searches
-      const ne = bounds.getNorthEast()
-      const sw = bounds.getSouthWest()
-      const boundsKey = `${ne.lat().toFixed(3)}_${ne.lng().toFixed(3)}_${sw.lat().toFixed(3)}_${sw.lng().toFixed(3)}`
-
-      // Skip if we've already searched this area
-      if (searchedBounds.current.has(boundsKey)) {
-        console.log("Already searched this area, skipping...")
-        setIsLoadingStations(false)
-        return
+      if (result.source === "network") {
+        recordFetchedBounds(bounds)
       }
 
-      searchedBounds.current.add(boundsKey)
-      console.log("Searching new area:", boundsKey)
-
-      // Use bounds-based search for better coverage
-      const request = {
-        bounds: bounds,
-        type: "gas_station",
+      const incoming = result.stations.map((item) => mapToVenue(item, userLocation))
+      if (incoming.length > 0) {
+        setMapVenues((prev) => mergeUniqueVenues(prev, incoming))
       }
-
-      service.nearbySearch(request, (results, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          const newStations: GasStation[] = results
-            .filter((place) => {
-              // Filter out duplicates by checking existing stations
-              return !gasStations.some(existing => existing.id === place.place_id)
-            })
-            .map((place) => ({
-              id: place.place_id || "",
-              name: place.name || "",
-              address: place.vicinity || "",
-              latitude: place.geometry?.location?.lat() || 0,
-              longitude: place.geometry?.location?.lng() || 0,
-              distance: place.geometry?.location
-                ? calculateDistance(
-                    userLocation!.latitude,
-                    userLocation!.longitude,
-                    place.geometry.location.lat(),
-                    place.geometry.location.lng()
-                  )
-                : undefined,
-              photo: place.photos?.[0]?.getUrl({ maxWidth: 400 }),
-              placeId: place.place_id || "",
-              types: place.types || [],
-            }))
-
-          if (newStations.length > 0) {
-            console.log(`Found ${newStations.length} new gas stations`)
-            setGasStations(prev => [...prev, ...newStations])
-          }
-        }
-        setIsLoadingStations(false)
-      })
     } catch (error) {
-      console.error("Error fetching gas stations in bounds:", error)
+      if (!(error instanceof DOMException && error.name === "AbortError")) {
+        console.error("Error fetching places in bounds:", error)
+      }
+    } finally {
       setIsLoadingStations(false)
     }
   }
 
-  const handleStationSelect = (station: GasStation) => {
+  const isStationInBounds = (station: MapVenue, bounds: MapBounds) => {
+    return (
+      station.latitude <= bounds.northEast.lat &&
+      station.latitude >= bounds.southWest.lat &&
+      station.longitude <= bounds.northEast.lng &&
+      station.longitude >= bounds.southWest.lng
+    )
+  }
+
+  const boundsContains = (outer: MapBounds, inner: MapBounds) => {
+    return (
+      inner.northEast.lat <= outer.northEast.lat &&
+      inner.northEast.lng <= outer.northEast.lng &&
+      inner.southWest.lat >= outer.southWest.lat &&
+      inner.southWest.lng >= outer.southWest.lng
+    )
+  }
+
+  const getViewportSnapshot = (bounds: MapBounds) => {
+    return {
+      center: {
+        latitude: (bounds.northEast.lat + bounds.southWest.lat) / 2,
+        longitude: (bounds.northEast.lng + bounds.southWest.lng) / 2,
+      },
+      latSpan: Math.abs(bounds.northEast.lat - bounds.southWest.lat),
+      lngSpan: Math.abs(bounds.northEast.lng - bounds.southWest.lng),
+    }
+  }
+
+  const getBoundsResultTarget = (bounds: MapBounds) => {
+    const latSpan = Math.abs(bounds.northEast.lat - bounds.southWest.lat)
+    const lngSpan = Math.abs(bounds.northEast.lng - bounds.southWest.lng)
+    const maxSpan = Math.max(latSpan, lngSpan)
+
+    const base =
+      maxSpan <= 0.06
+        ? 18
+        : maxSpan <= 0.15
+          ? 24
+          : maxSpan <= 0.35
+            ? 32
+            : 42
+
+    return Math.min(MAX_BOUNDS_RESULTS, Math.max(MIN_BOUNDS_RESULTS, base))
+  }
+
+  const handleStationSelect = (station: MapVenue) => {
     setSelectedStation(station)
     setIsDrawerOpen(true)
   }
@@ -275,6 +534,12 @@ export function MainUI() {
   }
 
   const handleOpenSubmitPage = () => {
+    if (isWorldIdEnabled && !isWorldIdVerified) {
+      setWorldIdReason("submit_price")
+      setIsWorldIdSheetOpen(true)
+      return
+    }
+
     // Open overlay immediately without closing drawer
     setIsSubmitPageOpen(true)
     // Keep selectedStation set so drawer stays in background
@@ -287,45 +552,219 @@ export function MainUI() {
     setSelectedStation(null)
   }
 
+  const handleOpenAddStore = () => {
+    setIsDrawerOpen(false)
+    setSelectedStation(null)
+    setStoreError(null)
+    setStoreName("")
+    setStoreAddress("")
+    setStoreNotes("")
+    setStoreCategory("grocery_store")
+    setSelectedStoreLocation(mapCenterRef.current ?? userLocation)
+    setAddStoreStep("location")
+    setIsAddStoreOpen(true)
+  }
+
+  const handleCloseAddStore = () => {
+    setIsAddStoreOpen(false)
+    setAddStoreStep("location")
+    setSelectedStoreLocation(null)
+    setIsResolvingStoreLocation(false)
+    setStoreError(null)
+  }
+
+  const handleContinueAddStore = async () => {
+    const center = mapCenterRef.current ?? userLocation
+    if (!center) {
+      setStoreError(t("map.addStoreErrors.locationUnavailable"))
+      return
+    }
+
+    setIsResolvingStoreLocation(true)
+    setStoreError(null)
+
+    try {
+      const resolvedAddress = await reverseGeocodeCoordinate(center)
+      setSelectedStoreLocation(center)
+      setStoreAddress(resolvedAddress ?? "")
+      setAddStoreStep("details")
+    } catch (error) {
+      console.error("Error reverse geocoding store location", error)
+      setSelectedStoreLocation(center)
+      setStoreAddress("")
+      setAddStoreStep("details")
+    } finally {
+      setIsResolvingStoreLocation(false)
+    }
+  }
+
+  const handleBackToLocationStep = () => {
+    setStoreError(null)
+    setAddStoreStep("location")
+  }
+
+  const handleSubmitAddStore = async () => {
+    if (isWorldIdEnabled && !isWorldIdVerified) {
+      setWorldIdReason("add_store")
+      setIsWorldIdSheetOpen(true)
+      return
+    }
+
+    if (!selectedStoreLocation) {
+      setStoreError(t("map.addStoreErrors.locationUnavailable"))
+      return
+    }
+
+    const trimmedName = storeName.trim()
+    const trimmedAddress = storeAddress.trim()
+    if (trimmedName.length < 2) {
+      setStoreError(t("map.addStoreErrors.invalidName"))
+      return
+    }
+    if (trimmedAddress.length < 3) {
+      setStoreError(t("map.addStoreErrors.invalidAddress"))
+      return
+    }
+
+    setIsSubmittingStore(true)
+    setStoreError(null)
+
+    try {
+      const response = await fetch("/api/pois/proposals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: trimmedName,
+          address: trimmedAddress,
+          notes: storeNotes.trim() || undefined,
+          latitude: selectedStoreLocation.latitude,
+          longitude: selectedStoreLocation.longitude,
+          categories: [storeCategory],
+          primaryCategory: storeCategory,
+        }),
+      })
+
+      const result = (await response.json()) as {
+        error?: string
+        poi?: StationMapItem
+        status?: "published" | "duplicate_resolved"
+      }
+
+      if (!response.ok || result.error) {
+        setStoreError(result.error ?? t("map.addStoreErrors.submitFailed"))
+        return
+      }
+
+      if (result.poi && userLocation) {
+        const venue = mapToVenue(result.poi, userLocation)
+        setMapVenues((prev) => mergeUniqueVenues(prev, [venue]))
+        setSelectedStation(venue)
+        setIsDrawerOpen(true)
+      }
+
+      setIsAddStoreOpen(false)
+    } catch (error) {
+      console.error("Error creating store proposal", error)
+      setStoreError(t("map.addStoreErrors.submitFailed"))
+    } finally {
+      setIsSubmittingStore(false)
+    }
+  }
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (boundsChangeTimeout.current) {
         clearTimeout(boundsChangeTimeout.current)
       }
+      if (activeBoundsControllerRef.current) {
+        activeBoundsControllerRef.current.abort()
+      }
     }
   }, [])
 
   const tabs = [
-    { id: "map" as Tab, icon: Map, label: t('mainUI.tabs.map') },
+    { id: "map" as Tab, icon: MapIcon, label: t('mainUI.tabs.map') },
     { id: "home" as Tab, icon: Home, label: t('mainUI.tabs.home') },
     { id: "wallet" as Tab, icon: Wallet, label: t('mainUI.tabs.wallet') },
   ]
 
   if (loading || !isMiniKitReady) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#F4F4F8]">
-        <div className="w-12 h-12 border-4 border-[#7DD756] border-t-transparent rounded-full animate-spin"></div>
-      </div>
+      <MobileScreen className="items-center justify-center bg-[#F4F4F8]" contentClassName="flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="h-12 w-12 rounded-full border-4 border-[#7DD756] border-t-transparent animate-spin" />
+          <p className="text-sm text-gray-500">{t("common.loading")}</p>
+        </div>
+      </MobileScreen>
     )
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[var(--valor-bg)]">
-      {/* Main Content */}
-      <main className="flex-1 overflow-hidden">
+    <MobileScreen
+      className="bg-[var(--valor-bg)]"
+      contentClassName="relative overflow-hidden"
+      footer={
+        <nav
+          className="relative border-t border-black/5 bg-white/95 backdrop-blur"
+          style={{
+            paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + var(--spacing-md))",
+            paddingTop: "var(--spacing-xs)",
+          }}
+        >
+          <div className="safe-px-app flex items-center justify-around gap-2 px-4">
+            {tabs.map((tab) => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.id
+
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  aria-current={isActive ? "page" : undefined}
+                  className="flex min-h-11 min-w-[84px] flex-col items-center justify-center gap-1 rounded-2xl px-3 py-2 text-xs text-gray-500 active:scale-[0.99]"
+                >
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-2xl ${isActive ? "bg-[#7DD756]/10" : ""}`}>
+                    <Icon size={22} className={isActive ? "text-[#7DD756]" : "text-gray-500"} strokeWidth={isActive ? 2.5 : 2} />
+                  </div>
+                  <span className={isActive ? "text-[#7DD756]" : ""}>{tab.label}</span>
+                </button>
+              )
+            })}
+          </div>
+        </nav>
+      }
+    >
+      <main className="relative h-full overflow-hidden">
         {activeTab === "map" && (
-          <GoogleMapView
-            userLocation={userLocation}
-            gasStations={gasStations}
-            onStationSelect={handleStationSelect}
-            onBoundsChanged={handleBoundsChanged}
-            isLoadingStations={isLoadingStations}
-          />
+          <div className="relative h-full">
+            <AppleMapView
+              userLocation={userLocation}
+              venues={mapVenues}
+              onStationSelect={handleStationSelect}
+              onBoundsChanged={handleBoundsChanged}
+              isLoadingStations={isLoadingStations}
+              locationSelectionActive={isSelectingStoreLocation}
+              disableVenueSelection={isSelectingStoreLocation}
+              debugStats={process.env.NODE_ENV !== "production" ? { ...mapCallStatsRef.current } : undefined}
+            />
+            {!isAddStoreOpen && !isDrawerOpen ? (
+              <button
+                type="button"
+                onClick={handleOpenAddStore}
+                className="absolute right-4 z-[60] inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--valor-green)] px-4 text-sm text-white shadow-lg active:scale-95"
+                style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 5.5rem)" }}
+              >
+                <Plus size={16} />
+                {t("map.addStore")}
+              </button>
+            ) : null}
+          </div>
         )}
         {activeTab === "home" && (
           <HomeTab
-            gasStations={gasStations}
+            gasStations={mapVenues}
             userLocation={userLocation}
             onStationSelect={handleStationSelect}
             stationData={stationData}
@@ -341,39 +780,6 @@ export function MainUI() {
           />
         )}
       </main>
-
-      {/* Bottom Navigation */}
-      <nav className="relative bg-white border-t border-gray-100 z-50" style={{ paddingTop: 'var(--spacing-xs)', paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + var(--spacing-md))`, boxShadow: '0 -1px 3px rgba(0, 0, 0, 0.04)', touchAction: 'manipulation', overscrollBehavior: 'none', overflow: 'hidden' }}>
-        <div className="flex justify-around items-center">
-          {tabs.map((tab) => {
-            const Icon = tab.icon
-            const isActive = activeTab === tab.id
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className="flex flex-col items-center justify-center transition-all"
-                style={{ gap: 'var(--spacing-xs)', minWidth: '64px', padding: 'var(--spacing-xs)' }}
-              >
-                <div className={`flex items-center justify-center transition-all ${
-                  isActive ? "bg-[#7DD756]/10" : ""
-                }`} style={{ borderRadius: 'var(--radius-sm)', padding: 'var(--spacing-xs)' }}>
-                  <Icon
-                    size={24}
-                    className={isActive ? "text-[#7DD756]" : "text-gray-500"}
-                    strokeWidth={isActive ? 2.5 : 2}
-                  />
-                </div>
-                <span className={`text-xs font-medium ${
-                  isActive ? "text-[#7DD756]" : "text-gray-500"
-                }`}>
-                  {tab.label}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </nav>
 
       {/* Price Submission Drawer - Hide when submit page is open */}
       {!isSubmitPageOpen && (
@@ -411,6 +817,122 @@ export function MainUI() {
         captureMode={captureMode}
         setCaptureMode={setCaptureMode}
       />
-    </div>
+
+      <WorldIdVerificationSheet
+        isOpen={isWorldIdSheetOpen}
+        onClose={() => setIsWorldIdSheetOpen(false)}
+        onVerified={async () => {
+          await refreshWorldIdStatus()
+          if (worldIdReason === "submit_price") {
+            setIsSubmitPageOpen(true)
+          }
+        }}
+        reason={worldIdReason}
+      />
+
+      <BottomSheet
+        isOpen={isAddStoreOpen}
+        onClose={handleCloseAddStore}
+        title={addStoreStep === "location" ? t("map.selectLocationTitle") : t("map.addStoreTitle")}
+        description={addStoreStep === "location" ? t("map.selectLocationSubtitle") : t("map.addStoreSubtitle")}
+        closeLabel={t("common.close")}
+        blocking={addStoreStep !== "location"}
+        header={
+          <div className="pr-12">
+            <h3 className="text-lg text-[#1C1C1E]">
+              {addStoreStep === "location" ? t("map.selectLocationTitle") : t("map.addStoreTitle")}
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {addStoreStep === "location" ? t("map.selectLocationSubtitle") : t("map.addStoreSubtitle")}
+            </p>
+          </div>
+        }
+        footer={
+          <StickyActionBar className="border-t border-black/5 bg-white" innerClassName="grid grid-cols-2 gap-3 px-4 pt-3">
+            {addStoreStep === "location" ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleCloseAddStore}
+                  disabled={isResolvingStoreLocation}
+                  className="min-h-12 rounded-2xl border border-black/10 px-4 text-sm text-[#1C1C1E] active:scale-[0.99] disabled:opacity-50"
+                >
+                  {t("common.cancel")}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleContinueAddStore}
+                  disabled={isResolvingStoreLocation}
+                  className="min-h-12 rounded-2xl bg-[var(--valor-green)] px-4 text-sm text-white active:scale-[0.99] disabled:opacity-50"
+                >
+                  {isResolvingStoreLocation ? t("map.findingAddress") : t("map.confirmLocation")}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleBackToLocationStep}
+                  disabled={isSubmittingStore}
+                  className="min-h-12 rounded-2xl border border-black/10 px-4 text-sm text-[#1C1C1E] active:scale-[0.99] disabled:opacity-50"
+                >
+                  {t("common.back")}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmitAddStore}
+                  disabled={isSubmittingStore}
+                  className="min-h-12 rounded-2xl bg-[var(--valor-green)] px-4 text-sm text-white active:scale-[0.99] disabled:opacity-50"
+                >
+                  {isSubmittingStore ? t("common.loading") : t("map.submitStore")}
+                </button>
+              </>
+            )}
+          </StickyActionBar>
+        }
+        bodyClassName="gap-4"
+      >
+        {addStoreStep === "location" ? (
+          <>
+            <div className="rounded-[24px] border border-[var(--valor-green)]/15 bg-[var(--valor-green)]/5 p-4">
+              <p className="text-sm text-[#1C1C1E]">{t("map.selectLocationHint")}</p>
+            </div>
+            {storeError ? <p className="text-sm text-red-600">{storeError}</p> : null}
+          </>
+        ) : (
+          <>
+            <div className="flex flex-col gap-3">
+              <input
+                value={storeName}
+                onChange={(event) => setStoreName(event.target.value)}
+                placeholder={t("map.storeNamePlaceholder")}
+                className="min-h-12 w-full rounded-2xl border border-black/10 px-4 text-sm focus:border-[var(--valor-green)] focus:outline-none"
+              />
+              <input
+                value={storeAddress}
+                onChange={(event) => setStoreAddress(event.target.value)}
+                placeholder={t("map.storeAddressPlaceholder")}
+                className="min-h-12 w-full rounded-2xl border border-black/10 px-4 text-sm focus:border-[var(--valor-green)] focus:outline-none"
+              />
+              <select
+                value={storeCategory}
+                onChange={(event) => setStoreCategory(event.target.value as "grocery_store" | "gas_station")}
+                className="min-h-12 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm focus:border-[var(--valor-green)] focus:outline-none"
+              >
+                <option value="grocery_store">{t("map.categoryGrocery")}</option>
+                <option value="gas_station">{t("map.categoryGas")}</option>
+              </select>
+              <textarea
+                value={storeNotes}
+                onChange={(event) => setStoreNotes(event.target.value)}
+                placeholder={t("map.storeNotesPlaceholder")}
+                className="min-h-28 w-full resize-none rounded-2xl border border-black/10 px-4 py-3 text-sm focus:border-[var(--valor-green)] focus:outline-none"
+              />
+            </div>
+            {storeError ? <p className="text-sm text-red-600">{storeError}</p> : null}
+          </>
+        )}
+      </BottomSheet>
+    </MobileScreen>
   )
 }

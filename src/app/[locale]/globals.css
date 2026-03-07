@@ -6,6 +6,8 @@
   --valor-bg: #f3f4f8;
   --valor-bg-soft: #eef0f6;
   --valor-text: #12141a;
+  --app-viewport-height: 100dvh;
+  --keyboard-offset: 0px;
 
   --spacing-xs: 8px;
   --spacing-sm: 12px;
@@ -64,6 +66,7 @@ html,
 body {
   width: 100%;
   min-height: 100%;
+  height: 100%;
   margin: 0;
   padding: 0;
 }
@@ -77,6 +80,7 @@ body {
   color: var(--valor-text);
   overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
+  min-height: var(--app-viewport-height);
 }
 
 h1,
@@ -131,6 +135,39 @@ h6 {
 
 .safe-area-bottom {
   bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-px-app {
+  padding-left: calc(env(safe-area-inset-left, 0px) + var(--spacing-md));
+  padding-right: calc(env(safe-area-inset-right, 0px) + var(--spacing-md));
+}
+
+.safe-pt-app {
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--spacing-md));
+}
+
+.safe-pt-lg {
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--spacing-lg));
+}
+
+.safe-pb-app {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--spacing-md));
+}
+
+.safe-pb-lg {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--spacing-lg));
+}
+
+.safe-top-app {
+  top: calc(env(safe-area-inset-top, 0px) + var(--spacing-md));
+}
+
+.safe-top-lg {
+  top: calc(env(safe-area-inset-top, 0px) + var(--spacing-lg));
+}
+
+.keyboard-lift {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--spacing-lg) + min(var(--keyboard-offset, 0px), 320px));
 }
 
 .no-scrollbar::-webkit-scrollbar {

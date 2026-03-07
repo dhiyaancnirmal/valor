@@ -14,38 +14,33 @@ export function SearchBar({ searchQuery, onSearchChange, className = "" }: Searc
   const t = useTranslations()
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onSearchChange(e.target.value)
-  }
-
-  const handleClear = () => {
-    onSearchChange('')
-    inputRef.current?.focus()
-  }
-
   return (
     <div className={`w-full ${className}`}>
-      <div className="flex items-center w-full bg-[var(--valor-bg)] border border-black/10 rounded-full focus-within:border-[var(--valor-green)] focus-within:ring-2 focus-within:ring-[var(--valor-green)]/20 transition-all">
-        <div className="flex items-center w-full px-4 py-2.5">
-          <Search className="w-4 h-4 text-gray-400 flex-shrink-0 mr-3" />
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder={t('homeTab.searchPlaceholder')}
-            value={searchQuery}
-            onChange={handleInputChange}
-            className="flex-1 bg-transparent text-gray-900 placeholder-gray-400 outline-none text-sm font-medium"
-            style={{ fontSize: '14px', padding: '0' }}
-          />
-          {searchQuery && (
-            <button
-              onClick={handleClear}
-              className="p-1 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0 ml-2"
-            >
-              <X size={16} className="text-gray-500" />
-            </button>
-          )}
-        </div>
+      <div className="flex min-h-12 items-center rounded-2xl border border-black/10 bg-[var(--valor-bg)] px-4 focus-within:border-[var(--valor-green)]">
+        <Search className="mr-3 h-4 w-4 shrink-0 text-gray-400" />
+        <input
+          ref={inputRef}
+          type="text"
+          inputMode="search"
+          placeholder={t("homeTab.searchPlaceholder")}
+          value={searchQuery}
+          onChange={(event) => onSearchChange(event.target.value)}
+          className="min-w-0 flex-1 bg-transparent text-sm text-[#1C1C1E] outline-none placeholder:text-gray-400"
+          style={{ fontSize: "16px" }}
+        />
+        {searchQuery ? (
+          <button
+            type="button"
+            onClick={() => {
+              onSearchChange("")
+              inputRef.current?.focus()
+            }}
+            className="ml-2 flex h-10 w-10 items-center justify-center rounded-full text-gray-500 active:scale-95"
+            aria-label={t("common.close")}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
       </div>
     </div>
   )

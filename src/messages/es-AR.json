@@ -30,15 +30,21 @@
   "homeTab": {
     "potentialToday": "Señal de Hoy",
     "todaysRewards": "Cobertura de Hoy",
-    "stationsNearby": "Cercanas",
-    "searchPlaceholder": "Buscar estaciones de servicio...",
-    "noStationsFound": "No se encontraron estaciones",
+    "stationsNearby": "Lugares Cercanos",
+    "coveragePool": "Cobertura disponible",
+    "locationActive": "Ubicación activa",
+    "locationPending": "Ubicación pendiente",
+    "searchPlaceholder": "Buscar tiendas y estaciones...",
+    "noStationsFound": "No se encontraron lugares",
     "adjustSearch": "Intenta ajustar tu búsqueda o ubicación",
+    "complete": "Completo",
+    "signalLabel": "Señal {amount}",
     "highDemand": "ALTA DEMANDA",
     "earn": "Contribuir",
     "submit": "Enviar",
-    "stationsCount": "{count} estaciones",
+    "stationsCount": "{count} lugares",
     "earnAmount": "Señal ${amount}",
+    "sortLabel": "Ordenar lugares",
     "sort": {
       "proximity": "Proximidad",
       "priority": "Prioridad",
@@ -65,8 +71,27 @@
       "earn": "Construye confianza con envíos precisos",
       "help": "Ayuda a otros a encontrar los mejores precios"
     },
+    "myProposals": "Mis Propuestas",
+    "noProposals": "Todavía no hay propuestas de tiendas",
     "anonymousUser": "Usuario Anónimo",
-    "copyWalletAddress": "Copiar dirección de billetera"
+    "copyWalletAddress": "Copiar dirección de billetera",
+    "settling": "Liquidando...",
+    "settleBalance": "Liquidar {amount} USDC",
+    "noBalanceToSettle": "No hay balance para liquidar",
+    "openInWorldAppToSettle": "Abre esta app en World App para liquidar tu balance",
+    "proposalStatuses": {
+      "pending": "Pendiente",
+      "published": "Publicada",
+      "rejected": "Rechazada"
+    },
+    "claimErrors": {
+      "invalidContract": "El contrato no está en la whitelist. Agrégalo en el Developer Portal de Worldcoin.",
+      "transactionFailed": "La transacción falló",
+      "transactionRetry": "La transacción falló. Intenta de nuevo.",
+      "missingHash": "La transacción se completó pero no devolvió hash. Contacta soporte.",
+      "confirmFailed": "La transacción se completó pero la app no pudo actualizar los registros. Contacta soporte.",
+      "settleFailed": "No se pudo liquidar el balance. Intenta de nuevo."
+    }
   },
   "settingsDrawer": {
     "settings": "Configuración",
@@ -96,15 +121,27 @@
     "language": "Idioma",
     "selectLanguage": "Seleccionar Idioma",
     "english": "English",
-    "spanish": "Español"
+    "spanish": "Español",
+    "unitsTitle": "Unidades",
+    "unitsDescription": "Elige tu sistema de medidas",
+    "units": {
+      "metricName": "Métrico",
+      "metricDescription": "Kilómetros, litros",
+      "imperialName": "Imperial",
+      "imperialDescription": "Millas, galones"
+    },
+    "captureModeTitle": "Modo captura",
+    "captureModeDescription": "Oculta detalles del perfil para screenshots",
+    "captureModeToggle": "Habilitar capturas anonimizadas"
   },
   "drawer": {
     "submitPrice": "Enviar Precio",
+    "submissionComingSoon": "Los envíos para tiendas estarán disponibles pronto",
     "away": "de distancia",
     "lastPrice": "Último Precio",
     "noRecentData": "No hay datos recientes disponibles",
     "perGallon": "/gal",
-    "openInGoogleMaps": "Abrir en Google Maps"
+    "openInMaps": "Abrir en Maps"
   },
   "priceEntry": {
     "step": "Paso",
@@ -130,6 +167,7 @@
     "photoTip1": "Asegúrate de que los precios y tipos de combustible sean claramente visibles",
     "photoTip2": "Evita reflejos e imágenes borrosas",
     "photoTip3": "Incluye las etiquetas del tipo de combustible",
+    "photoFreshRequired": "Toma una foto nueva con la cámara en lugar de elegir una imagen vieja de la galería.",
     "photoCaptured": "Foto capturada exitosamente",
     "capturePriceDisplay": "Captura la pantalla de precios claramente",
     "gasStation": "Estación de Servicio",
@@ -170,21 +208,53 @@
     "loginDevMode": "Iniciar sesión (Modo Dev)",
     "openInWorldApp": "Por favor abre esta aplicación en World App para autenticarte",
     "signInStatement": "Inicia sesión en Valor para enviar precios de combustible",
+    "badge": "Mini App de World",
+    "footer": "Creada para los flujos de mini apps de World App con inicio de sesión seguro por billetera.",
     "errors": {
       "openInWorldApp": "Por favor abre esta aplicación en World App",
       "authFailed": "Error de autenticación",
       "invalidResponse": "Error de autenticación: estado de respuesta inválido",
       "noWalletAddress": "No se pudo obtener la dirección de billetera de World App",
       "devLoginFailed": "Error al iniciar sesión en modo dev",
+      "devDisabled": "El inicio de sesión dev está deshabilitado",
+      "initNonceFailed": "No se pudo inicializar el nonce de inicio de sesión",
       "generic": "Ocurrió un error. Por favor intenta de nuevo."
     }
   },
   "map": {
     "loadingMap": "Cargando mapa...",
-    "findingStations": "Buscando estaciones...",
+    "providerUnavailable": "El proveedor del mapa no está disponible en este momento.",
+    "findingStations": "Actualizando lugares cercanos...",
     "yourLocation": "Tu Ubicación",
     "loading": "Cargando",
-    "loadingStations": "Cargando estaciones"
+    "loadingStations": "Cargando estaciones",
+    "addStore": "Agregar tienda",
+    "selectLocationTitle": "Elegir ubicación de la tienda",
+    "selectLocationSubtitle": "Mueve el mapa hasta que el pin quede exactamente sobre la tienda.",
+    "selectLocationHint": "Empieza desde tu ubicación actual y arrastra el mapa hasta que el pin quede sobre la fachada.",
+    "confirmLocation": "Usar esta ubicación",
+    "findingAddress": "Buscando dirección...",
+    "positionPin": "Coloca el pin aquí",
+    "moveMapToPlacePin": "Mueve el mapa debajo del pin",
+    "addStoreTitle": "Agregar tienda faltante",
+    "addStoreSubtitle": "Confirma los detalles de la tienda antes de publicarla cerca.",
+    "storeNamePlaceholder": "Nombre de la tienda",
+    "storeAddressPlaceholder": "Dirección",
+    "storeNotesPlaceholder": "Notas (opcional)",
+    "categoryGrocery": "Tienda",
+    "categoryGas": "Estación de servicio",
+    "submitStore": "Enviar tienda",
+    "legend": {
+      "grocery": "Tienda",
+      "gas": "Gas",
+      "mixed": "Mixto"
+    },
+    "addStoreErrors": {
+      "locationUnavailable": "La ubicación del mapa no está disponible",
+      "invalidName": "Ingresa un nombre de tienda válido",
+      "invalidAddress": "Ingresa una dirección válida",
+      "submitFailed": "No se pudo enviar la propuesta"
+    }
   },
   "units": {
     "meter": "m",

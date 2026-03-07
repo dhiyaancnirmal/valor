@@ -4,7 +4,7 @@
 - Node.js 20+
 - npm
 - Supabase project
-- Google Maps API key (Places enabled)
+- Apple Maps setup (Team ID, Key ID, Maps ID, private key)
 - World mini app App ID + portal key
 
 ## Environment variables
@@ -16,7 +16,11 @@ Set these in `.env.local`:
 - `NEXT_PUBLIC_APP_ID`
 - `APP_ID`
 - `DEV_PORTAL_API_KEY`
-- `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+- `NEXT_PUBLIC_MAP_PROVIDER=apple`
+- `APPLE_MAPS_TEAM_ID`
+- `APPLE_MAPS_KEY_ID`
+- `APPLE_MAPS_MAPS_ID`
+- `APPLE_MAPS_PRIVATE_KEY`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`

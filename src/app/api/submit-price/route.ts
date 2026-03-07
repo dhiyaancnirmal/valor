@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       formData.get("gas_station_longitude") as string
     )
     const photo = formData.get("photo") as File | null
-    // POI fields from Google Places API
+    // POI fields from map provider
     const poiPlaceId = formData.get("poi_place_id") as string | null
     const poiName = formData.get("poi_name") as string | null
     const poiLat = formData.get("poi_lat") ? parseFloat(formData.get("poi_lat") as string) : null

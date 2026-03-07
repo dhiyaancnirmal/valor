@@ -32,6 +32,14 @@ export async function GET(
       if (error.code === 'PGRST116') {
         return NextResponse.json({ price: null })
       }
+      // Local bootstrap/migration lag: treat missing table as no data.
+      if (
+        error.code === "PGRST205" ||
+        error.message?.includes("price_submissions") ||
+        error.message?.includes("schema cache")
+      ) {
+        return NextResponse.json({ price: null })
+      }
       console.error("Error fetching last price:", error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }

@@ -111,6 +111,7 @@ Required outcome:
   - typecheck
   - lint
   - `npm run dev:browser` smoke boot
+  - Apple map runtime smoke (`/api/maps/token`, nearby search, bounds search)
   - agent-browser flow smoke (login, tab navigation, submit entry flow)
 - CI can be introduced in a later milestone once core domains stabilize.
 

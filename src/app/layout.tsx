@@ -19,7 +19,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const appId = process.env.NEXT_PUBLIC_APP_ID || process.env.NEXT_PUBLIC_WORLD_ID_APP_ID
+  const appId = process.env.NEXT_PUBLIC_APP_ID
 
   return (
     <html lang="en" className={manrope.variable}>

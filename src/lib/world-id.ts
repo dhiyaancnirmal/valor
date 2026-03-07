@@ -34,12 +34,7 @@ function signCookieValue(value: string) {
 }
 
 export function getWorldIdConfig(): WorldIdConfig {
-  const appId =
-    process.env.NEXT_PUBLIC_WORLD_ID_APP_ID ||
-    process.env.WORLD_ID_APP_ID ||
-    process.env.NEXT_PUBLIC_APP_ID ||
-    process.env.APP_ID ||
-    null
+  const appId = process.env.NEXT_PUBLIC_APP_ID || null
 
   return {
     enabled: Boolean(appId),

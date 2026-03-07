@@ -1,9 +1,7 @@
 import crypto from "crypto"
-import { signRequest } from "@worldcoin/idkit/signing"
 
 export const WORLD_ID_COOKIE_NAME = "valor_world_id_verified"
 const WORLD_ID_COOKIE_TTL_SECONDS = 60 * 60 * 24 * 30
-const WORLD_ID_RP_CONTEXT_TTL_SECONDS = 60 * 5
 
 type VerifiedCookiePayload = {
   walletAddress: string
@@ -14,10 +12,7 @@ type VerifiedCookiePayload = {
 export type WorldIdConfig = {
   enabled: boolean
   appId: `app_${string}` | null
-  rpId: string | null
   action: string
-  environment: "production" | "staging"
-  signingKey: string | null
 }
 
 function getCookieSigningSecret() {
@@ -46,43 +41,10 @@ export function getWorldIdConfig(): WorldIdConfig {
     process.env.APP_ID ||
     null
 
-  const rpId = process.env.WORLD_ID_RP_ID || null
-  const signingKey =
-    process.env.WORLD_ID_RP_PRIVATE_KEY ||
-    process.env.WORLD_ID_SIGNING_KEY ||
-    null
-
   return {
-    enabled: Boolean(appId && rpId && signingKey),
+    enabled: Boolean(appId),
     appId: appId as `app_${string}` | null,
-    rpId,
     action: process.env.WORLD_ID_ACTION || "valor-contribution",
-    environment: process.env.WORLD_ID_ENVIRONMENT === "staging" ? "staging" : "production",
-    signingKey,
-  }
-}
-
-export function createRpContext(actionOverride?: string) {
-  const config = getWorldIdConfig()
-  if (!config.enabled || !config.rpId || !config.signingKey || !config.appId) {
-    throw new Error("World ID 4.0 is not configured")
-  }
-
-  const action = actionOverride || config.action
-  const signature = signRequest(action, config.signingKey, WORLD_ID_RP_CONTEXT_TTL_SECONDS)
-
-  return {
-    appId: config.appId,
-    action,
-    environment: config.environment,
-    allowLegacyProofs: false,
-    rpContext: {
-      rp_id: config.rpId,
-      nonce: signature.nonce,
-      created_at: signature.createdAt,
-      expires_at: signature.expiresAt,
-      signature: signature.sig,
-    },
   }
 }
 

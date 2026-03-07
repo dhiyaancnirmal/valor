@@ -16,6 +16,5 @@ export async function GET(request: NextRequest) {
     verified: isWalletVerifiedByCookie(rawCookie, session.user.walletAddress),
     appId: config.appId,
     action: config.action,
-    environment: config.environment,
   })
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
+import { getWorldIdRequirementStatus, WORLD_ID_COOKIE_NAME } from "@/lib/world-id"
 import { createPoiProposal } from "@/services/pois/service"
 import { parseProposalPayload } from "@/services/pois/validation"
 
@@ -12,6 +13,14 @@ export async function POST(request: NextRequest) {
 
     if (!walletAddress) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const worldIdStatus = getWorldIdRequirementStatus(request.cookies.get(WORLD_ID_COOKIE_NAME)?.value, walletAddress)
+    if (worldIdStatus.enabled && !worldIdStatus.verified) {
+      return NextResponse.json(
+        { error: "World ID verification is required before adding stores." },
+        { status: 403 }
+      )
     }
 
     const body = (await request.json()) as Record<string, unknown>

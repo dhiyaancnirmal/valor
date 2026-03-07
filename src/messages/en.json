@@ -256,6 +256,27 @@
       "submitFailed": "Could not submit store proposal"
     }
   },
+  "worldId": {
+    "walletTitle": "Human verification",
+    "walletDescription": "Verify with World ID before submitting prices or adding new stores.",
+    "verifyTitle": "Verify with World ID",
+    "verifyDescription": "Confirm you are a unique person before continuing.",
+    "verifyToSubmitTitle": "Verify before submitting",
+    "verifyToSubmitDescription": "World ID verification is required before submitting a new price.",
+    "verifyToAddStoreTitle": "Verify before adding a store",
+    "verifyToAddStoreDescription": "World ID verification is required before publishing a new store proposal.",
+    "verificationRequired": "Verification required",
+    "verified": "Verified with World ID",
+    "verifiedDetail": "You can now contribute without repeating this step on this device.",
+    "cta": "Verify now",
+    "preparing": "Preparing verification...",
+    "privacy": "World ID verifies uniqueness without revealing your identity to Valor. The app only stores a signed local verification state for your current wallet on this device.",
+    "errors": {
+      "prepareFailed": "Could not start World ID verification.",
+      "verifyFailed": "World ID verification failed.",
+      "flowFailed": "World ID flow failed: {code}"
+    }
+  },
   "units": {
     "meter": "m",
     "kilometer": "km",

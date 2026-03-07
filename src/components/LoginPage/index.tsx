@@ -8,7 +8,7 @@ import { MobileScreen, StickyActionBar } from "@/components/mobile"
 import Logo from "@/components/Logo"
 import WorldIDLogo from "@/components/WorldIDLogo"
 import { Button } from "@/components/ui/button"
-import { isDevAuthEnabled } from "@/lib/world-dev"
+import { isDevAuthEnabled, looksLikeWorldAppUserAgent } from "@/lib/world-dev"
 
 export function LoginPage() {
   const t = useTranslations()
@@ -19,14 +19,27 @@ export function LoginPage() {
   useEffect(() => {
     let cancelled = false
     let timeoutId: number | undefined
+    let tries = 0
+    const MAX_TRIES = 50
 
     const checkMiniKit = () => {
       if (cancelled || typeof window === "undefined") return
-      const installed = MiniKit.isInstalled()
-      setIsMiniKitReady(installed)
+      try {
+        if (MiniKit.isInstalled()) {
+          setIsMiniKitReady(true)
+          return
+        }
+      } catch {}
 
-      if (!installed) {
-        timeoutId = window.setTimeout(checkMiniKit, 1000)
+      if (tries < MAX_TRIES) {
+        tries += 1
+        timeoutId = window.setTimeout(checkMiniKit, 150)
+        return
+      }
+
+      if (looksLikeWorldAppUserAgent(navigator.userAgent || "")) {
+        setIsMiniKitReady(true)
+        return
       }
     }
 
@@ -103,6 +116,7 @@ export function LoginPage() {
         username: userProfile?.username,
         profilePictureUrl: userProfile?.profilePictureUrl,
         redirect: false,
+        callbackUrl: window.location.pathname,
       })
 
       if (result?.error) {
@@ -111,7 +125,8 @@ export function LoginPage() {
         return
       }
 
-      window.location.href = "/"
+      const redirectTo = result?.url || window.location.pathname
+      window.location.replace(redirectTo)
     } catch (err) {
       setError(err instanceof Error ? err.message : t("login.errors.generic"))
       setIsLoading(false)
@@ -158,7 +173,7 @@ export function LoginPage() {
         return
       }
 
-      window.location.href = "/"
+      window.location.replace(window.location.pathname)
     } catch {
       setError(t("login.errors.devLoginFailed"))
       setIsLoading(false)
@@ -219,12 +234,6 @@ export function LoginPage() {
       }
     >
       <div className="flex h-full flex-col justify-between px-5 pb-4 pt-[calc(env(safe-area-inset-top,0px)+1.75rem)]">
-        <div className="flex justify-end">
-          <div className="rounded-full border border-white/70 bg-white/70 px-3 py-1 text-[11px] uppercase tracking-[0.12em] text-gray-500 shadow-sm">
-            {t("login.badge")}
-          </div>
-        </div>
-
         <div className="flex flex-1 flex-col justify-center pb-8 pt-6">
           <div className="mx-auto flex max-w-xs flex-col items-center text-center">
             <div className="mb-7 flex h-20 w-20 items-center justify-center rounded-[28px] border border-white/70 bg-white/80 shadow-[0_18px_44px_rgba(15,23,42,0.1)]">
@@ -235,9 +244,6 @@ export function LoginPage() {
           </div>
         </div>
 
-        <div className="pb-2 text-center text-[11px] leading-relaxed text-gray-500">
-          {t("login.footer")}
-        </div>
       </div>
     </MobileScreen>
   )

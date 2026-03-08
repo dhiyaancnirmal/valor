@@ -1,8 +1,10 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { Navigation } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { MapVenue, UserLocation } from "@/types"
+import { calculateDistance, cn } from "@/lib/utils"
 
 export interface MapBounds {
   northEast: { lat: number; lng: number }
@@ -17,6 +19,7 @@ interface AppleMapViewProps {
   isLoadingStations?: boolean
   locationSelectionActive?: boolean
   disableVenueSelection?: boolean
+  onCompassVisibilityChange?: (visible: boolean) => void
   debugStats?: {
     lookups: number
     networkCalls: number
@@ -65,10 +68,12 @@ type MapKitRegion = {
 
 type MapKitMap = {
   region?: MapKitRegion
+  rotation?: number
   showsPointsOfInterest?: boolean
   addEventListener: (eventType: string, listener: (event: MapKitEvent) => void) => void
   addAnnotation: (annotation: MapKitAnnotation) => void
   removeAnnotations: (annotations: MapKitAnnotation[]) => void
+  setRotationAnimated?: (degrees: number, animated: boolean) => void
 }
 
 type MapKitGlobal = {
@@ -110,16 +115,18 @@ export function AppleMapView({
   isLoadingStations,
   locationSelectionActive = false,
   disableVenueSelection = false,
-  debugStats,
+  onCompassVisibilityChange,
 }: AppleMapViewProps) {
   const t = useTranslations()
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<MapKitMap | null>(null)
   const stationAnnotationsRef = useRef<MapKitAnnotation[]>([])
   const userAnnotationRef = useRef<MapKitAnnotation | null>(null)
+  const userLocationRef = useRef<UserLocation | null>(userLocation)
   const isInitialLoadRef = useRef(true)
   const [mapReady, setMapReady] = useState(false)
   const [mapUnavailable, setMapUnavailable] = useState(false)
+  const [isFollowingUser, setIsFollowingUser] = useState(true)
   const [zoomBucket, setZoomBucket] = useState(0)
   const zoomBucketRef = useRef(0)
   const disableVenueSelectionRef = useRef(disableVenueSelection)
@@ -127,6 +134,14 @@ export function AppleMapView({
   useEffect(() => {
     disableVenueSelectionRef.current = disableVenueSelection
   }, [disableVenueSelection])
+
+  useEffect(() => {
+    userLocationRef.current = userLocation
+  }, [userLocation])
+
+  useEffect(() => {
+    onCompassVisibilityChange?.(false)
+  }, [onCompassVisibilityChange])
 
   useEffect(() => {
     let cancelled = false
@@ -164,27 +179,31 @@ export function AppleMapView({
           }
         })
 
-        if (onBoundsChanged) {
-          map.addEventListener("region-change-end", () => {
-            const region = map.region
-            const center = region?.center
-            const bounds = region ? regionToBounds(region) : null
-            const nextZoomBucket = getZoomBucket(region)
-            if (nextZoomBucket !== zoomBucketRef.current) {
-              zoomBucketRef.current = nextZoomBucket
-              setZoomBucket(nextZoomBucket)
-            }
-            if (!center || !bounds) return
+        map.addEventListener("region-change-end", () => {
+          const region = map.region
+          const center = region?.center
+          const bounds = region ? regionToBounds(region) : null
+          const nextZoomBucket = getZoomBucket(region)
+          const compassVisible = Math.abs(map.rotation ?? 0) > 1
+          if (nextZoomBucket !== zoomBucketRef.current) {
+            zoomBucketRef.current = nextZoomBucket
+            setZoomBucket(nextZoomBucket)
+          }
+          onCompassVisibilityChange?.(compassVisible)
+          if (!center || !bounds) return
 
-            onBoundsChanged(
-              {
-                latitude: center.latitude,
-                longitude: center.longitude,
-              },
-              bounds
-            )
-          })
-        }
+          if (userLocationRef.current) {
+            setIsFollowingUser(isMapCenteredOnUser(userLocationRef.current, center, region))
+          }
+
+          onBoundsChanged?.(
+            {
+              latitude: center.latitude,
+              longitude: center.longitude,
+            },
+            bounds
+          )
+        })
       } catch (error) {
         console.error("Failed to initialize Apple MapKit", error)
         if (!cancelled) {
@@ -198,7 +217,7 @@ export function AppleMapView({
     return () => {
       cancelled = true
     }
-  }, [onBoundsChanged, onStationSelect])
+  }, [onBoundsChanged, onStationSelect, onCompassVisibilityChange])
 
   useEffect(() => {
     if (!mapInstanceRef.current || !userLocation || !isInitialLoadRef.current) return
@@ -234,6 +253,23 @@ export function AppleMapView({
     annotations.forEach((annotation) => map.addAnnotation(annotation))
     stationAnnotationsRef.current = annotations
   }, [venues, zoomBucket])
+
+  const handleRecenterToUser = () => {
+    const map = mapInstanceRef.current
+    const mapkit = window.mapkit
+
+    if (!map || !mapkit || !userLocation) return
+
+    const center = new mapkit.Coordinate(userLocation.latitude, userLocation.longitude)
+    const currentSpan = map.region?.span
+    const span = new mapkit.CoordinateSpan(
+      currentSpan?.latitudeDelta ?? 0.05,
+      currentSpan?.longitudeDelta ?? 0.05
+    )
+
+    map.region = new mapkit.CoordinateRegion(center, span)
+    setIsFollowingUser(true)
+  }
 
   if (!userLocation) {
     return (
@@ -282,20 +318,39 @@ export function AppleMapView({
         <div className="mt-1 flex items-center gap-2"><span>🛒⛽</span><span>{t("map.legend.mixed")}</span></div>
       </div>
 
+      <div className="absolute right-3 z-[9] flex flex-col gap-2 safe-top-app">
+        <button
+          type="button"
+          onClick={handleRecenterToUser}
+          aria-label="Go to my location"
+          title="Go to my location"
+          className={cn(
+            "flex size-11 items-center justify-center rounded-full border shadow-sm transition active:scale-95",
+            isFollowingUser
+              ? "border-[var(--valor-green)] bg-[var(--valor-green)] text-white"
+              : "border-black/10 bg-white/95 text-gray-500"
+          )}
+        >
+          <Navigation
+            aria-hidden="true"
+            className={cn(
+              "pointer-events-none size-[18px] -rotate-12",
+              isFollowingUser ? "fill-current text-white" : "fill-transparent text-gray-500"
+            )}
+            strokeWidth={2.2}
+          />
+        </button>
+      </div>
+
       {locationSelectionActive && (
         <>
-          <div className="pointer-events-none absolute left-1/2 top-1/2 z-[11] -translate-x-1/2 -translate-y-[calc(100%+16px)]">
+          <div className="pointer-events-none absolute left-1/2 top-1/2 z-[11] -translate-x-1/2 -translate-y-[calc(100%+20px)]">
             <div className="relative flex flex-col items-center">
               <div className="rounded-full bg-[#1C1C1E] px-3 py-1 text-[11px] font-medium text-white shadow-md">
                 {t("map.positionPin")}
               </div>
-              <div className="mt-3 h-8 w-8 rounded-full border-2 border-white bg-[var(--valor-green)] shadow-[0_6px_14px_rgba(0,0,0,0.18)]" />
-              <div className="-mt-2 h-0 w-0 border-l-[11px] border-r-[11px] border-t-[18px] border-l-transparent border-r-transparent border-t-[var(--valor-green)] drop-shadow-[0_6px_14px_rgba(0,0,0,0.18)]" />
-              <div className="mt-2 h-3 w-3 rounded-full bg-black/15 blur-[2px]" />
+              <div className="mt-2 text-[46px] leading-none drop-shadow-[0_8px_18px_rgba(0,0,0,0.22)]">📍</div>
             </div>
-          </div>
-          <div className="pointer-events-none absolute left-1/2 top-1/2 z-[10] -translate-x-1/2 -translate-y-1/2">
-            <div className="h-3 w-3 rounded-full border-2 border-white bg-[var(--valor-green)]/80 shadow-sm" />
           </div>
           <div className="pointer-events-none absolute inset-x-0 z-[10] flex justify-center px-4" style={{ top: "calc(env(safe-area-inset-top, 0px) + 4.75rem)" }}>
             <div className="rounded-full bg-white/95 px-3 py-1 text-xs text-gray-700 shadow-sm">
@@ -303,18 +358,6 @@ export function AppleMapView({
             </div>
           </div>
         </>
-      )}
-
-      {debugStats && (
-        <div className="absolute bottom-3 right-3 z-[9] rounded-md bg-black/75 px-3 py-2 text-[10px] text-white shadow-sm">
-          <div>lookups: {debugStats.lookups}</div>
-          <div>network: {debugStats.networkCalls}</div>
-          <div>cache: {debugStats.cacheHits}</div>
-          <div>inflight: {debugStats.inflightJoins}</div>
-          <div>skip(stable): {debugStats.skippedStableViewport}</div>
-          <div>skip(covered): {debugStats.skippedCoveredViewport}</div>
-          <div>aborts: {debugStats.aborted}</div>
-        </div>
       )}
     </div>
   )
@@ -392,7 +435,7 @@ function getVenueVisual(venue: MapVenue) {
   const hasGrocery = categories.has("grocery_store")
 
   if (hasGas && hasGrocery) {
-    return { glyph: "🛒⛽", color: "#2F80ED" }
+    return { glyph: "🛒⛽", color: "#FACC15" }
   }
   if (hasGrocery) {
     return { glyph: "🛒", color: "#10B981" }
@@ -468,6 +511,19 @@ async function ensureMapKitLoaded() {
   })
 
   return window.__valorMapKitLoadPromise
+}
+
+function isMapCenteredOnUser(userLocation: UserLocation, center: MapKitCoordinate, region?: MapKitRegion) {
+  const distanceFromUser = calculateDistance(
+    userLocation.latitude,
+    userLocation.longitude,
+    center.latitude,
+    center.longitude
+  )
+  const latSpanMeters = Math.max((region?.span?.latitudeDelta ?? 0.05) * 111_000, 60)
+  const thresholdMeters = Math.min(250, Math.max(50, latSpanMeters / 6))
+
+  return distanceFromUser <= thresholdMeters
 }
 
 function regionToBounds(region: MapKitRegion): MapBounds | null {

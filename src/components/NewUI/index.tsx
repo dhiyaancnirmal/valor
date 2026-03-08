@@ -66,7 +66,7 @@ export function MainUI() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isSubmitPageOpen, setIsSubmitPageOpen] = useState(false)
   const [isLoadingStations, setIsLoadingStations] = useState(false)
-  const [isMapFollowingUser, setIsMapFollowingUser] = useState(true)
+  const [isMapCompassVisible, setIsMapCompassVisible] = useState(false)
   const [isAddStoreOpen, setIsAddStoreOpen] = useState(false)
   const [isWorldIdSheetOpen, setIsWorldIdSheetOpen] = useState(false)
   const [worldIdReason, setWorldIdReason] = useState<VerificationReason>("general")
@@ -709,9 +709,9 @@ export function MainUI() {
     { id: "home" as Tab, icon: Home, label: t('mainUI.tabs.home') },
     { id: "wallet" as Tab, icon: Wallet, label: t('mainUI.tabs.wallet') },
   ]
-  const addStoreButtonBottom = isMapFollowingUser
-    ? "calc(env(safe-area-inset-bottom, 0px) + 0.875rem)"
-    : "calc(env(safe-area-inset-bottom, 0px) + 4rem)"
+  const addStoreButtonBottom = isMapCompassVisible
+    ? "calc(env(safe-area-inset-bottom, 0px) + 4.75rem)"
+    : "calc(env(safe-area-inset-bottom, 0px) + 0.35rem)"
 
   if (loading || !isMiniKitReady) {
     return (
@@ -773,7 +773,7 @@ export function MainUI() {
               isLoadingStations={isLoadingStations}
               locationSelectionActive={isSelectingStoreLocation}
               disableVenueSelection={isSelectingStoreLocation}
-              onFollowUserStateChange={setIsMapFollowingUser}
+              onCompassVisibilityChange={setIsMapCompassVisible}
               debugStats={process.env.NODE_ENV !== "production" ? { ...mapCallStatsRef.current } : undefined}
             />
             {!isAddStoreOpen && !isDrawerOpen ? (

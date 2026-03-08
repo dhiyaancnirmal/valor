@@ -247,7 +247,7 @@
     "legend": {
       "grocery": "Tienda",
       "gas": "Gas",
-      "mixed": "Mixto"
+      "mixed": "Ambos"
     },
     "addStoreErrors": {
       "locationUnavailable": "La ubicación del mapa no está disponible",

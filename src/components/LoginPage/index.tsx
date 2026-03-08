@@ -10,6 +10,39 @@ import WorldIDLogo from "@/components/WorldIDLogo"
 import { Button } from "@/components/ui/button"
 import { isDevAuthEnabled, looksLikeWorldAppUserAgent } from "@/lib/world-dev"
 
+type MiniKitHostWindow = Window & {
+  MiniKit?: unknown
+  WorldApp?: unknown
+}
+
+function resolvePostLoginPath(pathname: string): string {
+  const normalizedPath = pathname.replace(/\/+$/, "") || "/"
+  if (normalizedPath === "/") return "/"
+
+  if (normalizedPath.endsWith("/login")) {
+    const homePath = normalizedPath.slice(0, -"/login".length)
+    return homePath || "/"
+  }
+
+  return normalizedPath
+}
+
+function ensureMiniKitReady(): boolean {
+  if (typeof window === "undefined") return false
+
+  const hostWindow = window as MiniKitHostWindow
+  if (hostWindow.MiniKit) return true
+  if (!hostWindow.WorldApp) return false
+
+  const result = MiniKit.install(process.env.NEXT_PUBLIC_APP_ID)
+  if (result.success) return true
+  if ("errorCode" in result && result.errorCode === "already_installed") {
+    return Boolean((window as MiniKitHostWindow).MiniKit)
+  }
+
+  return false
+}
+
 export function LoginPage() {
   const t = useTranslations()
   const [isLoading, setIsLoading] = useState(false)
@@ -25,7 +58,7 @@ export function LoginPage() {
     const checkMiniKit = () => {
       if (cancelled || typeof window === "undefined") return
       try {
-        if (MiniKit.isInstalled()) {
+        if (ensureMiniKitReady()) {
           setIsMiniKitReady(true)
           return
         }
@@ -58,7 +91,7 @@ export function LoginPage() {
       setIsLoading(true)
       setError(null)
 
-      if (!MiniKit.isInstalled()) {
+      if (!ensureMiniKitReady()) {
         setError(t("login.errors.openInWorldApp"))
         setIsLoading(false)
         return
@@ -105,6 +138,7 @@ export function LoginPage() {
       }
 
       const userProfile = MiniKit.user
+      const postLoginPath = resolvePostLoginPath(window.location.pathname)
       const result = await signIn("worldcoin", {
         walletAddress,
         signature,
@@ -116,7 +150,7 @@ export function LoginPage() {
         username: userProfile?.username,
         profilePictureUrl: userProfile?.profilePictureUrl,
         redirect: false,
-        callbackUrl: window.location.pathname,
+        callbackUrl: postLoginPath,
       })
 
       if (result?.error) {
@@ -125,7 +159,7 @@ export function LoginPage() {
         return
       }
 
-      const redirectTo = result?.url || window.location.pathname
+      const redirectTo = result?.url || postLoginPath
       window.location.replace(redirectTo)
     } catch (err) {
       setError(err instanceof Error ? err.message : t("login.errors.generic"))
@@ -158,6 +192,7 @@ export function LoginPage() {
         body: JSON.stringify({ message }),
       })
       const { signature } = await response.json()
+      const postLoginPath = resolvePostLoginPath(window.location.pathname)
 
       const result = await signIn("worldcoin", {
         walletAddress: mockWalletAddress,
@@ -165,6 +200,7 @@ export function LoginPage() {
         message,
         nonce,
         redirect: false,
+        callbackUrl: postLoginPath,
       })
 
       if (result?.error) {
@@ -173,7 +209,7 @@ export function LoginPage() {
         return
       }
 
-      window.location.replace(window.location.pathname)
+      window.location.replace(result?.url || postLoginPath)
     } catch {
       setError(t("login.errors.devLoginFailed"))
       setIsLoading(false)

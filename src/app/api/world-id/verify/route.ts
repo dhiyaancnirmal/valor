@@ -71,12 +71,30 @@ export async function POST(request: NextRequest) {
     const payload = (await verifyResponse.json().catch(() => null)) as
       | {
           success?: boolean
+          code?: string
+          detail?: string
+          attribute?: string | null
           [key: string]: unknown
         }
       | null
 
     if (!verifyResponse.ok || !payload?.success) {
-      return NextResponse.json(payload ?? { error: "World ID verification failed" }, { status: verifyResponse.status })
+      console.error("World ID provider rejected proof", {
+        status: verifyResponse.status,
+        appId: config.appId,
+        action: body.action || config.action,
+        verificationLevel: body.verification_level,
+        payload,
+      })
+
+      return NextResponse.json(
+        {
+          error: payload?.detail || payload?.code || "World ID verification failed",
+          providerStatus: verifyResponse.status,
+          providerPayload: payload,
+        },
+        { status: verifyResponse.status || 400 }
+      )
     }
 
     const response = NextResponse.json({

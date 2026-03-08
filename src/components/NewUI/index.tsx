@@ -17,6 +17,7 @@ import { useWorldIdStatus } from "@/hooks/useWorldIdStatus"
 import { MiniKit } from "@worldcoin/minikit-js"
 import { useCaptureMode } from "@/lib/capture-mode"
 import { isWorldDevBypassEnabled, looksLikeWorldAppUserAgent } from "@/lib/world-dev"
+import { useMobileViewport } from "@/components/providers/MobileViewportProvider"
 
 type Tab = "map" | "home" | "wallet"
 type AddStoreStep = "location" | "details"
@@ -31,8 +32,30 @@ const MAX_QUERY_CACHE_ENTRIES = 120
 const BOUNDS_DEBOUNCE_MS = 350
 const FETCHED_BOUNDS_TTL_MS = 10 * 60_000
 
+type MiniKitHostWindow = Window & {
+  MiniKit?: unknown
+  WorldApp?: unknown
+}
+
+function ensureMiniKitReady(): boolean {
+  if (typeof window === "undefined") return false
+
+  const hostWindow = window as MiniKitHostWindow
+  if (hostWindow.MiniKit) return true
+  if (!hostWindow.WorldApp) return false
+
+  const result = MiniKit.install(process.env.NEXT_PUBLIC_APP_ID)
+  if (result.success) return true
+  if ("errorCode" in result && result.errorCode === "already_installed") {
+    return Boolean((window as MiniKitHostWindow).MiniKit)
+  }
+
+  return false
+}
+
 export function MainUI() {
   const t = useTranslations()
+  const { keyboardOpen } = useMobileViewport()
   const [activeTab, setActiveTab] = useState<Tab>("home")
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null)
   const [mapVenues, setMapVenues] = useState<MapVenue[]>([])
@@ -43,6 +66,7 @@ export function MainUI() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isSubmitPageOpen, setIsSubmitPageOpen] = useState(false)
   const [isLoadingStations, setIsLoadingStations] = useState(false)
+  const [isMapFollowingUser, setIsMapFollowingUser] = useState(true)
   const [isAddStoreOpen, setIsAddStoreOpen] = useState(false)
   const [isWorldIdSheetOpen, setIsWorldIdSheetOpen] = useState(false)
   const [worldIdReason, setWorldIdReason] = useState<VerificationReason>("general")
@@ -263,8 +287,7 @@ export function MainUI() {
     const pollMiniKit = () => {
       if (typeof window === "undefined") return
       try {
-        const installed = MiniKit.isInstalled()
-        if (installed) {
+        if (ensureMiniKitReady()) {
           if (!cancelled) setIsMiniKitReady(true)
           return
         }
@@ -287,8 +310,6 @@ export function MainUI() {
         } catch {}
         if (isWorldDevBypassEnabled) {
           console.warn("MiniKit is unavailable in browser bypass mode.")
-        } else {
-          console.error("MiniKit is not installed. Make sure you're running the application inside of World App")
         }
       }
     }
@@ -688,6 +709,9 @@ export function MainUI() {
     { id: "home" as Tab, icon: Home, label: t('mainUI.tabs.home') },
     { id: "wallet" as Tab, icon: Wallet, label: t('mainUI.tabs.wallet') },
   ]
+  const addStoreButtonBottom = isMapFollowingUser
+    ? "calc(env(safe-area-inset-bottom, 0px) + 0.875rem)"
+    : "calc(env(safe-area-inset-bottom, 0px) + 4rem)"
 
   if (loading || !isMiniKitReady) {
     return (
@@ -705,35 +729,37 @@ export function MainUI() {
       className="bg-[var(--valor-bg)]"
       contentClassName="relative overflow-hidden"
       footer={
-        <nav
-          className="relative border-t border-black/5 bg-white/95 backdrop-blur"
-          style={{
-            paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + var(--spacing-md))",
-            paddingTop: "var(--spacing-xs)",
-          }}
-        >
-          <div className="safe-px-app flex items-center justify-around gap-2 px-4">
-            {tabs.map((tab) => {
-              const Icon = tab.icon
-              const isActive = activeTab === tab.id
+        keyboardOpen ? null : (
+          <nav
+            className="relative border-t border-black/5 bg-white/95 backdrop-blur"
+            style={{
+              paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + var(--spacing-md))",
+              paddingTop: "var(--spacing-xs)",
+            }}
+          >
+            <div className="safe-px-app flex items-center justify-around gap-2 px-4">
+              {tabs.map((tab) => {
+                const Icon = tab.icon
+                const isActive = activeTab === tab.id
 
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  aria-current={isActive ? "page" : undefined}
-                  className="flex min-h-11 min-w-[84px] flex-col items-center justify-center gap-1 rounded-2xl px-3 py-2 text-xs text-gray-500 active:scale-[0.99]"
-                >
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-2xl ${isActive ? "bg-[#7DD756]/10" : ""}`}>
-                    <Icon size={22} className={isActive ? "text-[#7DD756]" : "text-gray-500"} strokeWidth={isActive ? 2.5 : 2} />
-                  </div>
-                  <span className={isActive ? "text-[#7DD756]" : ""}>{tab.label}</span>
-                </button>
-              )
-            })}
-          </div>
-        </nav>
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    aria-current={isActive ? "page" : undefined}
+                    className="flex min-h-11 min-w-[84px] flex-col items-center justify-center gap-1 rounded-2xl px-3 py-2 text-xs text-gray-500 active:scale-[0.99]"
+                  >
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-2xl ${isActive ? "bg-[#7DD756]/10" : ""}`}>
+                      <Icon size={22} className={isActive ? "text-[#7DD756]" : "text-gray-500"} strokeWidth={isActive ? 2.5 : 2} />
+                    </div>
+                    <span className={isActive ? "text-[#7DD756]" : ""}>{tab.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </nav>
+        )
       }
     >
       <main className="relative h-full overflow-hidden">
@@ -747,14 +773,18 @@ export function MainUI() {
               isLoadingStations={isLoadingStations}
               locationSelectionActive={isSelectingStoreLocation}
               disableVenueSelection={isSelectingStoreLocation}
+              onFollowUserStateChange={setIsMapFollowingUser}
               debugStats={process.env.NODE_ENV !== "production" ? { ...mapCallStatsRef.current } : undefined}
             />
             {!isAddStoreOpen && !isDrawerOpen ? (
               <button
                 type="button"
                 onClick={handleOpenAddStore}
-                className="absolute right-4 z-[60] inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--valor-green)] px-4 text-sm text-white shadow-lg active:scale-95"
-                style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 5.5rem)" }}
+                className="absolute z-[60] inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--valor-green)] px-4 text-sm text-white shadow-lg active:scale-95"
+                style={{
+                  right: "calc(env(safe-area-inset-right, 0px) + 0.75rem)",
+                  bottom: addStoreButtonBottom,
+                }}
               >
                 <Plus size={16} />
                 {t("map.addStore")}

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { BadgeCheck, Loader2 } from "lucide-react"
-import { MiniKit, VerificationLevel } from "@worldcoin/minikit-js"
+import { MiniKit, MiniAppVerifyActionPayload, ResponseEvent, VerificationLevel } from "@worldcoin/minikit-js"
 import { useTranslations } from "next-intl"
 import { BottomSheet, StickyActionBar } from "@/components/mobile"
 import { isWorldDevBypassEnabled } from "@/lib/world-dev"
@@ -14,6 +14,84 @@ interface WorldIdVerificationSheetProps {
   onClose: () => void
   onVerified?: () => void | Promise<void>
   reason?: VerificationReason
+}
+
+const VERIFY_EVENT = ResponseEvent.MiniAppVerifyAction
+
+function describeVerifyError(code: string) {
+  switch (code) {
+    case "invalid_network":
+      return "World App rejected this verification because the app environment does not match the current network."
+    case "credential_unavailable":
+      return "The requested credential is not available for this account at the required verification level."
+    case "inclusion_proof_pending":
+      return "World ID proof generation is still pending. Try again shortly."
+    case "inclusion_proof_failed":
+      return "World App could not retrieve the inclusion proof. This is usually a temporary sequencer or network issue. Try again."
+    case "malformed_request":
+      return "The verification request sent by the app is malformed."
+    case "max_verifications_reached":
+      return "This action has already been verified the maximum number of times."
+    case "verification_rejected":
+    case "user_rejected":
+      return "Verification was canceled in World App."
+    default:
+      return `World ID verification failed (${code}).`
+  }
+}
+
+function runVerifyCommand() {
+  return new Promise<MiniAppVerifyActionPayload>((resolve, reject) => {
+    let settled = false
+    const timers: {
+      timeoutId: number | undefined
+      cleanupTimerId: number | undefined
+    } = {
+      timeoutId: undefined,
+      cleanupTimerId: undefined,
+    }
+
+    const cleanup = (delayMs = 0) => {
+      if (timers.timeoutId) {
+        window.clearTimeout(timers.timeoutId)
+      }
+      if (timers.cleanupTimerId) {
+        window.clearTimeout(timers.cleanupTimerId)
+      }
+      timers.cleanupTimerId = window.setTimeout(() => {
+        try {
+          MiniKit.unsubscribe(VERIFY_EVENT)
+        } catch {}
+      }, delayMs)
+    }
+
+    MiniKit.subscribe(VERIFY_EVENT, (payload: MiniAppVerifyActionPayload) => {
+      if (settled) return
+      settled = true
+      resolve(payload)
+      // Keep a short grace window to absorb duplicate verify events from the bridge.
+      cleanup(500)
+    })
+
+    const commandPayload = MiniKit.commands.verify({
+      action: "valor-contribution",
+      verification_level: VerificationLevel.Orb,
+    })
+
+    if (!commandPayload) {
+      settled = true
+      cleanup()
+      reject(new Error("Failed to start World ID verification"))
+      return
+    }
+
+    timers.timeoutId = window.setTimeout(() => {
+      if (settled) return
+      settled = true
+      cleanup()
+      reject(new Error("World ID verification timed out"))
+    }, 60_000)
+  })
 }
 
 export function WorldIdVerificationSheet({
@@ -78,16 +156,17 @@ export function WorldIdVerificationSheet({
         return
       }
 
-      const { finalPayload } = await MiniKit.commandsAsync.verify({
-        action: "valor-contribution",
-        verification_level: VerificationLevel.Orb,
-      })
+      const finalPayload = await runVerifyCommand()
 
       if (finalPayload.status === "error") {
-        if (finalPayload.error_code === "user_rejected") {
+        console.warn("World ID verify rejected in MiniKit", finalPayload)
+        if (
+          finalPayload.error_code === "user_rejected" ||
+          finalPayload.error_code === "verification_rejected"
+        ) {
           return
         }
-        throw new Error(t("worldId.errors.flowFailed", { code: finalPayload.error_code || "unknown" }))
+        throw new Error(describeVerifyError(finalPayload.error_code || "unknown"))
       }
 
       const verificationPayload =
@@ -112,8 +191,20 @@ export function WorldIdVerificationSheet({
       })
 
       if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as { error?: string } | null
-        throw new Error(data?.error || t("worldId.errors.verifyFailed"))
+        const data = (await response.json().catch(() => null)) as {
+          error?: string
+          providerStatus?: number
+          providerPayload?: { code?: string; detail?: string }
+        } | null
+
+        const providerCode = data?.providerPayload?.code
+        const providerDetail = data?.providerPayload?.detail
+        throw new Error(
+          providerDetail ||
+          (providerCode ? describeVerifyError(providerCode) : undefined) ||
+          data?.error ||
+          t("worldId.errors.verifyFailed")
+        )
       }
 
       await onVerified?.()

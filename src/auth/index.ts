@@ -8,6 +8,12 @@ const authSecret =
   process.env.AUTH_SECRET ||
   (process.env.NODE_ENV !== "production" ? "valor-dev-auth-secret" : undefined)
 
+function authDebugLog(level: "info" | "warn", message: string, data?: Record<string, unknown>) {
+  if (process.env.NODE_ENV === "production") return
+  const logger = level === "warn" ? console.warn : console.info
+  logger("[auth]", message, data ?? {})
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: authSecret,
   providers: [
@@ -32,12 +38,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           !credentials?.message ||
           !credentials?.nonce
         ) {
+          authDebugLog("warn", "missing required credentials fields", {
+            hasWalletAddress: Boolean(credentials?.walletAddress),
+            hasSignature: Boolean(credentials?.signature),
+            hasMessage: Boolean(credentials?.message),
+            hasNonce: Boolean(credentials?.nonce),
+          })
           return null
         }
 
         const cookieStore = await cookies()
         const storedNonce = cookieStore.get("siwe")?.value
         if (!storedNonce || storedNonce !== credentials.nonce) {
+          authDebugLog("warn", "nonce mismatch", {
+            hasStoredNonce: Boolean(storedNonce),
+            providedNoncePrefix: String(credentials.nonce).slice(0, 8),
+            storedNoncePrefix: storedNonce?.slice(0, 8),
+          })
           return null
         }
 
@@ -52,8 +69,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         )
 
         if (!isValid) {
+          authDebugLog("warn", "signature verification failed", {
+            walletAddressPrefix: String(credentials.walletAddress).slice(0, 10),
+          })
           return null
         }
+
+        authDebugLog("info", "authorization succeeded", {
+          walletAddressPrefix: String(credentials.walletAddress).slice(0, 10),
+        })
 
         return {
           id: credentials.walletAddress as string,

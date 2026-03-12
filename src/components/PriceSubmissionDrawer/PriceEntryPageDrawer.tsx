@@ -67,7 +67,12 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
   const [pendingProposals, setPendingProposals] = useState<GroceryProposalDraft[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const priceInputRef = useRef<HTMLInputElement>(null)
-  const { enabled: isWorldIdEnabled, verified: isWorldIdVerified, refresh: refreshWorldIdStatus } = useWorldIdStatus(Boolean(session?.user?.walletAddress))
+  const {
+    enabled: isWorldIdEnabled,
+    verified: isWorldIdVerified,
+    action: worldIdAction,
+    refresh: refreshWorldIdStatus,
+  } = useWorldIdStatus(Boolean(session?.user?.walletAddress))
   const groceryCountry = getCountryFromLocale(locale)
   const isGroceryVenue = station.primaryCategory === "grocery_store" || station.submissionMode === "read_only"
   const groceryCatalog = useMemo(() => getGroceryCatalog(groceryCountry), [groceryCountry])
@@ -1108,6 +1113,7 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
           })
         }}
         reason="submit_price"
+        action={worldIdAction}
       />
     </MobileScreen>
   )

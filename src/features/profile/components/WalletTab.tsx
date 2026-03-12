@@ -60,7 +60,12 @@ export function WalletTab({ onOpenSettings, captureMode = false }: WalletTabProp
   const [proposals, setProposals] = useState<PoiProposal[]>([])
   const [isLoadingProposals, setIsLoadingProposals] = useState(true)
   const [isWorldIdSheetOpen, setIsWorldIdSheetOpen] = useState(false)
-  const { enabled: isWorldIdEnabled, verified: isWorldIdVerified, refresh: refreshWorldIdStatus } = useWorldIdStatus(Boolean(session?.user?.walletAddress))
+  const {
+    enabled: isWorldIdEnabled,
+    verified: isWorldIdVerified,
+    action: worldIdAction,
+    refresh: refreshWorldIdStatus,
+  } = useWorldIdStatus(Boolean(session?.user?.walletAddress))
 
   const miniKitInstalled = (() => {
     try {
@@ -354,6 +359,7 @@ export function WalletTab({ onOpenSettings, captureMode = false }: WalletTabProp
           await refreshWorldIdStatus()
         }}
         reason="general"
+        action={worldIdAction}
       />
     </div>
   )

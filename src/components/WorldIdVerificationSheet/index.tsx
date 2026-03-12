@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { BadgeCheck, Loader2 } from "lucide-react"
-import { MiniKit, MiniAppVerifyActionPayload, ResponseEvent, VerificationLevel } from "@worldcoin/minikit-js"
+import { MiniKit, type ISuccessResult, VerificationLevel } from "@worldcoin/minikit-js"
 import { useTranslations } from "next-intl"
 import { BottomSheet, StickyActionBar } from "@/components/mobile"
 import { isWorldDevBypassEnabled } from "@/lib/world-dev"
@@ -14,9 +14,8 @@ interface WorldIdVerificationSheetProps {
   onClose: () => void
   onVerified?: () => void | Promise<void>
   reason?: VerificationReason
+  action?: string
 }
-
-const VERIFY_EVENT = ResponseEvent.MiniAppVerifyAction
 
 function describeVerifyError(code: string) {
   switch (code) {
@@ -40,65 +39,12 @@ function describeVerifyError(code: string) {
   }
 }
 
-function runVerifyCommand() {
-  return new Promise<MiniAppVerifyActionPayload>((resolve, reject) => {
-    let settled = false
-    const timers: {
-      timeoutId: number | undefined
-      cleanupTimerId: number | undefined
-    } = {
-      timeoutId: undefined,
-      cleanupTimerId: undefined,
-    }
-
-    const cleanup = (delayMs = 0) => {
-      if (timers.timeoutId) {
-        window.clearTimeout(timers.timeoutId)
-      }
-      if (timers.cleanupTimerId) {
-        window.clearTimeout(timers.cleanupTimerId)
-      }
-      timers.cleanupTimerId = window.setTimeout(() => {
-        try {
-          MiniKit.unsubscribe(VERIFY_EVENT)
-        } catch {}
-      }, delayMs)
-    }
-
-    MiniKit.subscribe(VERIFY_EVENT, (payload: MiniAppVerifyActionPayload) => {
-      if (settled) return
-      settled = true
-      resolve(payload)
-      // Keep a short grace window to absorb duplicate verify events from the bridge.
-      cleanup(500)
-    })
-
-    const commandPayload = MiniKit.commands.verify({
-      action: "valor-contribution",
-      verification_level: VerificationLevel.Orb,
-    })
-
-    if (!commandPayload) {
-      settled = true
-      cleanup()
-      reject(new Error("Failed to start World ID verification"))
-      return
-    }
-
-    timers.timeoutId = window.setTimeout(() => {
-      if (settled) return
-      settled = true
-      cleanup()
-      reject(new Error("World ID verification timed out"))
-    }, 60_000)
-  })
-}
-
 export function WorldIdVerificationSheet({
   isOpen,
   onClose,
   onVerified,
   reason = "general",
+  action,
 }: WorldIdVerificationSheetProps) {
   const t = useTranslations()
   const [isPreparing, setIsPreparing] = useState(false)
@@ -136,15 +82,24 @@ export function WorldIdVerificationSheet({
     setError(null)
 
     try {
+      const resolvedAction = action?.trim()
+      if (!resolvedAction) {
+        throw new Error(t("worldId.errors.prepareFailed"))
+      }
+
       if (isWorldDevBypassEnabled) {
         const response = await fetch("/api/world-id/verify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            proof: "dev-proof",
-            merkle_root: "dev-root",
-            nullifier_hash: "dev-nullifier",
-            verification_level: "orb",
+            payload: {
+              proof: "dev-proof",
+              merkle_root: "dev-root",
+              nullifier_hash: "dev-nullifier",
+              verification_level: VerificationLevel.Orb,
+            },
+            action: resolvedAction,
+            signal: undefined,
           }),
         })
         if (!response.ok) {
@@ -156,7 +111,10 @@ export function WorldIdVerificationSheet({
         return
       }
 
-      const finalPayload = await runVerifyCommand()
+      const { finalPayload } = await MiniKit.commandsAsync.verify({
+        action: resolvedAction,
+        verification_level: [VerificationLevel.Orb, VerificationLevel.Device],
+      })
 
       if (finalPayload.status === "error") {
         console.warn("World ID verify rejected in MiniKit", finalPayload)
@@ -169,9 +127,11 @@ export function WorldIdVerificationSheet({
         throw new Error(describeVerifyError(finalPayload.error_code || "unknown"))
       }
 
-      const verificationPayload =
+      const verificationPayload: ISuccessResult | undefined =
         "verifications" in finalPayload
-          ? finalPayload.verifications.find((item) => item.verification_level === VerificationLevel.Orb) || finalPayload.verifications[0]
+          ? finalPayload.verifications.find((item) => item.verification_level === VerificationLevel.Orb)
+            || finalPayload.verifications.find((item) => item.verification_level === VerificationLevel.Device)
+            || finalPayload.verifications[0]
           : finalPayload
 
       if (!verificationPayload) {
@@ -182,11 +142,9 @@ export function WorldIdVerificationSheet({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          proof: verificationPayload.proof,
-          merkle_root: verificationPayload.merkle_root,
-          nullifier_hash: verificationPayload.nullifier_hash,
-          verification_level: verificationPayload.verification_level,
-          action: "valor-contribution",
+          payload: verificationPayload,
+          action: resolvedAction,
+          signal: undefined,
         }),
       })
 

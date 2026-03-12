@@ -86,7 +86,12 @@ export function MainUI() {
   const [selectedStoreLocation, setSelectedStoreLocation] = useState<UserLocation | null>(null)
   const [units, setUnits] = useState<'metric' | 'imperial'>('metric')
   const { captureMode, setCaptureMode } = useCaptureMode()
-  const { enabled: isWorldIdEnabled, verified: isWorldIdVerified, refresh: refreshWorldIdStatus } = useWorldIdStatus(isMiniKitReady)
+  const {
+    enabled: isWorldIdEnabled,
+    verified: isWorldIdVerified,
+    action: worldIdAction,
+    refresh: refreshWorldIdStatus,
+  } = useWorldIdStatus(isMiniKitReady)
   const [, forceMapStatsRender] = useState(0)
 
   // Shared station data state (persists across tab switches)
@@ -878,6 +883,7 @@ export function MainUI() {
           }
         }}
         reason={worldIdReason}
+        action={worldIdAction}
       />
 
       <BottomSheet

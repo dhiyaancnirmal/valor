@@ -3,13 +3,26 @@
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react"
 import { ArrowLeft, Camera, Check, ChevronRight, MapPin, X } from "lucide-react"
 import { useSession } from "next-auth/react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { usePathname, useRouter } from "next/navigation"
 import { MobileScreen, StickyActionBar } from "@/components/mobile"
 import { WorldIdVerificationSheet } from "@/components/WorldIdVerificationSheet"
 import { useWorldIdStatus } from "@/hooks/useWorldIdStatus"
 import { calculateDistance, cn } from "@/lib/utils"
 import type { GasStation, UserLocation } from "@/types"
+import {
+  createPendingGroceryProposal,
+  getCountryFromLocale,
+  getGroceryBaskets,
+  getGroceryCatalog,
+  getPendingGroceryProposals,
+  saveGroceryBasketSubmission,
+  saveGroceryItemSubmission,
+  type GroceryCategory,
+  type GroceryProductDefinition,
+  type GroceryProposalDraft,
+  type GrocerySubmissionKind,
+} from "./grocery-mocks"
 
 interface PriceEntryPageProps {
   station: GasStation
@@ -31,10 +44,14 @@ const STEPS: Step[] = ["product", "price", "photo", "review"]
 export default function PriceEntryPage({ station, userLocation, onSuccess, onClose }: PriceEntryPageProps) {
   const { data: session } = useSession()
   const t = useTranslations()
+  const locale = useLocale()
   const router = useRouter()
   const pathname = usePathname()
   const [currentStep, setCurrentStep] = useState<Step>("product")
+  const [grocerySubmissionKind, setGrocerySubmissionKind] = useState<GrocerySubmissionKind>("item")
   const [selectedProduct, setSelectedProduct] = useState("")
+  const [selectedBasketId, setSelectedBasketId] = useState("")
+  const [basketPrices, setBasketPrices] = useState<Record<string, string>>({})
   const [price, setPrice] = useState("")
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -43,15 +60,35 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
   const [currentUserLocation, setCurrentUserLocation] = useState<UserLocation | null>(userLocation)
   const [notice, setNotice] = useState<InlineNotice | null>(null)
   const [isWorldIdSheetOpen, setIsWorldIdSheetOpen] = useState(false)
+  const [isProposalFormOpen, setIsProposalFormOpen] = useState(false)
+  const [proposalName, setProposalName] = useState("")
+  const [proposalUnitLabel, setProposalUnitLabel] = useState("")
+  const [proposalCategory, setProposalCategory] = useState<GroceryCategory>("pantry")
+  const [pendingProposals, setPendingProposals] = useState<GroceryProposalDraft[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const priceInputRef = useRef<HTMLInputElement>(null)
   const { enabled: isWorldIdEnabled, verified: isWorldIdVerified, refresh: refreshWorldIdStatus } = useWorldIdStatus(Boolean(session?.user?.walletAddress))
+  const groceryCountry = getCountryFromLocale(locale)
+  const isGroceryVenue = station.primaryCategory === "grocery_store" || station.submissionMode === "read_only"
+  const groceryCatalog = useMemo(() => getGroceryCatalog(groceryCountry), [groceryCountry])
+  const groceryBaskets = useMemo(() => getGroceryBaskets(groceryCountry), [groceryCountry])
 
   const gasProducts = useMemo(
     () => [
       { id: "Regular", label: t("priceEntry.fuelTypes.regular"), icon: "⛽", description: t("priceEntry.fuelTypes.regularDesc") },
       { id: "Premium", label: t("priceEntry.fuelTypes.premium"), icon: "⛽", description: t("priceEntry.fuelTypes.premiumDesc") },
       { id: "Diesel", label: t("priceEntry.fuelTypes.diesel"), icon: "⛽", description: t("priceEntry.fuelTypes.dieselDesc") },
+    ],
+    [t]
+  )
+
+  const groceryCategories = useMemo(
+    () => [
+      { id: "dairy" as GroceryCategory, label: t("priceEntry.grocery.categories.dairy") },
+      { id: "produce" as GroceryCategory, label: t("priceEntry.grocery.categories.produce") },
+      { id: "pantry" as GroceryCategory, label: t("priceEntry.grocery.categories.pantry") },
+      { id: "bakery" as GroceryCategory, label: t("priceEntry.grocery.categories.bakery") },
+      { id: "beverages" as GroceryCategory, label: t("priceEntry.grocery.categories.beverages") },
     ],
     [t]
   )
@@ -82,9 +119,26 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
     [t]
   )
 
-  const canProceedFromProduct = selectedProduct !== ""
+  const selectedGroceryProduct = groceryCatalog.find((product) => product.id === selectedProduct) ?? null
+  const selectedBasket = groceryBaskets.find((basket) => basket.id === selectedBasketId) ?? null
+  const basketEntries = selectedBasket
+    ? selectedBasket.items.map((itemId) => ({
+        product: groceryCatalog.find((product) => product.id === itemId),
+        value: basketPrices[itemId] ?? "",
+      }))
+    : []
+  const basketTotal = basketEntries.reduce((sum, entry) => sum + (Number.parseFloat(entry.value) || 0), 0)
+  const canProceedFromProduct = isGroceryVenue
+    ? grocerySubmissionKind === "item"
+      ? selectedProduct !== ""
+      : selectedBasketId !== ""
+    : selectedProduct !== ""
   const parsedPrice = Number.parseFloat(price)
-  const canProceedFromPrice = price !== "" && Number.isFinite(parsedPrice) && parsedPrice > 0
+  const canProceedFromPrice = isGroceryVenue
+    ? grocerySubmissionKind === "item"
+      ? price !== "" && Number.isFinite(parsedPrice) && parsedPrice > 0
+      : basketEntries.length > 0 && basketEntries.every((entry) => entry.product && Number.parseFloat(entry.value) > 0)
+    : price !== "" && Number.isFinite(parsedPrice) && parsedPrice > 0
   const canProceedFromPhoto = capturedPhoto !== null
   const distanceFromStation = currentUserLocation
     ? calculateDistance(
@@ -94,7 +148,14 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
         station.longitude
       )
     : null
-  const canSubmit = Boolean(selectedProduct && canProceedFromPrice && capturedPhoto && currentUserLocation && distanceFromStation !== null && distanceFromStation <= 500)
+  const canSubmit = Boolean(
+    canProceedFromProduct &&
+      canProceedFromPrice &&
+      capturedPhoto &&
+      currentUserLocation &&
+      distanceFromStation !== null &&
+      distanceFromStation <= 500
+  )
 
   useEffect(() => {
     if (userLocation) {
@@ -122,6 +183,11 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
       )
     }
   }, [currentUserLocation, t])
+
+  useEffect(() => {
+    if (!isGroceryVenue) return
+    setPendingProposals(getPendingGroceryProposals(station.id, groceryCountry))
+  }, [groceryCountry, isGroceryVenue, station.id])
 
   useEffect(() => {
     if (!currentUserLocation) return
@@ -252,6 +318,48 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
     setNotice(null)
 
     try {
+      if (isGroceryVenue) {
+        if (grocerySubmissionKind === "item" && selectedGroceryProduct) {
+          saveGroceryItemSubmission({
+            stationId: station.id,
+            country: groceryCountry,
+            productId: selectedGroceryProduct.id,
+            price: Number.parseFloat(price),
+            currency,
+          })
+        }
+
+        if (grocerySubmissionKind === "basket" && selectedBasket) {
+          saveGroceryBasketSubmission({
+            stationId: station.id,
+            country: groceryCountry,
+            basketId: selectedBasket.id,
+            currency,
+            items: basketEntries
+              .filter((entry): entry is { product: GroceryProductDefinition; value: string } => Boolean(entry.product))
+              .map((entry) => ({
+                productId: entry.product.id,
+                price: Number.parseFloat(entry.value),
+              })),
+          })
+        }
+
+        setNotice({
+          tone: "success",
+          title: t("priceEntry.grocery.submissionSuccess"),
+          detail: t("priceEntry.submissionPending"),
+        })
+
+        resetGroceryFlow(setCurrentStep, setSelectedProduct, setSelectedBasketId, setBasketPrices, setPrice, setCapturedPhoto, setGrocerySubmissionKind)
+        await new Promise((resolve) => window.setTimeout(resolve, 1100))
+        if (onSuccess) {
+          onSuccess()
+        } else {
+          handleBack()
+        }
+        return
+      }
+
       let photoFile: File | null = null
       if (capturedPhoto) {
         const photoResponse = await fetch(capturedPhoto)
@@ -331,6 +439,38 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
     }
   }
 
+  const handleSubmitProposal = () => {
+    const trimmedName = proposalName.trim()
+    const trimmedUnit = proposalUnitLabel.trim()
+    if (trimmedName.length < 2 || trimmedUnit.length < 1) {
+      setNotice({
+        tone: "error",
+        title: t("common.error"),
+        detail: t("priceEntry.grocery.proposalValidation"),
+      })
+      return
+    }
+
+    const proposal = createPendingGroceryProposal({
+      stationId: station.id,
+      country: groceryCountry,
+      name: trimmedName,
+      unitLabel: trimmedUnit,
+      category: proposalCategory,
+    })
+
+    setPendingProposals((previous) => [proposal, ...previous])
+    setProposalName("")
+    setProposalUnitLabel("")
+    setProposalCategory("pantry")
+    setIsProposalFormOpen(false)
+    setNotice({
+      tone: "success",
+      title: t("priceEntry.grocery.proposalPending"),
+      detail: t("priceEntry.grocery.proposalPendingDetail"),
+    })
+  }
+
   return (
     <MobileScreen
       className="bg-[#F4F4F8]"
@@ -345,13 +485,15 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
               >
                 <ArrowLeft size={20} />
               </button>
-              <h1 className="truncate text-lg text-[#1C1C1E]">{t("drawer.submitPrice")}</h1>
+              <h1 className="truncate text-lg text-[#1C1C1E]">
+                {isGroceryVenue ? t("drawer.submitGroceryPrices") : t("drawer.submitPrice")}
+              </h1>
               <div className="h-11 w-11" />
             </div>
 
             <div className="mt-4 flex items-center justify-between gap-2">
               {STEPS.map((step, index) => {
-                const completed = isStepCompleted(step, selectedProduct, price, capturedPhoto)
+                const completed = isStepCompleted(step, canProceedFromProduct, canProceedFromPrice, capturedPhoto)
                 const active = currentStep === step
                 return (
                   <div key={step} className="flex flex-1 items-center gap-2">
@@ -372,7 +514,9 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
             </div>
 
             <div className="mt-4 flex items-center gap-3 rounded-[22px] border border-black/5 bg-[var(--valor-bg-soft)] px-4 py-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg shadow-sm">⛽</div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg shadow-sm">
+                {isGroceryVenue ? "🛒" : "⛽"}
+              </div>
               <div className="min-w-0">
                 <p className="line-clamp-1 text-sm text-[#1C1C1E]">{station.name}</p>
                 {station.address ? <p className="line-clamp-1 text-xs text-gray-500">{station.address}</p> : null}
@@ -409,7 +553,7 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
                   {t("priceEntry.submitting")}
                 </span>
               ) : (
-                t("drawer.submitPrice")
+                isGroceryVenue ? t("drawer.submitGroceryPrices") : t("drawer.submitPrice")
               )}
             </button>
           ) : (
@@ -465,44 +609,222 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
 
         {currentStep === "product" ? (
           <div className="space-y-4">
-            <div>
-              <h2 className="text-xl text-[#1C1C1E]">{t("priceEntry.selectFuelType")}</h2>
-              <p className="mt-1 text-sm text-gray-500">{t("priceEntry.chooseFuelType")}</p>
-            </div>
-            <div className="space-y-3">
-              {gasProducts.map((product) => {
-                const isSubmitted = submittedFuelTypes.includes(product.id)
-                const selected = selectedProduct === product.id
-                return (
+            {isGroceryVenue ? (
+              <>
+                <div>
+                  <h2 className="text-xl text-[#1C1C1E]">{t("priceEntry.grocery.chooseSubmissionType")}</h2>
+                  <p className="mt-1 text-sm text-gray-500">{t("priceEntry.grocery.chooseSubmissionDetail")}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
                   <button
-                    key={product.id}
                     type="button"
-                    onClick={() => !isSubmitted && setSelectedProduct(product.id)}
-                    disabled={isSubmitted}
+                    onClick={() => {
+                      setGrocerySubmissionKind("item")
+                      setSelectedBasketId("")
+                    }}
                     className={cn(
-                      "w-full rounded-[24px] border px-4 py-4 text-left shadow-sm transition-transform active:scale-[0.99]",
-                      isSubmitted
-                        ? "border-black/5 bg-white/60 opacity-60"
-                        : selected
-                          ? "border-[var(--valor-green)] bg-[var(--valor-green)]/5"
-                          : "border-black/5 bg-white"
+                      "rounded-[22px] border px-4 py-4 text-left shadow-sm active:scale-[0.99]",
+                      grocerySubmissionKind === "item"
+                        ? "border-[var(--valor-green)] bg-[var(--valor-green)]/6"
+                        : "border-black/5 bg-white"
                     )}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={cn("flex h-14 w-14 items-center justify-center rounded-2xl text-2xl", selected ? "bg-[var(--valor-green)] text-white" : "bg-[var(--valor-bg-soft)]")}>{product.icon}</div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-base text-[#1C1C1E]">{product.label}</p>
-                          {isSubmitted ? <span className="rounded-full bg-green-100 px-2 py-1 text-[11px] text-green-700">Submitted</span> : null}
-                        </div>
-                        <p className="mt-1 text-sm text-gray-500">{product.description}</p>
-                      </div>
-                      {selected && !isSubmitted ? <Check className="h-5 w-5 text-[var(--valor-green)]" /> : null}
-                    </div>
+                    <p className="text-base text-[#1C1C1E]">{t("priceEntry.grocery.singleItem")}</p>
+                    <p className="mt-1 text-sm text-gray-500">{t("priceEntry.grocery.singleItemDetail")}</p>
                   </button>
-                )
-              })}
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGrocerySubmissionKind("basket")
+                      setSelectedProduct("")
+                    }}
+                    className={cn(
+                      "rounded-[22px] border px-4 py-4 text-left shadow-sm active:scale-[0.99]",
+                      grocerySubmissionKind === "basket"
+                        ? "border-[var(--valor-green)] bg-[var(--valor-green)]/6"
+                        : "border-black/5 bg-white"
+                    )}
+                  >
+                    <p className="text-base text-[#1C1C1E]">{t("priceEntry.grocery.basket")}</p>
+                    <p className="mt-1 text-sm text-gray-500">{t("priceEntry.grocery.basketDetail")}</p>
+                  </button>
+                </div>
+
+                {grocerySubmissionKind === "item" ? (
+                  <div className="space-y-3">
+                    <div>
+                      <h3 className="text-lg text-[#1C1C1E]">{t("priceEntry.grocery.chooseProduct")}</h3>
+                      <p className="mt-1 text-sm text-gray-500">{t("priceEntry.grocery.fixedUnitHint")}</p>
+                    </div>
+
+                    <div className="space-y-3">
+                      {groceryCatalog.map((product) => {
+                        const selected = selectedProduct === product.id
+                        return (
+                          <button
+                            key={product.id}
+                            type="button"
+                            onClick={() => setSelectedProduct(product.id)}
+                            className={cn(
+                              "w-full rounded-[24px] border px-4 py-4 text-left shadow-sm transition-transform active:scale-[0.99]",
+                              selected ? "border-[var(--valor-green)] bg-[var(--valor-green)]/5" : "border-black/5 bg-white"
+                            )}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={cn("flex h-14 w-14 items-center justify-center rounded-2xl text-2xl", selected ? "bg-[var(--valor-green)] text-white" : "bg-[var(--valor-bg-soft)]")}>🛒</div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="text-base text-[#1C1C1E]">{product.name}</p>
+                                  <span className="rounded-full bg-black/5 px-2 py-1 text-[11px] text-gray-600">{product.unitLabel}</span>
+                                </div>
+                                <p className="mt-1 text-sm text-gray-500">{product.description}</p>
+                                <p className="mt-2 text-xs text-gray-400">
+                                  {t("priceEntry.grocery.referencePrice")}: {formatCurrency(product.lastKnownPrice, product.currency)}
+                                </p>
+                              </div>
+                              {selected ? <Check className="h-5 w-5 text-[var(--valor-green)]" /> : null}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsProposalFormOpen((value) => !value)}
+                      className="w-full rounded-[22px] border border-dashed border-black/10 bg-white px-4 py-4 text-left text-sm text-[#1C1C1E] active:scale-[0.99]"
+                    >
+                      {t("priceEntry.grocery.proposeMissingProduct")}
+                    </button>
+
+                    {isProposalFormOpen ? (
+                      <div className="rounded-[24px] border border-black/5 bg-white p-4 shadow-sm">
+                        <h4 className="text-base text-[#1C1C1E]">{t("priceEntry.grocery.createProposal")}</h4>
+                        <div className="mt-3 space-y-3">
+                          <input
+                            value={proposalName}
+                            onChange={(event) => setProposalName(event.target.value)}
+                            placeholder={t("priceEntry.grocery.productName")}
+                            className="min-h-12 w-full rounded-2xl border border-black/10 px-4 text-sm focus:border-[var(--valor-green)] focus:outline-none"
+                          />
+                          <input
+                            value={proposalUnitLabel}
+                            onChange={(event) => setProposalUnitLabel(event.target.value)}
+                            placeholder={t("priceEntry.grocery.unitLabel")}
+                            className="min-h-12 w-full rounded-2xl border border-black/10 px-4 text-sm focus:border-[var(--valor-green)] focus:outline-none"
+                          />
+                          <select
+                            value={proposalCategory}
+                            onChange={(event) => setProposalCategory(event.target.value as GroceryCategory)}
+                            className="min-h-12 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm focus:border-[var(--valor-green)] focus:outline-none"
+                          >
+                            {groceryCategories.map((category) => (
+                              <option key={category.id} value={category.id}>{category.label}</option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={handleSubmitProposal}
+                            className="min-h-12 w-full rounded-2xl bg-[var(--valor-green)] px-4 text-sm text-white active:scale-[0.99]"
+                          >
+                            {t("priceEntry.grocery.submitProposal")}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {pendingProposals.length > 0 ? (
+                      <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+                        <p className="text-sm">{t("priceEntry.grocery.pendingProducts")}</p>
+                        <div className="mt-3 space-y-2">
+                          {pendingProposals.map((proposal) => (
+                            <div key={proposal.id} className="flex items-center justify-between gap-3 rounded-2xl bg-white px-3 py-3 text-xs text-gray-600">
+                              <span>{proposal.name} • {proposal.unitLabel}</span>
+                              <span className="rounded-full bg-amber-100 px-2 py-1 text-[11px] text-amber-700">{t("priceEntry.grocery.pendingBadge")}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div>
+                      <h3 className="text-lg text-[#1C1C1E]">{t("priceEntry.grocery.chooseBasket")}</h3>
+                      <p className="mt-1 text-sm text-gray-500">{t("priceEntry.grocery.basketHint")}</p>
+                    </div>
+                    {groceryBaskets.map((basket) => {
+                      const selected = selectedBasketId === basket.id
+                      const total = basket.items.reduce((sum, itemId) => sum + (groceryCatalog.find((product) => product.id === itemId)?.lastKnownPrice ?? 0), 0)
+                      return (
+                        <button
+                          key={basket.id}
+                          type="button"
+                          onClick={() => setSelectedBasketId(basket.id)}
+                          className={cn(
+                            "w-full rounded-[24px] border px-4 py-4 text-left shadow-sm active:scale-[0.99]",
+                            selected ? "border-[var(--valor-green)] bg-[var(--valor-green)]/5" : "border-black/5 bg-white"
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-base text-[#1C1C1E]">{basket.label}</p>
+                              <p className="mt-1 text-sm text-gray-500">{basket.subtitle}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg text-[var(--valor-green)]">{formatCurrency(total, groceryCatalog[0]?.currency ?? currency)}</p>
+                              <p className="text-xs text-gray-400">{basket.items.length} {t("drawer.itemCount", { count: basket.items.length })}</p>
+                            </div>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div>
+                  <h2 className="text-xl text-[#1C1C1E]">{t("priceEntry.selectFuelType")}</h2>
+                  <p className="mt-1 text-sm text-gray-500">{t("priceEntry.chooseFuelType")}</p>
+                </div>
+                <div className="space-y-3">
+                  {gasProducts.map((product) => {
+                    const isSubmitted = submittedFuelTypes.includes(product.id)
+                    const selected = selectedProduct === product.id
+                    return (
+                      <button
+                        key={product.id}
+                        type="button"
+                        onClick={() => !isSubmitted && setSelectedProduct(product.id)}
+                        disabled={isSubmitted}
+                        className={cn(
+                          "w-full rounded-[24px] border px-4 py-4 text-left shadow-sm transition-transform active:scale-[0.99]",
+                          isSubmitted
+                            ? "border-black/5 bg-white/60 opacity-60"
+                            : selected
+                              ? "border-[var(--valor-green)] bg-[var(--valor-green)]/5"
+                              : "border-black/5 bg-white"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={cn("flex h-14 w-14 items-center justify-center rounded-2xl text-2xl", selected ? "bg-[var(--valor-green)] text-white" : "bg-[var(--valor-bg-soft)]")}>{product.icon}</div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-base text-[#1C1C1E]">{product.label}</p>
+                              {isSubmitted ? <span className="rounded-full bg-green-100 px-2 py-1 text-[11px] text-green-700">Submitted</span> : null}
+                            </div>
+                            <p className="mt-1 text-sm text-gray-500">{product.description}</p>
+                          </div>
+                          {selected && !isSubmitted ? <Check className="h-5 w-5 text-[var(--valor-green)]" /> : null}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )}
           </div>
         ) : null}
 
@@ -510,8 +832,16 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
           <div className="space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-xl text-[#1C1C1E]">{t("priceEntry.enterPrice")}</h2>
-                <p className="mt-1 text-sm text-gray-500">{t("priceEntry.pricePerGallonLabel")}</p>
+                <h2 className="text-xl text-[#1C1C1E]">
+                  {isGroceryVenue && grocerySubmissionKind === "basket" ? t("priceEntry.grocery.enterBasketPrices") : t("priceEntry.enterPrice")}
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  {isGroceryVenue
+                    ? grocerySubmissionKind === "item"
+                      ? t("priceEntry.grocery.pricePerUnitLabel", { unit: selectedGroceryProduct?.unitLabel ?? "" })
+                      : t("priceEntry.grocery.priceEachBasketItem")
+                    : t("priceEntry.pricePerGallonLabel")}
+                </p>
               </div>
               <div className="relative shrink-0">
                 <select
@@ -529,29 +859,83 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-black/5 bg-white px-5 py-6 shadow-sm">
-              <div className="flex items-center gap-3">
-                <span className="text-4xl text-gray-300">{currencies.find((option) => option.code === currency)?.symbol}</span>
-                <input
-                  ref={priceInputRef}
-                  type="text"
-                  placeholder="0.00"
-                  value={price}
-                  onChange={(event) => {
-                    const nextValue = event.target.value
-                    if (nextValue === "" || /^\d*\.?\d*$/.test(nextValue)) {
-                      setPrice(nextValue)
-                      setNotice(null)
-                    }
-                  }}
-                  inputMode="decimal"
-                  autoFocus
-                  className="min-w-0 flex-1 border-b-2 border-black/10 bg-transparent pb-2 text-right text-[#1C1C1E] outline-none focus:border-[var(--valor-green)]"
-                  style={{ fontSize: getFontSize(price), lineHeight: 1 }}
-                />
+            {isGroceryVenue && grocerySubmissionKind === "basket" && selectedBasket ? (
+              <div className="space-y-3">
+                <div className="rounded-[28px] border border-black/5 bg-white px-5 py-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-base text-[#1C1C1E]">{selectedBasket.label}</p>
+                      <p className="mt-1 text-sm text-gray-500">{selectedBasket.subtitle}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl text-[var(--valor-green)]">{formatCurrency(basketTotal, currency)}</p>
+                      <p className="mt-1 text-xs text-gray-400">{t("priceEntry.grocery.liveBasketTotal")}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {basketEntries.map((entry) => (
+                    <div key={entry.product?.id ?? entry.value} className="rounded-[24px] border border-black/5 bg-white px-4 py-4 shadow-sm">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-base text-[#1C1C1E]">{entry.product?.name}</p>
+                          <p className="mt-1 text-sm text-gray-500">{entry.product?.unitLabel}</p>
+                        </div>
+                        <div className="min-w-[112px]">
+                          <input
+                            type="text"
+                            placeholder="0.00"
+                            value={entry.value}
+                            onChange={(event) => {
+                              const nextValue = event.target.value
+                              if (nextValue === "" || /^\d*\.?\d*$/.test(nextValue)) {
+                                setBasketPrices((previous) => ({ ...previous, [entry.product?.id ?? ""]: nextValue }))
+                                setNotice(null)
+                              }
+                            }}
+                            inputMode="decimal"
+                            className="w-full rounded-2xl border border-black/10 bg-[var(--valor-bg)] px-3 py-3 text-right text-base text-[#1C1C1E] outline-none focus:border-[var(--valor-green)]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <p className="mt-4 text-center text-sm text-gray-500">{currencies.find((option) => option.code === currency)?.name}</p>
-            </div>
+            ) : (
+              <div className="rounded-[28px] border border-black/5 bg-white px-5 py-6 shadow-sm">
+                {isGroceryVenue && selectedGroceryProduct ? (
+                  <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl bg-[var(--valor-bg-soft)] px-4 py-3">
+                    <div>
+                      <p className="text-base text-[#1C1C1E]">{selectedGroceryProduct.name}</p>
+                      <p className="mt-1 text-sm text-gray-500">{selectedGroceryProduct.unitLabel}</p>
+                    </div>
+                    <span className="rounded-full bg-white px-3 py-1 text-xs text-gray-500">{t("priceEntry.grocery.fixedUnit")}</span>
+                  </div>
+                ) : null}
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl text-gray-300">{currencies.find((option) => option.code === currency)?.symbol}</span>
+                  <input
+                    ref={priceInputRef}
+                    type="text"
+                    placeholder="0.00"
+                    value={price}
+                    onChange={(event) => {
+                      const nextValue = event.target.value
+                      if (nextValue === "" || /^\d*\.?\d*$/.test(nextValue)) {
+                        setPrice(nextValue)
+                        setNotice(null)
+                      }
+                    }}
+                    inputMode="decimal"
+                    autoFocus
+                    className="min-w-0 flex-1 border-b-2 border-black/10 bg-transparent pb-2 text-right text-[#1C1C1E] outline-none focus:border-[var(--valor-green)]"
+                    style={{ fontSize: getFontSize(price), lineHeight: 1 }}
+                  />
+                </div>
+                <p className="mt-4 text-center text-sm text-gray-500">{currencies.find((option) => option.code === currency)?.name}</p>
+              </div>
+            )}
           </div>
         ) : null}
 
@@ -559,7 +943,13 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
           <div className="space-y-4">
             <div>
               <h2 className="text-xl text-[#1C1C1E]">{t("priceEntry.takePhoto")}</h2>
-              <p className="mt-1 text-sm text-gray-500">{t("priceEntry.photoDescription")}</p>
+              <p className="mt-1 text-sm text-gray-500">
+                {isGroceryVenue
+                  ? grocerySubmissionKind === "item"
+                    ? t("priceEntry.grocery.photoDescriptionItem")
+                    : t("priceEntry.grocery.photoDescriptionBasket")
+                  : t("priceEntry.photoDescription")}
+              </p>
             </div>
 
             {capturedPhoto ? (
@@ -586,7 +976,9 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
                   <Camera className="h-9 w-9" />
                 </div>
                 <p className="text-lg text-[#1C1C1E]">{t("priceEntry.takePhoto")}</p>
-                <p className="mt-2 text-sm text-gray-500">{t("priceEntry.capturePriceDisplay")}</p>
+                <p className="mt-2 text-sm text-gray-500">
+                  {isGroceryVenue ? t("priceEntry.grocery.captureShelfTag") : t("priceEntry.capturePriceDisplay")}
+                </p>
               </button>
             )}
 
@@ -604,14 +996,22 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
         {currentStep === "review" ? (
           <div className="space-y-4">
             <div>
-              <h2 className="text-xl text-[#1C1C1E]">{t("priceEntry.reviewSubmit")}</h2>
-              <p className="mt-1 text-sm text-gray-500">{t("priceEntry.confirmDetails")}</p>
+              <h2 className="text-xl text-[#1C1C1E]">
+                {isGroceryVenue ? t("priceEntry.grocery.reviewSubmit") : t("priceEntry.reviewSubmit")}
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">
+                {isGroceryVenue ? t("priceEntry.grocery.confirmDetails") : t("priceEntry.confirmDetails")}
+              </p>
             </div>
 
             <section className="rounded-[24px] border border-black/5 bg-white px-4 py-4 shadow-sm">
-              <p className="text-xs uppercase tracking-[0.08em] text-gray-500">{t("priceEntry.gasStation")}</p>
+              <p className="text-xs uppercase tracking-[0.08em] text-gray-500">
+                {isGroceryVenue ? t("priceEntry.grocery.storeLabel") : t("priceEntry.gasStation")}
+              </p>
               <div className="mt-3 flex items-start gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--valor-green)]/10 text-lg">⛽</div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--valor-green)]/10 text-lg">
+                  {isGroceryVenue ? "🛒" : "⛽"}
+                </div>
                 <div className="min-w-0">
                   <p className="line-clamp-2 text-base text-[#1C1C1E]">{station.name}</p>
                   {station.address ? <p className="mt-1 line-clamp-2 text-sm text-gray-500">{station.address}</p> : null}
@@ -620,17 +1020,45 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
             </section>
 
             <section className="rounded-[24px] border border-black/5 bg-white px-4 py-4 shadow-sm">
-              <p className="text-xs uppercase tracking-[0.08em] text-gray-500">{t("priceEntry.productAndPrice")}</p>
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-base text-[#1C1C1E]">{selectedProduct}</p>
-                  <p className="mt-1 text-sm text-gray-500">{gasProducts.find((product) => product.id === selectedProduct)?.description}</p>
+              <p className="text-xs uppercase tracking-[0.08em] text-gray-500">
+                {isGroceryVenue && grocerySubmissionKind === "basket" ? t("priceEntry.grocery.basketSummary") : t("priceEntry.productAndPrice")}
+              </p>
+              {isGroceryVenue && grocerySubmissionKind === "basket" && selectedBasket ? (
+                <div className="mt-3 space-y-3">
+                  {basketEntries
+                    .filter((entry): entry is { product: GroceryProductDefinition; value: string } => Boolean(entry.product))
+                    .map((entry) => (
+                      <div key={entry.product.id} className="flex items-center justify-between gap-3 rounded-2xl bg-[var(--valor-bg)] px-3 py-3">
+                        <div>
+                          <p className="text-sm text-[#1C1C1E]">{entry.product.name}</p>
+                          <p className="mt-1 text-xs text-gray-500">{entry.product.unitLabel}</p>
+                        </div>
+                        <p className="text-sm text-[var(--valor-green)]">{formatCurrency(Number.parseFloat(entry.value) || 0, currency)}</p>
+                      </div>
+                    ))}
+                  <div className="flex items-center justify-between rounded-2xl border border-[var(--valor-green)]/20 bg-[var(--valor-green)]/5 px-4 py-4">
+                    <p className="text-sm text-[#1C1C1E]">{t("priceEntry.grocery.basketTotalLabel")}</p>
+                    <p className="text-2xl text-[var(--valor-green)]">{formatCurrency(basketTotal, currency)}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl text-[var(--valor-green)]">{currencies.find((option) => option.code === currency)?.symbol}{price}</p>
-                  <p className="mt-1 text-sm text-gray-500">{t("priceEntry.perGallon")}</p>
+              ) : (
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-base text-[#1C1C1E]">
+                      {isGroceryVenue ? selectedGroceryProduct?.name : selectedProduct}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {isGroceryVenue ? selectedGroceryProduct?.unitLabel : gasProducts.find((product) => product.id === selectedProduct)?.description}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl text-[var(--valor-green)]">{currencies.find((option) => option.code === currency)?.symbol}{price}</p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {isGroceryVenue ? t("priceEntry.grocery.fixedUnitPrice") : t("priceEntry.perGallon")}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
             </section>
 
             {capturedPhoto ? (
@@ -694,11 +1122,37 @@ function getFontSize(value: string) {
   return "1.7rem"
 }
 
-function isStepCompleted(step: Step, selectedProduct: string, price: string, capturedPhoto: string | null) {
-  if (step === "product") return selectedProduct !== ""
-  if (step === "price") return price !== "" && Number.parseFloat(price) > 0
+function isStepCompleted(step: Step, canProceedFromProduct: boolean, canProceedFromPrice: boolean, capturedPhoto: string | null) {
+  if (step === "product") return canProceedFromProduct
+  if (step === "price") return canProceedFromPrice
   if (step === "photo") return capturedPhoto !== null
   return false
+}
+
+function resetGroceryFlow(
+  setCurrentStep: (step: Step) => void,
+  setSelectedProduct: (value: string) => void,
+  setSelectedBasketId: (value: string) => void,
+  setBasketPrices: (value: Record<string, string>) => void,
+  setPrice: (value: string) => void,
+  setCapturedPhoto: (value: string | null) => void,
+  setGrocerySubmissionKind: (value: GrocerySubmissionKind) => void
+) {
+  setCurrentStep("product")
+  setSelectedProduct("")
+  setSelectedBasketId("")
+  setBasketPrices({})
+  setPrice("")
+  setCapturedPhoto(null)
+  setGrocerySubmissionKind("item")
+}
+
+function formatCurrency(value: number, currency: string) {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+    maximumFractionDigits: currency === "ARS" ? 0 : 2,
+  }).format(value)
 }
 
 async function getCurrencyFromLocation(lat: number, lng: number) {

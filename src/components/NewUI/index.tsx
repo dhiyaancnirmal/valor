@@ -12,7 +12,7 @@ import { SettingsDrawer } from "@/components/SettingsDrawer"
 import PriceEntryPage from "@/components/PriceSubmissionDrawer/PriceEntryPageDrawer"
 import { WorldIdVerificationSheet } from "@/components/WorldIdVerificationSheet"
 import { UserLocation, MapVenue, StationMapItem } from "@/types"
-import { calculateDistance } from "@/lib/utils"
+import { calculateDistance, cn } from "@/lib/utils"
 import { useWorldIdStatus } from "@/hooks/useWorldIdStatus"
 import { MiniKit } from "@worldcoin/minikit-js"
 import { useCaptureMode } from "@/lib/capture-mode"
@@ -22,6 +22,7 @@ import { useMobileViewport } from "@/components/providers/MobileViewportProvider
 type Tab = "map" | "home" | "wallet"
 type AddStoreStep = "location" | "details"
 type VerificationReason = "submit_price" | "add_store" | "general"
+type StoreFormField = "storeName" | "storeAddress"
 
 const DEFAULT_RADIUS_METERS = 5000
 const MIN_BOUNDS_RESULTS = 18
@@ -78,6 +79,10 @@ export function MainUI() {
   const [storeNotes, setStoreNotes] = useState("")
   const [storeCategory, setStoreCategory] = useState<"grocery_store" | "gas_station">("grocery_store")
   const [storeError, setStoreError] = useState<string | null>(null)
+  const [storeFieldErrors, setStoreFieldErrors] = useState<Record<StoreFormField, boolean>>({
+    storeName: false,
+    storeAddress: false,
+  })
   const [selectedStoreLocation, setSelectedStoreLocation] = useState<UserLocation | null>(null)
   const [units, setUnits] = useState<'metric' | 'imperial'>('metric')
   const { captureMode, setCaptureMode } = useCaptureMode()
@@ -581,6 +586,7 @@ export function MainUI() {
     setStoreAddress("")
     setStoreNotes("")
     setStoreCategory("grocery_store")
+    setStoreFieldErrors({ storeName: false, storeAddress: false })
     setSelectedStoreLocation(mapCenterRef.current ?? userLocation)
     setAddStoreStep("location")
     setIsAddStoreOpen(true)
@@ -592,6 +598,7 @@ export function MainUI() {
     setSelectedStoreLocation(null)
     setIsResolvingStoreLocation(false)
     setStoreError(null)
+    setStoreFieldErrors({ storeName: false, storeAddress: false })
   }
 
   const handleContinueAddStore = async () => {
@@ -624,6 +631,16 @@ export function MainUI() {
     setAddStoreStep("location")
   }
 
+  const getStoreFieldErrors = () => {
+    const trimmedName = storeName.trim()
+    const trimmedAddress = storeAddress.trim()
+
+    return {
+      storeName: trimmedName.length < 2,
+      storeAddress: trimmedAddress.length < 3,
+    }
+  }
+
   const handleSubmitAddStore = async () => {
     if (isWorldIdEnabled && !isWorldIdVerified) {
       setWorldIdReason("add_store")
@@ -638,11 +655,14 @@ export function MainUI() {
 
     const trimmedName = storeName.trim()
     const trimmedAddress = storeAddress.trim()
-    if (trimmedName.length < 2) {
+    const nextFieldErrors = getStoreFieldErrors()
+    setStoreFieldErrors(nextFieldErrors)
+
+    if (nextFieldErrors.storeName) {
       setStoreError(t("map.addStoreErrors.invalidName"))
       return
     }
-    if (trimmedAddress.length < 3) {
+    if (nextFieldErrors.storeAddress) {
       setStoreError(t("map.addStoreErrors.invalidAddress"))
       return
     }
@@ -863,22 +883,20 @@ export function MainUI() {
       <BottomSheet
         isOpen={isAddStoreOpen}
         onClose={handleCloseAddStore}
-        title={addStoreStep === "location" ? t("map.selectLocationTitle") : t("map.addStoreTitle")}
-        description={addStoreStep === "location" ? t("map.selectLocationSubtitle") : t("map.addStoreSubtitle")}
+        title={addStoreStep === "location" ? t("map.selectLocationTitle") : t("map.storeDetailsTitle")}
+        description={undefined}
         closeLabel={t("common.close")}
         blocking={addStoreStep !== "location"}
+        showCloseButton={addStoreStep !== "location"}
         header={
-          <div className="pr-12">
+          <div className={addStoreStep === "location" ? "" : "pr-16 pb-1"}>
             <h3 className="text-lg text-[#1C1C1E]">
-              {addStoreStep === "location" ? t("map.selectLocationTitle") : t("map.addStoreTitle")}
+              {addStoreStep === "location" ? t("map.selectLocationTitle") : t("map.storeDetailsTitle")}
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {addStoreStep === "location" ? t("map.selectLocationSubtitle") : t("map.addStoreSubtitle")}
-            </p>
           </div>
         }
         footer={
-          <StickyActionBar className="border-t border-black/5 bg-white" innerClassName="grid grid-cols-2 gap-3 px-4 pt-3">
+          <StickyActionBar className="border-t border-black/5 bg-white" innerClassName="grid grid-cols-2 gap-3 px-4 pt-2.5">
             {addStoreStep === "location" ? (
               <>
                 <button
@@ -895,7 +913,7 @@ export function MainUI() {
                   disabled={isResolvingStoreLocation}
                   className="min-h-12 rounded-2xl bg-[var(--valor-green)] px-4 text-sm text-white active:scale-[0.99] disabled:opacity-50"
                 >
-                  {isResolvingStoreLocation ? t("map.findingAddress") : t("map.confirmLocation")}
+                  {isResolvingStoreLocation ? t("map.findingAddress") : t("common.continue")}
                 </button>
               </>
             ) : (
@@ -920,30 +938,67 @@ export function MainUI() {
             )}
           </StickyActionBar>
         }
-        bodyClassName="gap-4"
+        bodyClassName={addStoreStep === "location" ? "justify-end gap-2" : "gap-3"}
       >
         {addStoreStep === "location" ? (
           <>
-            <div className="rounded-[24px] border border-[var(--valor-green)]/15 bg-[var(--valor-green)]/5 p-4">
-              <p className="text-sm text-[#1C1C1E]">{t("map.selectLocationHint")}</p>
-            </div>
             {storeError ? <p className="text-sm text-red-600">{storeError}</p> : null}
           </>
         ) : (
           <>
-            <div className="flex flex-col gap-3">
-              <input
-                value={storeName}
-                onChange={(event) => setStoreName(event.target.value)}
-                placeholder={t("map.storeNamePlaceholder")}
-                className="min-h-12 w-full rounded-2xl border border-black/10 px-4 text-sm focus:border-[var(--valor-green)] focus:outline-none"
-              />
-              <input
-                value={storeAddress}
-                onChange={(event) => setStoreAddress(event.target.value)}
-                placeholder={t("map.storeAddressPlaceholder")}
-                className="min-h-12 w-full rounded-2xl border border-black/10 px-4 text-sm focus:border-[var(--valor-green)] focus:outline-none"
-              />
+            <div className="flex flex-col gap-2.5">
+              <label className="flex flex-col gap-1.5">
+                <span className="px-1 text-xs text-gray-500">
+                  {t("map.storeNameLabel")} <span className="text-red-500">*</span>
+                </span>
+                <input
+                  value={storeName}
+                  onChange={(event) => {
+                    const value = event.target.value
+                    setStoreName(value)
+                    if (storeFieldErrors.storeName && value.trim().length >= 2) {
+                      setStoreFieldErrors((prev) => ({ ...prev, storeName: false }))
+                    }
+                    if (storeError) {
+                      setStoreError(null)
+                    }
+                  }}
+                  placeholder={t("map.storeNamePlaceholder")}
+                  aria-invalid={storeFieldErrors.storeName}
+                  className={cn(
+                    "min-h-12 w-full rounded-2xl border px-4 text-sm focus:outline-none",
+                    storeFieldErrors.storeName
+                      ? "border-red-500 bg-red-50/40 focus:border-red-500"
+                      : "border-black/10 focus:border-[var(--valor-green)]"
+                  )}
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="px-1 text-xs text-gray-500">
+                  {t("map.storeAddressLabel")} <span className="text-red-500">*</span>
+                </span>
+                <input
+                  value={storeAddress}
+                  onChange={(event) => {
+                    const value = event.target.value
+                    setStoreAddress(value)
+                    if (storeFieldErrors.storeAddress && value.trim().length >= 3) {
+                      setStoreFieldErrors((prev) => ({ ...prev, storeAddress: false }))
+                    }
+                    if (storeError) {
+                      setStoreError(null)
+                    }
+                  }}
+                  placeholder={t("map.storeAddressPlaceholder")}
+                  aria-invalid={storeFieldErrors.storeAddress}
+                  className={cn(
+                    "min-h-12 w-full rounded-2xl border px-4 text-sm focus:outline-none",
+                    storeFieldErrors.storeAddress
+                      ? "border-red-500 bg-red-50/40 focus:border-red-500"
+                      : "border-black/10 focus:border-[var(--valor-green)]"
+                  )}
+                />
+              </label>
               <select
                 value={storeCategory}
                 onChange={(event) => setStoreCategory(event.target.value as "grocery_store" | "gas_station")}
@@ -956,7 +1011,7 @@ export function MainUI() {
                 value={storeNotes}
                 onChange={(event) => setStoreNotes(event.target.value)}
                 placeholder={t("map.storeNotesPlaceholder")}
-                className="min-h-28 w-full resize-none rounded-2xl border border-black/10 px-4 py-3 text-sm focus:border-[var(--valor-green)] focus:outline-none"
+                className="min-h-24 w-full resize-none rounded-2xl border border-black/10 px-4 py-3 text-sm focus:border-[var(--valor-green)] focus:outline-none"
               />
             </div>
             {storeError ? <p className="text-sm text-red-600">{storeError}</p> : null}

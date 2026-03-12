@@ -301,7 +301,7 @@ export function AppleMapView({
     <div className="h-full relative">
       <div ref={mapRef} className="h-full w-full" />
 
-      {isLoadingStations && (
+      {isLoadingStations && !locationSelectionActive ? (
         <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
           <div className="h-1.5 bg-[var(--valor-green)]/30">
             <div className="h-full w-1/3 bg-[var(--valor-green)] animate-pulse" />
@@ -310,13 +310,15 @@ export function AppleMapView({
             {t("map.findingStations")}
           </div>
         </div>
-      )}
+      ) : null}
 
-      <div className="absolute left-3 z-[9] rounded-xl bg-white/95 px-3 py-2 text-[11px] text-gray-700 shadow-sm safe-top-app">
-        <div className="flex items-center gap-2"><span>🛒</span><span>{t("map.legend.grocery")}</span></div>
-        <div className="mt-1 flex items-center gap-2"><span>⛽</span><span>{t("map.legend.gas")}</span></div>
-        <div className="mt-1 flex items-center gap-2"><span>🛒⛽</span><span>{t("map.legend.mixed")}</span></div>
-      </div>
+      {!locationSelectionActive ? (
+        <div className="absolute left-3 z-[9] rounded-xl bg-white/95 px-3 py-2 text-[11px] text-gray-700 shadow-sm safe-top-app">
+          <div className="flex items-center gap-2"><span>🛒</span><span>{t("map.legend.grocery")}</span></div>
+          <div className="mt-1 flex items-center gap-2"><span>⛽</span><span>{t("map.legend.gas")}</span></div>
+          <div className="mt-1 flex items-center gap-2"><span>🛒⛽</span><span>{t("map.legend.mixed")}</span></div>
+        </div>
+      ) : null}
 
       <div className="absolute right-3 z-[9] flex flex-col gap-2 safe-top-app">
         <button
@@ -346,15 +348,10 @@ export function AppleMapView({
         <>
           <div className="pointer-events-none absolute left-1/2 top-1/2 z-[11] -translate-x-1/2 -translate-y-[calc(100%+20px)]">
             <div className="relative flex flex-col items-center">
-              <div className="rounded-full bg-[#1C1C1E] px-3 py-1 text-[11px] font-medium text-white shadow-md">
+              <div className="rounded-full border border-white/80 bg-white/92 px-3 py-1 text-[11px] text-[#1C1C1E] shadow-sm">
                 {t("map.positionPin")}
               </div>
               <div className="mt-2 text-[46px] leading-none drop-shadow-[0_8px_18px_rgba(0,0,0,0.22)]">📍</div>
-            </div>
-          </div>
-          <div className="pointer-events-none absolute inset-x-0 z-[10] flex justify-center px-4" style={{ top: "calc(env(safe-area-inset-top, 0px) + 4.75rem)" }}>
-            <div className="rounded-full bg-white/95 px-3 py-1 text-xs text-gray-700 shadow-sm">
-              {t("map.moveMapToPlacePin")}
             </div>
           </div>
         </>

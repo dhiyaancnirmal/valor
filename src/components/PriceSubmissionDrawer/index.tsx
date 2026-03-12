@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { ExternalLink } from "lucide-react"
 import { BottomSheet, StickyActionBar } from "@/components/mobile"
 import type { MapVenue } from "@/types"
+import { getCountryFromLocale, getGroceryDrawerSnapshot, type GroceryDrawerSnapshot } from "./grocery-mocks"
 
 interface PriceSubmissionDrawerProps {
   isOpen: boolean
@@ -29,11 +30,24 @@ export function PriceSubmissionDrawer({
   onOpenSubmitPage,
 }: PriceSubmissionDrawerProps) {
   const t = useTranslations()
+  const locale = useLocale()
   const [lastPrice, setLastPrice] = useState<LastPrice | null>(null)
   const [isLoadingPrice, setIsLoadingPrice] = useState(false)
+  const [grocerySnapshot, setGrocerySnapshot] = useState<GroceryDrawerSnapshot | null>(null)
+
+  const isGroceryVenue = Boolean(station?.primaryCategory === "grocery_store" || station?.submissionMode === "read_only")
 
   useEffect(() => {
     if (!isOpen || !station) {
+      setLastPrice(null)
+      setIsLoadingPrice(false)
+      setGrocerySnapshot(null)
+      return
+    }
+
+    if (isGroceryVenue) {
+      const country = getCountryFromLocale(locale)
+      setGrocerySnapshot(getGroceryDrawerSnapshot(station.id, country))
       setLastPrice(null)
       setIsLoadingPrice(false)
       return
@@ -72,13 +86,12 @@ export function PriceSubmissionDrawer({
     void fetchLastPrice()
 
     return () => controller.abort()
-  }, [isOpen, station])
+  }, [isOpen, isGroceryVenue, locale, station])
 
   if (!station) {
     return null
   }
 
-  const isReadOnlyVenue = station.submissionMode === "read_only"
   const markerGlyph = getVenueGlyph(station)
 
   return (
@@ -113,10 +126,14 @@ export function PriceSubmissionDrawer({
           >
             <ExternalLink className="h-5 w-5" />
           </a>
-          {isReadOnlyVenue ? (
-            <div className="flex min-h-12 items-center rounded-2xl border border-black/5 bg-[var(--valor-bg-soft)] px-4 text-sm text-gray-600">
-              {t("drawer.submissionComingSoon")}
-            </div>
+          {isGroceryVenue ? (
+            <button
+              type="button"
+              onClick={() => onOpenSubmitPage?.(station)}
+              className="min-h-12 rounded-2xl bg-gradient-to-r from-[var(--valor-green)] to-[var(--valor-green-dark)] px-4 text-sm text-white active:scale-[0.99]"
+            >
+              {t("drawer.submitGroceryPrices")}
+            </button>
           ) : (
             <button
               type="button"
@@ -130,28 +147,62 @@ export function PriceSubmissionDrawer({
       }
       bodyClassName="gap-4"
     >
-      <section className="rounded-3xl border border-black/5 bg-[var(--valor-bg)] p-4">
-        <div className="flex items-center justify-between gap-4">
-          <span className="text-sm text-gray-600">{t("drawer.lastPrice")}</span>
-          {isLoadingPrice ? (
-            <div className="h-8 w-24 animate-pulse rounded-full bg-black/10" />
-          ) : lastPrice?.price ? (
-            <span className="text-2xl text-[var(--valor-green)]">${lastPrice.price.toFixed(2)}</span>
-          ) : (
-            <span className="text-2xl text-[var(--valor-green)]">$—</span>
-          )}
+      {isGroceryVenue && grocerySnapshot ? (
+        <div className="grid gap-3">
+          <section className="rounded-3xl border border-black/5 bg-[var(--valor-bg)] p-4">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-sm text-gray-600">{t("drawer.latestItemPrice")}</span>
+              <span className="text-2xl text-[var(--valor-green)]">
+                {formatCurrency(grocerySnapshot.latestItem.price, grocerySnapshot.latestItem.currency)}
+              </span>
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-4 text-xs text-gray-500">
+              <p className="truncate">
+                {grocerySnapshot.latestItem.productName} • {grocerySnapshot.latestItem.unitLabel}
+              </p>
+              <span>{grocerySnapshot.latestItem.submittedAtLabel}</span>
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-black/5 bg-[var(--valor-bg)] p-4">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-sm text-gray-600">{t("drawer.basketTotal")}</span>
+              <span className="text-2xl text-[var(--valor-green)]">
+                {formatCurrency(grocerySnapshot.latestBasket.total, grocerySnapshot.latestBasket.currency)}
+              </span>
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-4 text-xs text-gray-500">
+              <p className="truncate">
+                {grocerySnapshot.latestBasket.basketLabel} • {t("drawer.itemCount", { count: grocerySnapshot.latestBasket.itemCount })}
+              </p>
+              <span>{grocerySnapshot.latestBasket.submittedAtLabel}</span>
+            </div>
+          </section>
         </div>
-        <div className="mt-2 flex items-center justify-between gap-4 text-xs text-gray-500">
-          {lastPrice?.price ? (
-            <p className="truncate">
-              {lastPrice.fuelType} • {new Date(lastPrice.createdAt ?? "").toLocaleDateString()}
-            </p>
-          ) : (
-            <p>{t("drawer.noRecentData")}</p>
-          )}
-          <span>{t("drawer.perGallon")}</span>
-        </div>
-      </section>
+      ) : (
+        <section className="rounded-3xl border border-black/5 bg-[var(--valor-bg)] p-4">
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm text-gray-600">{t("drawer.lastPrice")}</span>
+            {isLoadingPrice ? (
+              <div className="h-8 w-24 animate-pulse rounded-full bg-black/10" />
+            ) : lastPrice?.price ? (
+              <span className="text-2xl text-[var(--valor-green)]">${lastPrice.price.toFixed(2)}</span>
+            ) : (
+              <span className="text-2xl text-[var(--valor-green)]">$—</span>
+            )}
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-4 text-xs text-gray-500">
+            {lastPrice?.price ? (
+              <p className="truncate">
+                {lastPrice.fuelType} • {new Date(lastPrice.createdAt ?? "").toLocaleDateString()}
+              </p>
+            ) : (
+              <p>{t("drawer.noRecentData")}</p>
+            )}
+            <span>{t("drawer.perGallon")}</span>
+          </div>
+        </section>
+      )}
     </BottomSheet>
   )
 }
@@ -161,4 +212,12 @@ function getVenueGlyph(station: MapVenue) {
   if (categories.has("grocery_store") && categories.has("gas_station")) return "🛒⛽"
   if (categories.has("grocery_store")) return "🛒"
   return "⛽"
+}
+
+function formatCurrency(value: number, currency: string) {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+    maximumFractionDigits: currency === "ARS" ? 0 : 2,
+  }).format(value)
 }

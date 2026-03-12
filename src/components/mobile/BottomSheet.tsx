@@ -105,12 +105,12 @@ export function BottomSheet({
   }
 
   return (
-    <div className={cn("fixed inset-0", zIndexClassName)}>
+    <div className={cn("pointer-events-none fixed inset-0", zIndexClassName)}>
       {blocking ? (
         <button
           type="button"
           aria-label={closeLabel}
-          className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-200"
+          className="pointer-events-auto absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-200"
           style={{ opacity: 1 }}
           onClick={closeOnBackdrop ? onClose : undefined}
         />

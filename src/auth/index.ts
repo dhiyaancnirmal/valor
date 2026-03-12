@@ -6,6 +6,7 @@ import { cookies } from "next/headers"
 const authSecret =
   process.env.NEXTAUTH_SECRET ||
   process.env.AUTH_SECRET ||
+  process.env.HMAC_SECRET_KEY ||
   (process.env.NODE_ENV !== "production" ? "valor-dev-auth-secret" : undefined)
 
 function authDebugLog(level: "info" | "warn", message: string, data?: Record<string, unknown>) {
@@ -16,6 +17,7 @@ function authDebugLog(level: "info" | "warn", message: string, data?: Record<str
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: authSecret,
+  trustHost: true,
   providers: [
     Credentials({
       id: "worldcoin",

@@ -32,12 +32,28 @@ function ensureMiniKitReady(): boolean {
 
   const hostWindow = window as MiniKitHostWindow
   if (hostWindow.MiniKit) return true
-  if (!hostWindow.WorldApp) return false
 
   const result = MiniKit.install(process.env.NEXT_PUBLIC_APP_ID)
   if (result.success) return true
   if ("errorCode" in result && result.errorCode === "already_installed") {
     return Boolean((window as MiniKitHostWindow).MiniKit)
+  }
+
+  return false
+}
+
+async function waitForMiniKitReady(maxWaitMs = 12_000): Promise<boolean> {
+  if (ensureMiniKitReady()) return true
+  if (typeof window === "undefined") return false
+
+  const startedAt = Date.now()
+  while (Date.now() - startedAt < maxWaitMs) {
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 200)
+    })
+    if (ensureMiniKitReady()) {
+      return true
+    }
   }
 
   return false
@@ -71,7 +87,8 @@ export function LoginPage() {
       }
 
       if (looksLikeWorldAppUserAgent(navigator.userAgent || "")) {
-        setIsMiniKitReady(true)
+        // Some clients initialize the bridge late; keep polling rather than faking readiness.
+        timeoutId = window.setTimeout(checkMiniKit, 1000)
         return
       }
     }
@@ -91,7 +108,7 @@ export function LoginPage() {
       setIsLoading(true)
       setError(null)
 
-      if (!ensureMiniKitReady()) {
+      if (!(await waitForMiniKitReady())) {
         setError(t("login.errors.openInWorldApp"))
         setIsLoading(false)
         return

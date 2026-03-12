@@ -43,7 +43,6 @@ function ensureMiniKitReady(): boolean {
 
   const hostWindow = window as MiniKitHostWindow
   if (hostWindow.MiniKit) return true
-  if (!hostWindow.WorldApp) return false
 
   const result = MiniKit.install(process.env.NEXT_PUBLIC_APP_ID)
   if (result.success) return true
@@ -308,13 +307,12 @@ export function MainUI() {
         tries += 1
         setTimeout(pollMiniKit, 150)
       } else {
-        // Fallback: some World App builds may delay bridge init; if UA indicates World App, allow non-MiniKit features to proceed
+        // Some World App builds delay bridge init. Keep polling slowly when the UA matches.
         try {
           const ua = navigator.userAgent || ""
           const looksLikeWorldApp = looksLikeWorldAppUserAgent(ua)
-          if (looksLikeWorldApp && !cancelled) {
-            console.warn("MiniKit bridge not ready, but World App UA detected. Proceeding with limited features.")
-            setIsMiniKitReady(true)
+          if (looksLikeWorldApp) {
+            setTimeout(pollMiniKit, 1000)
             return
           }
         } catch {}

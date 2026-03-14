@@ -53,39 +53,16 @@ export function PriceSubmissionDrawer({
       return
     }
 
-    const controller = new AbortController()
-
-    const fetchLastPrice = async () => {
-      setIsLoadingPrice(true)
-      try {
-        const response = await fetch(`/api/stations/${encodeURIComponent(station.id)}/last-price`, {
-          signal: controller.signal,
-        })
-        const data = await response.json()
-
-        if (!response.ok || data.error) {
-          const message = String(data.error ?? "")
-          if (!message.includes("price_submissions")) {
-            console.error("Error fetching last price:", data.error ?? response.statusText)
-          }
-          setLastPrice(null)
-          return
-        }
-
-        setLastPrice(data)
-      } catch (error) {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          console.error("Error fetching last price:", error)
-        }
-        setLastPrice(null)
-      } finally {
-        setIsLoadingPrice(false)
-      }
-    }
-
-    void fetchLastPrice()
-
-    return () => controller.abort()
+    // Generate deterministic dummy price from station id
+    const hash = Array.from(station.id).reduce((acc, c) => acc + c.charCodeAt(0), 0)
+    const fuelTypes = ["Regular", "Premium", "Diesel"]
+    setLastPrice({
+      price: 2.5 + (hash % 200) / 100,
+      fuelType: fuelTypes[hash % 3],
+      createdAt: new Date(Date.now() - (hash % 48) * 3600000).toISOString(),
+      submittedBy: "0xdemo",
+    })
+    setIsLoadingPrice(false)
   }, [isOpen, isGroceryVenue, locale, station])
 
   if (!station) {

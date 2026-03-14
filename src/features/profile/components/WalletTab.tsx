@@ -51,12 +51,20 @@ interface MiniKitPayload {
 export function WalletTab({ onOpenSettings, captureMode = false }: WalletTabProps) {
   const t = useTranslations()
   const { data: session } = useSession()
-  const [accruedRewards, setAccruedRewards] = useState<AccruedRewards | null>(null)
-  const [isLoadingRewards, setIsLoadingRewards] = useState(true)
+  const [accruedRewards, setAccruedRewards] = useState<AccruedRewards | null>({
+    totalAccrued: "12.80",
+    totalUSDC: 12.80,
+    submissionCount: 47,
+  })
+  const [isLoadingRewards, setIsLoadingRewards] = useState(false)
   const [isClaiming, setIsClaiming] = useState(false)
   const [claimError, setClaimError] = useState<string | null>(null)
-  const [proposals, setProposals] = useState<PoiProposal[]>([])
-  const [isLoadingProposals, setIsLoadingProposals] = useState(true)
+  const [proposals, setProposals] = useState<PoiProposal[]>([
+    { id: "p1", name: "Trader Joe's - 14th St", normalizedName: "trader joes 14th st", address: "555 14th Street NW", latitude: 38.9, longitude: -77.03, categories: ["grocery_store"], primaryCategory: "grocery_store", createdByWallet: "0xdemo", status: "published", createdAt: new Date(Date.now() - 86400000 * 5).toISOString(), publishedAt: new Date(Date.now() - 86400000 * 3).toISOString() },
+    { id: "p2", name: "Whole Foods Market", normalizedName: "whole foods market", address: "1440 P Street NW", latitude: 38.91, longitude: -77.04, categories: ["grocery_store"], primaryCategory: "grocery_store", createdByWallet: "0xdemo", status: "published", createdAt: new Date(Date.now() - 86400000 * 8).toISOString(), publishedAt: new Date(Date.now() - 86400000 * 6).toISOString() },
+    { id: "p3", name: "Costco Gas Station", normalizedName: "costco gas station", address: "1200 S Fern St", latitude: 38.86, longitude: -77.06, categories: ["gas_station"], primaryCategory: "gas_station", createdByWallet: "0xdemo", status: "pending", createdAt: new Date(Date.now() - 86400000).toISOString() },
+  ])
+  const [isLoadingProposals, setIsLoadingProposals] = useState(false)
   const miniKitInstalled = (() => {
     try {
       return MiniKit.isInstalled()

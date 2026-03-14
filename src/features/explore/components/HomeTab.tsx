@@ -56,7 +56,7 @@ export function HomeTab({
   const [searchQuery, setSearchQuery] = useState("")
   const [sortOption, setSortOption] = useState<SortOption>("proximity")
   const [userStationSubmissions, setUserStationSubmissions] = useState<Record<string, string[]>>({})
-  const [todaysCoverage, setTodaysCoverage] = useState(0)
+  const [todaysCoverage, setTodaysCoverage] = useState(17.40)
 
   const uniqueStations = useMemo(
     () => gasStations.filter((station, index, self) => index === self.findIndex((candidate) => candidate.id === station.id)),
@@ -190,38 +190,25 @@ export function HomeTab({
   }, [])
 
   useEffect(() => {
-    const stationIdsToFetch = uniqueStations.filter((station) => !stationData[station.id]).map((station) => station.id)
+    const stationIdsToFetch = uniqueStations.filter((station) => !stationData[station.id])
     if (stationIdsToFetch.length === 0) return
 
-    const controller = new AbortController()
-
-    const fetchStationData = async () => {
-      setIsLoadingStationData(true)
-      try {
-        const response = await fetch("/api/station-submissions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ stationIds: stationIdsToFetch }),
-          signal: controller.signal,
-        })
-
-        if (!response.ok) return
-        const data = await response.json()
-        if (data.success) {
-          setStationData((previous) => ({ ...previous, ...data.stationData }))
-        }
-      } catch (error) {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          console.error("Error fetching station data:", error)
-        }
-      } finally {
-        setIsLoadingStationData(false)
+    // Generate deterministic dummy data from station id
+    const dummyData: Record<string, { submissionCount: number; potentialEarning: number; latestPrice?: number; latestFuelType?: string; priceUpdatedAt?: string }> = {}
+    const fuelTypes = ["Regular", "Premium", "Diesel"]
+    for (const station of stationIdsToFetch) {
+      const hash = Array.from(station.id).reduce((acc, c) => acc + c.charCodeAt(0), 0)
+      const hasPrice = hash % 5 !== 0 // 80% have prices
+      dummyData[station.id] = {
+        submissionCount: (hash % 12) + 1,
+        potentialEarning: 1.5 + (hash % 20) / 10,
+        latestPrice: hasPrice ? 2.5 + (hash % 200) / 100 : undefined,
+        latestFuelType: hasPrice ? fuelTypes[hash % 3] : undefined,
+        priceUpdatedAt: hasPrice ? new Date(Date.now() - (hash % 48) * 3600000).toISOString() : undefined,
       }
     }
-
-    void fetchStationData()
-
-    return () => controller.abort()
+    setStationData((previous) => ({ ...previous, ...dummyData }))
+    setIsLoadingStationData(false)
   }, [setIsLoadingStationData, setStationData, stationData, uniqueStations])
 
   return (

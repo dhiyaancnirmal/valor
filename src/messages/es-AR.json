@@ -107,12 +107,6 @@
     "language": "Idioma",
     "languageDesc": "Elegir tu idioma",
     "about": "Acerca de",
-    "findStations": "Encontrar Estaciones",
-    "findStationsDesc": "Usa el mapa para descubrir estaciones de servicio cercanas. Ve precios y ubicaciones en tiempo real para tomar decisiones informadas.",
-    "submitPrices": "Enviar Precios",
-    "submitPricesDesc": "Comparte los precios actuales de combustible para ayudar a otros conductores. Cada envío verificado fortalece la cobertura local de precios.",
-    "earnRewards": "Calidad de Contribución",
-    "earnRewardsDesc": "Los envíos consistentes y precisos mejoran la confianza y la visibilidad.",
     "version": "Versión",
     "gotIt": "Entendido"
   },
@@ -205,7 +199,7 @@
     },
     "grocery": {
       "chooseSubmissionType": "¿Qué vas a enviar?",
-      "chooseSubmissionDetail": "Usa un producto para un envío rápido o completa la canasta base.",
+      "chooseSubmissionDetail": "Producto individual o canasta completa.",
       "singleItem": "Producto",
       "singleItemDetail": "Enviar un producto estandarizado",
       "basket": "Canasta",
@@ -257,8 +251,6 @@
     "loginDevMode": "Iniciar sesión (Modo Dev)",
     "openInWorldApp": "Por favor abre esta aplicación en World App para autenticarte",
     "signInStatement": "Inicia sesión en Valor para enviar precios de combustible",
-    "badge": "Mini App de World",
-    "footer": "Creada para los flujos de mini apps de World App con inicio de sesión seguro por billetera.",
     "errors": {
       "openInWorldApp": "Por favor abre esta aplicación en World App",
       "authFailed": "Error de autenticación",
@@ -306,27 +298,6 @@
       "invalidName": "Ingresa un nombre de tienda válido",
       "invalidAddress": "Ingresa una dirección válida",
       "submitFailed": "No se pudo enviar la propuesta"
-    }
-  },
-  "worldId": {
-    "walletTitle": "Verificación humana",
-    "walletDescription": "Verifícate con World ID antes de enviar precios o agregar nuevas tiendas.",
-    "verifyTitle": "Verificar con World ID",
-    "verifyDescription": "Confirma que eres una persona única antes de continuar.",
-    "verifyToSubmitTitle": "Verifica antes de enviar",
-    "verifyToSubmitDescription": "La verificación de World ID es obligatoria antes de enviar un nuevo precio.",
-    "verifyToAddStoreTitle": "Verifica antes de agregar una tienda",
-    "verifyToAddStoreDescription": "La verificación de World ID es obligatoria antes de publicar una nueva tienda.",
-    "verificationRequired": "Verificación obligatoria",
-    "verified": "Verificado con World ID",
-    "verifiedDetail": "Ahora puedes contribuir sin repetir este paso en este dispositivo.",
-    "cta": "Verificar ahora",
-    "preparing": "Preparando verificación...",
-    "privacy": "World ID verifica unicidad sin revelar tu identidad a Valor. La app solo guarda un estado local firmado de verificación para tu billetera actual en este dispositivo.",
-    "errors": {
-      "prepareFailed": "No se pudo iniciar la verificación de World ID.",
-      "verifyFailed": "La verificación de World ID falló.",
-      "flowFailed": "El flujo de World ID falló: {code}"
     }
   },
   "units": {

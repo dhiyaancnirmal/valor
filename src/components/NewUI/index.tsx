@@ -10,10 +10,8 @@ import { WalletTab } from "./WalletTab"
 import { PriceSubmissionDrawer } from "@/components/PriceSubmissionDrawer"
 import { SettingsDrawer } from "@/components/SettingsDrawer"
 import PriceEntryPage from "@/components/PriceSubmissionDrawer/PriceEntryPageDrawer"
-import { WorldIdVerificationSheet } from "@/components/WorldIdVerificationSheet"
 import { UserLocation, MapVenue, StationMapItem } from "@/types"
 import { calculateDistance, cn } from "@/lib/utils"
-import { useWorldIdStatus } from "@/hooks/useWorldIdStatus"
 import { MiniKit } from "@worldcoin/minikit-js"
 import { useCaptureMode } from "@/lib/capture-mode"
 import { isWorldDevBypassEnabled, looksLikeWorldAppUserAgent } from "@/lib/world-dev"
@@ -21,7 +19,6 @@ import { useMobileViewport } from "@/components/providers/MobileViewportProvider
 
 type Tab = "map" | "home" | "wallet"
 type AddStoreStep = "location" | "details"
-type VerificationReason = "submit_price" | "add_store" | "general"
 type StoreFormField = "storeName" | "storeAddress"
 
 const DEFAULT_RADIUS_METERS = 5000
@@ -68,8 +65,6 @@ export function MainUI() {
   const [isLoadingStations, setIsLoadingStations] = useState(false)
   const [isMapCompassVisible, setIsMapCompassVisible] = useState(false)
   const [isAddStoreOpen, setIsAddStoreOpen] = useState(false)
-  const [isWorldIdSheetOpen, setIsWorldIdSheetOpen] = useState(false)
-  const [worldIdReason, setWorldIdReason] = useState<VerificationReason>("general")
   const [addStoreStep, setAddStoreStep] = useState<AddStoreStep>("location")
   const [isSubmittingStore, setIsSubmittingStore] = useState(false)
   const [isResolvingStoreLocation, setIsResolvingStoreLocation] = useState(false)
@@ -85,12 +80,6 @@ export function MainUI() {
   const [selectedStoreLocation, setSelectedStoreLocation] = useState<UserLocation | null>(null)
   const [units, setUnits] = useState<'metric' | 'imperial'>('metric')
   const { captureMode, setCaptureMode } = useCaptureMode()
-  const {
-    enabled: isWorldIdEnabled,
-    verified: isWorldIdVerified,
-    action: worldIdAction,
-    refresh: refreshWorldIdStatus,
-  } = useWorldIdStatus(isMiniKitReady)
   const [, forceMapStatsRender] = useState(0)
 
   // Shared station data state (persists across tab switches)
@@ -563,12 +552,6 @@ export function MainUI() {
   }
 
   const handleOpenSubmitPage = () => {
-    if (isWorldIdEnabled && !isWorldIdVerified) {
-      setWorldIdReason("submit_price")
-      setIsWorldIdSheetOpen(true)
-      return
-    }
-
     // Open overlay immediately without closing drawer
     setIsSubmitPageOpen(true)
     // Keep selectedStation set so drawer stays in background
@@ -645,12 +628,6 @@ export function MainUI() {
   }
 
   const handleSubmitAddStore = async () => {
-    if (isWorldIdEnabled && !isWorldIdVerified) {
-      setWorldIdReason("add_store")
-      setIsWorldIdSheetOpen(true)
-      return
-    }
-
     if (!selectedStoreLocation) {
       setStoreError(t("map.addStoreErrors.locationUnavailable"))
       return
@@ -869,19 +846,6 @@ export function MainUI() {
         setUnits={setUnits}
         captureMode={captureMode}
         setCaptureMode={setCaptureMode}
-      />
-
-      <WorldIdVerificationSheet
-        isOpen={isWorldIdSheetOpen}
-        onClose={() => setIsWorldIdSheetOpen(false)}
-        onVerified={async () => {
-          await refreshWorldIdStatus()
-          if (worldIdReason === "submit_price") {
-            setIsSubmitPageOpen(true)
-          }
-        }}
-        reason={worldIdReason}
-        action={worldIdAction}
       />
 
       <BottomSheet

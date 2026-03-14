@@ -3,12 +3,10 @@
 import { useEffect, useMemo, useState } from "react"
 import { useTranslations } from "next-intl"
 import { useSession } from "next-auth/react"
-import { BadgeCheck, Loader2, Settings } from "lucide-react"
+import { Loader2, Settings } from "lucide-react"
 import { MiniKit } from "@worldcoin/minikit-js"
 import type { Abi } from "viem"
 import { StickyActionBar } from "@/components/mobile"
-import { WorldIdVerificationSheet } from "@/components/WorldIdVerificationSheet"
-import { useWorldIdStatus } from "@/hooks/useWorldIdStatus"
 import { isWorldDevBypassEnabled } from "@/lib/world-dev"
 import type { PoiProposal } from "@/types"
 
@@ -59,14 +57,6 @@ export function WalletTab({ onOpenSettings, captureMode = false }: WalletTabProp
   const [claimError, setClaimError] = useState<string | null>(null)
   const [proposals, setProposals] = useState<PoiProposal[]>([])
   const [isLoadingProposals, setIsLoadingProposals] = useState(true)
-  const [isWorldIdSheetOpen, setIsWorldIdSheetOpen] = useState(false)
-  const {
-    enabled: isWorldIdEnabled,
-    verified: isWorldIdVerified,
-    action: worldIdAction,
-    refresh: refreshWorldIdStatus,
-  } = useWorldIdStatus(Boolean(session?.user?.walletAddress))
-
   const miniKitInstalled = (() => {
     try {
       return MiniKit.isInstalled()
@@ -254,29 +244,6 @@ export function WalletTab({ onOpenSettings, captureMode = false }: WalletTabProp
             </div>
           </section>
 
-          {isWorldIdEnabled ? (
-            <section className="rounded-[28px] border border-black/5 bg-white px-5 py-5 shadow-sm">
-              <div className="flex items-start gap-3">
-                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${isWorldIdVerified ? "bg-green-100 text-green-700" : "bg-[var(--valor-bg-soft)] text-[#1C1C1E]"}`}>
-                  <BadgeCheck className="h-6 w-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-base text-[#1C1C1E]">{t("worldId.walletTitle")}</h2>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {isWorldIdVerified ? t("worldId.verifiedDetail") : t("worldId.walletDescription")}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsWorldIdSheetOpen(true)}
-                className={`mt-4 min-h-12 w-full rounded-2xl px-4 text-sm ${isWorldIdVerified ? "border border-green-200 bg-green-50 text-green-700" : "bg-black text-white active:scale-[0.99]"}`}
-              >
-                {isWorldIdVerified ? t("worldId.verified") : t("worldId.cta")}
-              </button>
-            </section>
-          ) : null}
-
           <section className="rounded-[28px] border border-black/5 bg-white px-4 py-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-2">
               <h2 className="text-base text-[#1C1C1E]">{t("walletTab.myProposals")}</h2>
@@ -352,15 +319,6 @@ export function WalletTab({ onOpenSettings, captureMode = false }: WalletTabProp
         ) : null}
       </StickyActionBar>
 
-      <WorldIdVerificationSheet
-        isOpen={isWorldIdSheetOpen}
-        onClose={() => setIsWorldIdSheetOpen(false)}
-        onVerified={async () => {
-          await refreshWorldIdStatus()
-        }}
-        reason="general"
-        action={worldIdAction}
-      />
     </div>
   )
 

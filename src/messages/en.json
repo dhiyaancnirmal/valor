@@ -107,12 +107,6 @@
     "language": "Language",
     "languageDesc": "Choose your language",
     "about": "About",
-    "findStations": "Find Gas Stations",
-    "findStationsDesc": "Use map to discover nearby gas stations. View real-time prices and locations to make informed decisions.",
-    "submitPrices": "Submit Prices",
-    "submitPricesDesc": "Share current gas prices to help other drivers. Each verified submission strengthens local price coverage.",
-    "earnRewards": "Contribution Quality",
-    "earnRewardsDesc": "Consistent, accurate submissions improve trust signals and visibility.",
     "version": "Version",
     "gotIt": "Got it"
   },
@@ -205,7 +199,7 @@
     },
     "grocery": {
       "chooseSubmissionType": "What are you submitting?",
-      "chooseSubmissionDetail": "Use a single item for a quick report, or fill the full staple basket.",
+      "chooseSubmissionDetail": "Single item or full basket.",
       "singleItem": "Single item",
       "singleItemDetail": "Report one standardized grocery item",
       "basket": "Basket",
@@ -257,8 +251,6 @@
     "loginDevMode": "Login (Dev Mode)",
     "openInWorldApp": "Please open this app in World App to authenticate",
     "signInStatement": "Sign in to Valor to submit gas prices",
-    "badge": "World Mini App",
-    "footer": "Built for World App mini-app flows with secure wallet sign-in.",
     "errors": {
       "openInWorldApp": "Please open this app in World App",
       "authFailed": "Authentication failed",
@@ -306,27 +298,6 @@
       "invalidName": "Please enter a valid store name",
       "invalidAddress": "Please enter a valid address",
       "submitFailed": "Could not submit store proposal"
-    }
-  },
-  "worldId": {
-    "walletTitle": "Human verification",
-    "walletDescription": "Verify with World ID before submitting prices or adding new stores.",
-    "verifyTitle": "Verify with World ID",
-    "verifyDescription": "Confirm you are a unique person before continuing.",
-    "verifyToSubmitTitle": "Verify before submitting",
-    "verifyToSubmitDescription": "World ID verification is required before submitting a new price.",
-    "verifyToAddStoreTitle": "Verify before adding a store",
-    "verifyToAddStoreDescription": "World ID verification is required before publishing a new store proposal.",
-    "verificationRequired": "Verification required",
-    "verified": "Verified with World ID",
-    "verifiedDetail": "You can now contribute without repeating this step on this device.",
-    "cta": "Verify now",
-    "preparing": "Preparing verification...",
-    "privacy": "World ID verifies uniqueness without revealing your identity to Valor. The app only stores a signed local verification state for your current wallet on this device.",
-    "errors": {
-      "prepareFailed": "Could not start World ID verification.",
-      "verifyFailed": "World ID verification failed.",
-      "flowFailed": "World ID flow failed: {code}"
     }
   },
   "units": {

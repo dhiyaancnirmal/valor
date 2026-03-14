@@ -6,8 +6,6 @@ import { useSession } from "next-auth/react"
 import { useLocale, useTranslations } from "next-intl"
 import { usePathname, useRouter } from "next/navigation"
 import { MobileScreen, StickyActionBar } from "@/components/mobile"
-import { WorldIdVerificationSheet } from "@/components/WorldIdVerificationSheet"
-import { useWorldIdStatus } from "@/hooks/useWorldIdStatus"
 import { calculateDistance, cn } from "@/lib/utils"
 import type { GasStation, UserLocation } from "@/types"
 import {
@@ -59,7 +57,6 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
   const [submittedFuelTypes, setSubmittedFuelTypes] = useState<string[]>([])
   const [currentUserLocation, setCurrentUserLocation] = useState<UserLocation | null>(userLocation)
   const [notice, setNotice] = useState<InlineNotice | null>(null)
-  const [isWorldIdSheetOpen, setIsWorldIdSheetOpen] = useState(false)
   const [isProposalFormOpen, setIsProposalFormOpen] = useState(false)
   const [proposalName, setProposalName] = useState("")
   const [proposalUnitLabel, setProposalUnitLabel] = useState("")
@@ -67,12 +64,6 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
   const [pendingProposals, setPendingProposals] = useState<GroceryProposalDraft[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const priceInputRef = useRef<HTMLInputElement>(null)
-  const {
-    enabled: isWorldIdEnabled,
-    verified: isWorldIdVerified,
-    action: worldIdAction,
-    refresh: refreshWorldIdStatus,
-  } = useWorldIdStatus(Boolean(session?.user?.walletAddress))
   const groceryCountry = getCountryFromLocale(locale)
   const isGroceryVenue = station.primaryCategory === "grocery_store" || station.submissionMode === "read_only"
   const groceryCatalog = useMemo(() => getGroceryCatalog(groceryCountry), [groceryCountry])
@@ -293,16 +284,6 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
   }
 
   const handleSubmit = async () => {
-    if (isWorldIdEnabled && !isWorldIdVerified) {
-      setNotice({
-        tone: "error",
-        title: t("worldId.verificationRequired"),
-        detail: t("worldId.verifyToSubmitDescription"),
-      })
-      setIsWorldIdSheetOpen(true)
-      return
-    }
-
     if (!canSubmit) {
       if (!currentUserLocation) {
         setNotice({
@@ -402,14 +383,6 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
       const result = await response.json()
 
       if (!response.ok) {
-        if (result.error === "worldIdVerificationRequired") {
-          setNotice({
-            tone: "error",
-            title: t("worldId.verificationRequired"),
-            detail: t("worldId.verifyToSubmitDescription"),
-          })
-          setIsWorldIdSheetOpen(true)
-        }
         throw new Error(result.error || "Submission failed")
       }
 
@@ -1101,20 +1074,6 @@ export default function PriceEntryPage({ station, userLocation, onSuccess, onClo
         ) : null}
       </div>
 
-      <WorldIdVerificationSheet
-        isOpen={isWorldIdSheetOpen}
-        onClose={() => setIsWorldIdSheetOpen(false)}
-        onVerified={async () => {
-          await refreshWorldIdStatus()
-          setNotice({
-            tone: "success",
-            title: t("worldId.verified"),
-            detail: t("worldId.verifiedDetail"),
-          })
-        }}
-        reason="submit_price"
-        action={worldIdAction}
-      />
     </MobileScreen>
   )
 }

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 import { calculateDistance } from "@/lib/utils"
-import { getWorldIdRequirementStatus, WORLD_ID_COOKIE_NAME } from "@/lib/world-id"
 
 type SubmissionRecord = {
   id: string
@@ -17,17 +16,6 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.walletAddress) {
       console.log("Unauthorized: no wallet address in session")
       return NextResponse.json({ error: "priceSubmission:errors.missingRequiredFields", message: "Unauthorized" }, { status: 401 })
-    }
-
-    const worldIdStatus = getWorldIdRequirementStatus(
-      request.cookies.get(WORLD_ID_COOKIE_NAME)?.value,
-      session.user.walletAddress
-    )
-    if (worldIdStatus.enabled && !worldIdStatus.verified) {
-      return NextResponse.json(
-        { error: "worldIdVerificationRequired", message: "World ID verification is required before submitting prices." },
-        { status: 403 }
-      )
     }
 
     // Parse form data

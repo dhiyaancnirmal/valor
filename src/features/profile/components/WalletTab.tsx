@@ -103,7 +103,6 @@ export function WalletTab({ onOpenSettings, captureMode = false }: WalletTabProp
 
   useEffect(() => {
     if (!session?.user?.walletAddress) {
-      setAccruedRewards(null)
       setIsLoadingRewards(false)
       return
     }
@@ -145,7 +144,6 @@ export function WalletTab({ onOpenSettings, captureMode = false }: WalletTabProp
 
   useEffect(() => {
     if (!session?.user?.walletAddress) {
-      setProposals([])
       setIsLoadingProposals(false)
       return
     }

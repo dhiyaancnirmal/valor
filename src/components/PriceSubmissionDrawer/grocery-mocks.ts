@@ -214,7 +214,7 @@ export function getGroceryDrawerSnapshot(stationId: string, country: GroceryCoun
             total: fallbackBasket.items.reduce((sum, itemId) => sum + (catalog.find((entry) => entry.id === itemId)?.lastKnownPrice ?? 0), 0),
             currency: fallbackItem.currency,
             itemCount: fallbackBasket.items.length,
-            submittedAtLabel: "Mock data",
+            submittedAtLabel: "Today",
           },
     }
   }
@@ -225,7 +225,7 @@ export function getGroceryDrawerSnapshot(stationId: string, country: GroceryCoun
       unitLabel: fallbackItem.unitLabel,
       price: fallbackItem.lastKnownPrice,
       currency: fallbackItem.currency,
-      submittedAtLabel: "Mock data",
+      submittedAtLabel: "Today",
     },
     latestBasket: latestBasket
       ? {
@@ -240,7 +240,7 @@ export function getGroceryDrawerSnapshot(stationId: string, country: GroceryCoun
           total: fallbackBasket.items.reduce((sum, itemId) => sum + (catalog.find((entry) => entry.id === itemId)?.lastKnownPrice ?? 0), 0),
           currency: fallbackItem.currency,
           itemCount: fallbackBasket.items.length,
-          submittedAtLabel: "Mock data",
+          submittedAtLabel: "Today",
         },
   }
 }

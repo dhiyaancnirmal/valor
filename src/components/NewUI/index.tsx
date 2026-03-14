@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useTranslations } from "next-intl"
 import { Map as MapIcon, Home, Wallet, Plus } from "lucide-react"
 import { AppleMapView, MapBounds, reverseGeocodeCoordinate } from "@/components/AppleMap"
@@ -314,41 +314,37 @@ export function MainUI() {
     return () => { cancelled = true }
   }, [])
 
-  useEffect(() => {
-    // Only start loading location after MiniKit is ready
-    if (!isMiniKitReady) return
+  const fetchNearbyVenues = useCallback(async (location: UserLocation) => {
+    try {
+      const cacheKey = [
+        "nearby",
+        location.latitude.toFixed(4),
+        location.longitude.toFixed(4),
+        DEFAULT_RADIUS_METERS,
+        MAP_CATEGORIES.join(","),
+      ].join(":")
 
-    const fetchNearbyVenues = async (location: UserLocation) => {
-      try {
-        const cacheKey = [
-          "nearby",
-          location.latitude.toFixed(4),
-          location.longitude.toFixed(4),
-          DEFAULT_RADIUS_METERS,
-          MAP_CATEGORIES.join(","),
-        ].join(":")
+      const result = await fetchMapSearch(
+        "/api/maps/search-nearby",
+        {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          radiusMeters: DEFAULT_RADIUS_METERS,
+          categories: MAP_CATEGORIES,
+        },
+        cacheKey
+      )
 
-        const result = await fetchMapSearch(
-          "/api/maps/search-nearby",
-          {
-            latitude: location.latitude,
-            longitude: location.longitude,
-            radiusMeters: DEFAULT_RADIUS_METERS,
-            categories: MAP_CATEGORIES,
-          },
-          cacheKey
-        )
-
-        const venues = result.stations.map((item) => mapToVenue(item, location))
-        setMapVenues(venues)
-        setLoading(false)
-      } catch (error) {
-        console.error("Error fetching nearby places", error)
-        setLoading(false)
-      }
+      const venues = result.stations.map((item) => mapToVenue(item, location))
+      setMapVenues(venues)
+      setLoading(false)
+    } catch (error) {
+      console.error("Error fetching nearby places", error)
+      setLoading(false)
     }
+  }, [])
 
-    // Get user location
+  useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -377,7 +373,7 @@ export function MainUI() {
       }
       setTimeout(() => setLoading(false), 0)
     }
-  }, [isMiniKitReady]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchNearbyVenues])
 
   // Handle map bounds changes for dynamic loading (debounced)
   const handleBoundsChanged = async (center: UserLocation, bounds: MapBounds) => {
